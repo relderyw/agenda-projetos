@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw } from 'lucide-react'
+import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX } from 'lucide-react'
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from './data'
 import type { Activity, Theme, User, Tab, HenkatenEvent } from './types'
 import AtividadesTab from './components/AtividadesTab'
@@ -24,10 +24,11 @@ export default function App() {
   const [themes, setThemes] = useState<Theme[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [henkatens, setHenkatens] = useState<HenkatenEvent[]>([])
-  const [loading, setLoading] = useState(true)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     return (localStorage.getItem('theme') as ThemeMode) || 'dark'
-  })
+  });
 
   // Apply Auth Persist
   useEffect(() => {
@@ -164,9 +165,28 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {/* ── Mobile Header ── */}
+      <header className="mobile-header">
+        <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(true)}>
+          <Menu size={24} />
+        </button>
+        <div className="logo-text" style={{ textAlign: 'center' }}>
+          <span className="logo-subtitle">Projetos 103Ki</span>
+        </div>
+        <div style={{ width: 24 }} /> {/* Spacer */}
+      </header>
+
+      {/* ── Mobile Overlay ── */}
+      {isMobileMenuOpen && (
+        <div className="sidebar-overlay" onClick={() => setIsMobileMenuOpen(false)} />
+      )}
+
       {/* ── Sidebar ── */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="logo">
+          <button className="mobile-menu-btn close-sidebar" onClick={() => setIsMobileMenuOpen(false)} style={{ position: 'absolute', right: '1rem', top: '1rem', display: 'none' }}>
+            <IconX size={20} />
+          </button>
           <div className="logo-circle-wrapper">
             <img 
               src="https://costalog.com.br/wp-content/uploads/2024/12/lsl-transportes.webp" 
@@ -185,7 +205,10 @@ export default function App() {
             <button
               key={item.key}
               className={`nav-item ${activeTab === item.key ? 'active' : ''}`}
-              onClick={() => setActiveTab(item.key)}
+              onClick={() => {
+                setActiveTab(item.key);
+                setIsMobileMenuOpen(false); // Close on click
+              }}
             >
               <span className="nav-icon">{item.icon}</span>
               <span>{item.label}</span>

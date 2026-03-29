@@ -165,6 +165,8 @@ function ActivityCard({
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function KanbanTab({ activities, themes, users }: Props) {
+  const [showManagement, setShowManagement] = useState(false);
+
   const today = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
@@ -189,7 +191,12 @@ export default function KanbanTab({ activities, themes, users }: Props) {
 
   // Lookup maps
   const themeMap = useMemo(() => Object.fromEntries(themes.map(t => [t.id, t])), [themes])
-  const userMap  = useMemo(() => Object.fromEntries(users.map(u => [u.id, u])),  [users])
+  
+  // Filtro de usuários para as raias do Kanban
+  const filteredUsers = useMemo(() => {
+    if (showManagement) return users;
+    return users.filter(u => u.role !== 'Administrador' && u.role !== 'Gestão');
+  }, [users, showManagement]);
 
   // Filter activities for this week
   const weekActs = useMemo(() => {
@@ -205,7 +212,7 @@ export default function KanbanTab({ activities, themes, users }: Props) {
 
   // Group by user → by day
   const byUser = useMemo(() => {
-    return users.map(user => {
+    return filteredUsers.map(user => {
       const userActs = weekActs.filter(a => a.responsavel === user.id)
       const byDay = days.map(day => {
         const dStr = formatDate(day.date)
@@ -222,7 +229,7 @@ export default function KanbanTab({ activities, themes, users }: Props) {
       const done  = userActs.filter(a => a.status === 'FINALIZADA').length
       return { user, byDay, total, done }
     })
-  }, [users, weekActs, days])
+  }, [filteredUsers, weekActs, days])
 
   const isCurrentWeek = weekOffset === 0
 
@@ -278,6 +285,16 @@ export default function KanbanTab({ activities, themes, users }: Props) {
         </div>
 
         <div className="kb-week-nav">
+          <div className="management-toggle" style={{ marginRight: '1rem' }}>
+            <label className="toggle-label">
+              <input 
+                type="checkbox" 
+                checked={showManagement} 
+                onChange={() => setShowManagement(!showManagement)} 
+              />
+              <span className="toggle-text">Ver Gestão</span>
+            </label>
+          </div>
           <button className={`kb-nav-btn ${autoScroll ? 'kb-nav-today-active' : ''}`} onClick={() => setAutoScroll(!autoScroll)} title="Scroll Automático">
             {autoScroll ? <Pause size={18} /> : <Play size={18} />}
           </button>

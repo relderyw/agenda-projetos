@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   CheckCircle2, Clock, AlertCircle, TrendingUp,
   Users, BarChart2, Target
@@ -13,6 +13,8 @@ interface Props {
 }
 
 export default function DashboardTab({ currentUser, activities, themes, users }: Props) {
+  const [showManagement, setShowManagement] = useState(false);
+
   const stats = useMemo(() => {
     const total = activities.length;
     const finalizadas = activities.filter(a => a.status === 'FINALIZADA').length;
@@ -23,8 +25,14 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
     return { total, finalizadas, pendentes, emAndamento, atrasadas, avgProgress };
   }, [activities]);
 
+  // Filtro de usuários (Ocultar Admin/Gestão por padrão)
+  const filteredUsers = useMemo(() => {
+    if (showManagement) return users;
+    return users.filter(u => u.role !== 'Administrador' && u.role !== 'Gestão');
+  }, [users, showManagement]);
+
   // Por responsável
-  const byUser = useMemo(() => users.map(u => {
+  const byUser = useMemo(() => filteredUsers.map(u => {
     const acts = activities.filter(a => a.responsavel === u.id);
     const done = acts.filter(a => a.status === 'FINALIZADA').length;
     const total = acts.length;
@@ -32,7 +40,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
     const pending = acts.filter(a => a.status === 'PENDENTE').length;
     const late = acts.filter(a => a.diasEsperadosConclusao < 0 && a.status !== 'FINALIZADA').length;
     return { user: u, total, done, pending, late, pct };
-  }), [activities, users]);
+  }), [activities, filteredUsers]);
 
   // Por tema
   const byTheme = useMemo(() => {
@@ -69,6 +77,16 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
           <h1 className="tab-title">Dashboard</h1>
           <p className="tab-subtitle">Visão geral das atividades</p>
         </div>
+        <div className="management-toggle">
+          <label className="toggle-label">
+            <input 
+              type="checkbox" 
+              checked={showManagement} 
+              onChange={() => setShowManagement(!showManagement)} 
+            />
+            <span className="toggle-text">Ver Administradores / Gestão</span>
+          </label>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -85,10 +103,15 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
         {/* Por Responsável */}
         <div className="dash-card">
           <div className="dash-card-header">
-            <Users size={18} />
-            <h3>Por Responsável</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Users size={18} />
+                <h3>Por Responsável</h3>
+              </div>
+            </div>
           </div>
           <div className="user-stats">
+            {byUser.length === 0 && <p className="empty-state">Nenhum responsável filtrado</p>}
             {byUser.map(({ user, total, done, pending, late, pct }) => (
               <div key={user.id} className="user-stat-row">
                 <div className="user-stat-header">

@@ -93,6 +93,13 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
   const [modal, setModal] = useState<{ open: boolean; editing: Activity | null }>({ open: false, editing: null });
   const [form, setForm] = useState<Omit<Activity, 'id'>>(empty());
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [showManagement, setShowManagement] = useState(false);
+
+  // Filtrar usuários para dropdowns e lógica de exibição
+  const filteredUsers = useMemo(() => {
+    if (showManagement) return users;
+    return users.filter(u => u.role !== 'Administrador' && u.role !== 'Gestão');
+  }, [users, showManagement]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -109,7 +116,13 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
       const matchResp = filterResp === 'all' || a.responsavel === filterResp;
       const matchStatus = filterStatus === 'all' || a.status === filterStatus;
       const matchPrio = filterPrio === 'all' || a.prioridade === filterPrio;
-      return matchSearch && matchResp && matchStatus && matchPrio;
+      
+      // Se não estiver mostrando gestão, ocultar atividades atribuídas a eles se o filtro de resp. for 'all'
+      const u = users.find(usr => usr.id === a.responsavel);
+      const isManagement = u?.role === 'Administrador' || u?.role === 'Gestão';
+      const matchManagement = showManagement || !isManagement;
+
+      return matchSearch && matchResp && matchStatus && matchPrio && matchManagement;
     });
 
     if (!sortKey) return f;
@@ -197,7 +210,17 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
           <h1 className="tab-title">Atividades</h1>
           <p className="tab-subtitle">{filteredAndSorted.length} de {activities.length} atividades</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <div className="management-toggle">
+            <label className="toggle-label">
+              <input 
+                type="checkbox" 
+                checked={showManagement} 
+                onChange={() => setShowManagement(!showManagement)} 
+              />
+              <span className="toggle-text">Ver Gestão</span>
+            </label>
+          </div>
           {currentUser?.role === 'Administrador' && (
             <button className="btn-ghost" onClick={exportCSV} title="Exportar para Excel (CSV)">
               <Download size={18} /> Baixar Excel
@@ -229,7 +252,7 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
           <div className="select-wrap">
             <select value={filterResp} onChange={e => setFilterResp(e.target.value)}>
               <option value="all">Todos responsáveis</option>
-              {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              {filteredUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
             <ChevronDown size={14} className="sel-icon" />
           </div>
@@ -387,7 +410,7 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
                   <div className="select-wrap full-w">
                     <select value={form.responsavel} onChange={e => setForm(f => ({ ...f, responsavel: e.target.value }))}>
                       <option value="">Selecione...</option>
-                      {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                      {filteredUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                     </select>
                     <ChevronDown size={14} className="sel-icon" />
                   </div>
