@@ -167,13 +167,15 @@ export default function App() {
       {/* ── Sidebar ── */}
       <aside className="sidebar">
         <div className="logo">
-          <img
-            src="https://costalog.com.br/wp-content/uploads/2024/12/lsl-transportes.webp"
-            alt="LSL Transportes"
-            className="logo-img"
-          />
+          <div className="logo-circle-wrapper">
+            <img 
+              src="https://costalog.com.br/wp-content/uploads/2024/12/lsl-transportes.webp" 
+              alt="LSL" 
+              className="logo-img-circle" 
+            />
+          </div>
           <div className="logo-text">
-            <span className="logo-title">Gerenciamento</span>
+            <span className="logo-title">LSL Transportes</span>
             <span className="logo-subtitle">Projetos 103Ki</span>
           </div>
         </div>
@@ -230,6 +232,10 @@ export default function App() {
               <span className="sf-val">{activities.filter(a => a.status === 'PENDENTE').length}</span>
               <span className="sf-lbl">Pendentes</span>
             </div>
+          </div>
+          <div className="cloud-status-badge">
+            <div className="cloud-dot pulse"></div>
+            <span>Sistema em Nuvem (Automático)</span>
           </div>
         </div>
       </aside>
