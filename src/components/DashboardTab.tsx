@@ -1,0 +1,187 @@
+import { useMemo } from 'react';
+import {
+  CheckCircle2, Clock, AlertCircle, TrendingUp,
+  Users, BarChart2, Target
+} from 'lucide-react';
+import type { Activity, Theme, User } from '../types';
+
+interface Props {
+  currentUser: User | null;
+  activities: Activity[];
+  themes: Theme[];
+  users: User[];
+}
+
+export default function DashboardTab({ currentUser, activities, themes, users }: Props) {
+  const stats = useMemo(() => {
+    const total = activities.length;
+    const finalizadas = activities.filter(a => a.status === 'FINALIZADA').length;
+    const pendentes = activities.filter(a => a.status === 'PENDENTE').length;
+    const emAndamento = activities.filter(a => a.status === 'EM ANDAMENTO').length;
+    const atrasadas = activities.filter(a => a.diasEsperadosConclusao < 0 && a.status !== 'FINALIZADA').length;
+    const avgProgress = total > 0 ? Math.round(activities.reduce((s, a) => s + a.percentualAndamento, 0) / total) : 0;
+    return { total, finalizadas, pendentes, emAndamento, atrasadas, avgProgress };
+  }, [activities]);
+
+  // Por responsável
+  const byUser = useMemo(() => users.map(u => {
+    const acts = activities.filter(a => a.responsavel === u.id);
+    const done = acts.filter(a => a.status === 'FINALIZADA').length;
+    const total = acts.length;
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    const pending = acts.filter(a => a.status === 'PENDENTE').length;
+    const late = acts.filter(a => a.diasEsperadosConclusao < 0 && a.status !== 'FINALIZADA').length;
+    return { user: u, total, done, pending, late, pct };
+  }), [activities, users]);
+
+  // Por tema
+  const byTheme = useMemo(() => {
+    const map: Record<string, { count: number; done: number }> = {};
+    activities.forEach(a => {
+      if (!map[a.tema]) map[a.tema] = { count: 0, done: 0 };
+      map[a.tema].count++;
+      if (a.status === 'FINALIZADA') map[a.tema].done++;
+    });
+    return Object.entries(map).map(([tid, v]) => ({
+      theme: themes.find(t => t.id === tid),
+      ...v,
+      pct: Math.round((v.done / v.count) * 100),
+    })).sort((a, b) => b.count - a.count);
+  }, [activities, themes]);
+
+  // Por semana
+  const byWeek = useMemo(() => {
+    const map: Record<string, { total: number; done: number }> = {};
+    activities.forEach(a => {
+      if (!a.week) return;
+      if (!map[a.week]) map[a.week] = { total: 0, done: 0 };
+      map[a.week].total++;
+      if (a.status === 'FINALIZADA') map[a.week].done++;
+    });
+    return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([week, v]) => ({ week, ...v, pct: Math.round((v.done / v.total) * 100) }));
+  }, [activities]);
+
+  return (
+    <div className="tab-content">
+      <div className="tab-header">
+        <div>
+          <h1 className="tab-title">Dashboard</h1>
+          <p className="tab-subtitle">Visão geral das atividades</p>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="kpi-grid">
+        <KpiCard icon={<BarChart2 size={22} />} color="blue" label="Total de Atividades" value={stats.total} />
+        <KpiCard icon={<CheckCircle2 size={22} />} color="green" label="Finalizadas" value={stats.finalizadas} sub={`${stats.total > 0 ? Math.round((stats.finalizadas / stats.total) * 100) : 0}% do total`} />
+        <KpiCard icon={<AlertCircle size={22} />} color="red" label="Pendentes" value={stats.pendentes} />
+        <KpiCard icon={<Clock size={22} />} color="amber" label="Em Andamento" value={stats.emAndamento} />
+        <KpiCard icon={<Target size={22} />} color="rose" label="Atrasadas" value={stats.atrasadas} />
+        <KpiCard icon={<TrendingUp size={22} />} color="purple" label="Progresso Médio" value={`${stats.avgProgress}%`} />
+      </div>
+
+      <div className="dash-two-col">
+        {/* Por Responsável */}
+        <div className="dash-card">
+          <div className="dash-card-header">
+            <Users size={18} />
+            <h3>Por Responsável</h3>
+          </div>
+          <div className="user-stats">
+            {byUser.map(({ user, total, done, pending, late, pct }) => (
+              <div key={user.id} className="user-stat-row">
+                <div className="user-stat-header">
+                  <div className="user-chip">
+                    <span className="user-avatar" style={{ background: user.color }}>{user.name[0]}</span>
+                    <span>{user.name}</span>
+                  </div>
+                  <div className="user-stat-nums">
+                    <span className="stat-pill green">{done} ✓</span>
+                    <span className="stat-pill red">{pending} pend.</span>
+                    {late > 0 && <span className="stat-pill orange">{late} atras.</span>}
+                  </div>
+                </div>
+                <div className="stat-progress-row">
+                  <div className="prog-bar">
+                    <div className="prog-fill" style={{ width: `${pct}%`, background: user.color }} />
+                  </div>
+                  <span className="prog-label">{pct}% ({total} ativ.)</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Por Semana */}
+        <div className="dash-card">
+          <div className="dash-card-header">
+            <BarChart2 size={18} />
+            <h3>Progresso por Semana</h3>
+          </div>
+          <div className="week-bars">
+            {byWeek.map(({ week, total, done, pct }) => (
+              <div key={week} className="week-row">
+                <span className="week-label">{week}</span>
+                <div className="prog-bar week-prog">
+                  <div
+                    className="prog-fill"
+                    style={{
+                      width: `${pct}%`,
+                      background: pct === 100 ? '#10b981' : pct >= 50 ? '#3b82f6' : '#f59e0b'
+                    }}
+                  />
+                </div>
+                <span className="week-nums">{done}/{total}</span>
+                <span className="week-pct">{pct}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Por Tema */}
+      <div className="dash-card">
+        <div className="dash-card-header">
+          <Target size={18} />
+          <h3>Por Tema</h3>
+        </div>
+        <div className="theme-grid-list">
+          {byTheme.map(({ theme, count, done, pct }) => (
+            theme && (
+              <div key={theme.id} className="theme-stat-card">
+                <div className="theme-stat-top">
+                  <span className="theme-dot" style={{ background: theme.color }} />
+                  <span className="theme-name-txt">{theme.name}</span>
+                  <span className="theme-count">{count} ativ.</span>
+                </div>
+                <div className="prog-bar" style={{ marginTop: '0.5rem' }}>
+                  <div className="prog-fill" style={{ width: `${pct}%`, background: theme.color }} />
+                </div>
+                <div className="theme-stat-bottom">
+                  <span>{done} finalizadas</span>
+                  <span className="theme-pct">{pct}%</span>
+                </div>
+              </div>
+            )
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KpiCard({ icon, color, label, value, sub }: {
+  icon: React.ReactNode; color: string; label: string; value: string | number; sub?: string;
+}) {
+  return (
+    <div className={`kpi-card kpi-${color}`}>
+      <div className="kpi-icon">{icon}</div>
+      <div className="kpi-info">
+        <span className="kpi-label">{label}</span>
+        <span className="kpi-value">{value}</span>
+        {sub && <span className="kpi-sub">{sub}</span>}
+      </div>
+    </div>
+  );
+}
