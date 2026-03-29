@@ -1610,69 +1610,92 @@
 /* ── Login Layer ── */
 .login-wrapper {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  inset: 0;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 10000;
+  padding: 20px;
+}
+.login-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  pointer-events: none;
 }
 .login-box {
-  background: var(--bg-card);
+  background: #ffffff;
   padding: 44px;
   width: 100%;
   max-width: 440px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
   box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+}
+.login-logo {
+  height: 38px;
+  margin-bottom: 24px;
+  object-fit: contain;
+  display: block;
 }
 .login-title {
   margin-top: 0;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #1b1b1b;
 }
 .login-error {
-  color: #ef4444;
+  background: #fdf2f2;
+  color: #c81e1e;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 0.85rem;
   margin-bottom: 16px;
-  font-size: 0.9rem;
+  border: 1px solid #fecaca;
 }
 .login-input {
   width: 100%;
-  padding: 8px 0;
+  padding: 10px 0;
   border: none;
-  border-bottom: 1px solid var(--border-color);
-  background: transparent;
-  color: var(--text-primary);
-  font-size: 1rem;
+  border-bottom: 1px solid #666;
+  background: #fff !important;
+  color: #1b1b1b !important;
+  font-size: 0.95rem;
   outline: none;
   transition: border-color 0.2s;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 .login-input:focus {
-  border-bottom-color: #0067b8;
+  border-bottom: 2px solid #0067b8;
+  margin-bottom: 7px;
 }
 .login-footer {
-  margin-top: 24px;
+  margin-top: 16px;
 }
 .login-forgot {
-  color: #0067b8;
-  font-size: 0.85rem;
-  margin-bottom: 24px;
+  color: #666;
+  font-size: 0.82rem;
+  margin-bottom: 32px;
+  line-height: 1.5;
+  display: block;
 }
 .login-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
 }
 .login-btn-next {
   background: #0067b8;
   color: #fff;
   border: none;
-  padding: 8px 32px;
+  padding: 8px 36px;
   font-size: 0.95rem;
+  font-weight: 400;
   cursor: pointer;
   transition: background 0.2s;
 }

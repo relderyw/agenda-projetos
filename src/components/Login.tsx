@@ -24,6 +24,11 @@ export default function Login({ users, onLogin }: Props) {
   return (
     <div className="login-wrapper" style={{ backgroundImage: 'url(https://aadcdn.msftauthimages.net/dbd5a2dd-bgnnldy-7ijls5ee8eoflamoplaldujcou5i9bz81ce/logintenantbranding/0/illustration?ts=636089560069128108)' }}>
       <div className="login-box">
+        <img 
+          src="https://costalog.com.br/wp-content/uploads/2024/12/lsl-transportes.webp" 
+          alt="LSL Logo" 
+          className="login-logo" 
+        />
         <h2 className="login-title">Entrar</h2>
         {error && <div className="login-error">{error}</div>}
         <form onSubmit={handleSubmit} className="login-form">
@@ -35,6 +40,7 @@ export default function Login({ users, onLogin }: Props) {
               onChange={e => setUsername(e.target.value)} 
               required 
               className="login-input"
+              autoComplete="username"
             />
           </div>
           <div className="form-group" style={{ marginBottom: 0 }}>
@@ -45,10 +51,11 @@ export default function Login({ users, onLogin }: Props) {
               onChange={e => setPassword(e.target.value)} 
               required 
               className="login-input"
+              autoComplete="current-password"
             />
           </div>
           <div className="login-footer">
-            <p className="login-forgot">Não tem uma conta configurada? Contate a gestão.</p>
+            <span className="login-forgot">Não tem uma conta configurada? <br/>Contate a gestão para liberar seu acesso.</span>
             <div className="login-actions">
               <button type="submit" className="login-btn-next">Entrar</button>
             </div>
