@@ -22,7 +22,7 @@ export default function Login({ users, onLogin }: Props) {
   };
 
   return (
-    <div className="login-wrapper" style={{ backgroundImage: 'url(https://costalog.com.br/wp-content/uploads/2024/12/fundo-lsl.webp)' }}>
+    <div className="login-wrapper" style={{ backgroundImage: 'url(https://aadcdn.msftauthimages.net/dbd5a2dd-bgnnldy-7ijls5ee8eoflamoplaldujcou5i9bz81ce/logintenantbranding/0/illustration?ts=636089560069128108)' }}>
       <div className="login-box">
         <img 
           src="https://costalog.com.br/wp-content/uploads/2024/12/lsl-transportes.webp" 
@@ -30,7 +30,7 @@ export default function Login({ users, onLogin }: Props) {
           className="login-logo" 
         />
         <h2 className="login-title">Projetos 103Ki</h2>
-        <p className="login-subtitle">Controle de Atividades Industriais</p>
+        <p className="login-subtitle">Gerenciamento de atividades</p>
         
         {error && <div className="login-error">{error}</div>}
         
