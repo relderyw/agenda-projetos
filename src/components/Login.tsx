@@ -22,20 +22,23 @@ export default function Login({ users, onLogin }: Props) {
   };
 
   return (
-    <div className="login-wrapper" style={{ backgroundImage: 'url(https://aadcdn.msftauthimages.net/dbd5a2dd-bgnnldy-7ijls5ee8eoflamoplaldujcou5i9bz81ce/logintenantbranding/0/illustration?ts=636089560069128108)' }}>
+    <div className="login-wrapper" style={{ backgroundImage: 'url(https://costalog.com.br/wp-content/uploads/2024/12/fundo-lsl.webp)' }}>
       <div className="login-box">
         <img 
           src="https://costalog.com.br/wp-content/uploads/2024/12/lsl-transportes.webp" 
           alt="LSL Logo" 
           className="login-logo" 
         />
-        <h2 className="login-title">Entrar</h2>
+        <h2 className="login-title">Projetos 103Ki</h2>
+        <p className="login-subtitle">Controle de Atividades Industriais</p>
+        
         {error && <div className="login-error">{error}</div>}
+        
         <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="login-input-group">
             <input 
               type="text" 
-              placeholder="Usuário (ex: reldery_assuncao)" 
+              placeholder="Usuário" 
               value={username} 
               onChange={e => setUsername(e.target.value)} 
               required 
@@ -43,7 +46,7 @@ export default function Login({ users, onLogin }: Props) {
               autoComplete="username"
             />
           </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="login-input-group">
             <input 
               type="password" 
               placeholder="Senha" 
@@ -55,9 +58,12 @@ export default function Login({ users, onLogin }: Props) {
             />
           </div>
           <div className="login-footer">
-            <span className="login-forgot">Não tem uma conta configurada? <br/>Contate a gestão para liberar seu acesso.</span>
+            <span className="login-forgot">
+              Não tem uma conta? <br/>
+              Contate a gestão para liberar seu acesso.
+            </span>
             <div className="login-actions">
-              <button type="submit" className="login-btn-next">Entrar</button>
+              <button type="submit" className="login-btn-next">Entrar no Sistema</button>
             </div>
           </div>
         </form>
