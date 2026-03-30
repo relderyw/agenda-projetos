@@ -259,29 +259,28 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
             <Users size={18} />
             <h3>Performance por Analista</h3>
           </div>
-          <div className="analyst-column-chart custom-scrollbar">
+          <div className="analyst-bar-chart">
             {byUser.map(({ user, total, done, pct }) => (
-              <div key={user.id} className="analyst-capsule">
-                <div className="capsule-header">
-                  <span className="capsule-pct">{pct}%</span>
+              <div key={user.id} className="analyst-bar-col">
+                <span className="analyst-bar-pct">{pct}%</span>
+                <div className="analyst-bar-track">
+                  <div
+                    className="analyst-bar-fill"
+                    style={{ height: `${pct}%`, background: user.color }}
+                  />
                 </div>
-                <div className="capsule-track">
-                  <div className="capsule-fill" style={{ height: `${pct}%`, background: `linear-gradient(to bottom, ${user.color}, ${user.color}dd)` }}>
-                    <div className="capsule-shine"></div>
-                  </div>
+                <div className="analyst-bar-avatar" style={{ background: user.color }}>
+                  {user.name[0]}
                 </div>
-                <div className="capsule-footer">
-                  <div className="capsule-avatar" style={{ background: user.color }}>{user.name[0]}</div>
-                  <span className="capsule-name">{user.name.split(' ')[0]}</span>
-                  <span className="capsule-total">{total} ativ.</span>
-                </div>
+                <span className="analyst-bar-name">{user.name.split(' ')[0]}</span>
+                <span className="analyst-bar-total">{done}/{total}</span>
               </div>
             ))}
-            {byUser.length === 0 && <p className="empty-state-msg">Nenhum analista encontrado no período selecionado.</p>}
+            {byUser.length === 0 && <p className="empty-state-msg">Nenhum analista no período.</p>}
           </div>
           <div className="analyst-legend">
-            <span className="leg-item"><i className="leg-dot chart-plano" /> Planejado</span>
-            <span className="leg-item"><i className="leg-dot chart-real" /> Concluído</span>
+            <span className="leg-item"><span className="leg-dot" style={{background:'#64748b'}} /> Total</span>
+            <span className="leg-item"><span className="leg-dot" style={{background:'var(--primary-color)'}} /> Concluído</span>
           </div>
         </div>
 
@@ -311,25 +310,36 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
           
           <div className="monthly-chart-section">
             <h4 className="chart-title-sm">Desempenho Anual (Fiscal Year 26/27)</h4>
-            <div className="monthly-grid">
-              {monthlyData.map(m => {
-                const maxVal = Math.max(m.plano, m.real, m.extra, 1);
-                return (
-                  <div key={m.month} className="monthly-col">
-                    <div className="monthly-bars">
-                      <div className="m-bar chart-plano" style={{ height: `${(m.plano / maxVal) * 100}%` }} title={`Plano: ${m.plano}`} />
-                      <div className="m-bar chart-real" style={{ height: `${(m.real / maxVal) * 100}%` }} title={`Real: ${m.real}`} />
-                      <div className="m-bar chart-extra" style={{ height: `${(m.extra / maxVal) * 100}%` }} title={`Extra: ${m.extra}`} />
+            <div className="monthly-scroll-wrap">
+              <div className="monthly-grid-new">
+                {(() => {
+                  const globalMax = Math.max(...monthlyData.flatMap(m => [m.plano, m.real, m.extra]), 1);
+                  return monthlyData.map(m => (
+                    <div key={m.month} className="monthly-col-new">
+                      <div className="monthly-bars-new">
+                        <div className="m-bar-wrap">
+                          <span className="m-bar-lbl">{m.plano > 0 ? m.plano : ''}</span>
+                          <div className="m-bar-new chart-plano" style={{ height: `${(m.plano / globalMax) * 100}%` }} />
+                        </div>
+                        <div className="m-bar-wrap">
+                          <span className="m-bar-lbl">{m.real > 0 ? m.real : ''}</span>
+                          <div className="m-bar-new chart-real" style={{ height: `${(m.real / globalMax) * 100}%` }} />
+                        </div>
+                        <div className="m-bar-wrap">
+                          <span className="m-bar-lbl">{m.extra > 0 ? m.extra : ''}</span>
+                          <div className="m-bar-new chart-extra" style={{ height: `${(m.extra / globalMax) * 100}%` }} />
+                        </div>
+                      </div>
+                      <span className="month-lbl-new">{m.month}</span>
                     </div>
-                    <span className="month-lbl">{m.month.split('/')[0]}</span>
-                  </div>
-                );
-              })}
+                  ));
+                })()}
+              </div>
             </div>
-            <div className="chart-legend">
-              <span className="leg-item"><i className="leg-dot chart-plano" /> Plano</span>
-              <span className="leg-item"><i className="leg-dot chart-real" /> Real</span>
-              <span className="leg-item"><i className="leg-dot chart-extra" /> Extra Fluxo</span>
+            <div className="chart-legend-new">
+              <span className="leg-item"><span className="leg-dot chart-plano" /> Plano</span>
+              <span className="leg-item"><span className="leg-dot chart-real" /> Real</span>
+              <span className="leg-item"><span className="leg-dot chart-extra" /> Extra Fluxo</span>
             </div>
           </div>
         </div>
