@@ -1521,6 +1521,8 @@
   background: var(--bg-input-alt);
   border: 1px solid var(--border);
   transition: transform 0.15s, box-shadow 0.15s;
+  position: relative;
+  overflow: hidden;
 }
 
 .hk-badge:hover {
