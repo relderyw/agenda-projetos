@@ -15,6 +15,7 @@ export const dbService = {
   async saveTheme(theme: Omit<Theme, 'id'> | Theme) {
     if (!isCloudEnabled) return
     const { data, error } = await supabase.from('themes').upsert(theme).select()
+    if (error) console.error("Save Theme Error", error)
     return { data, error }
   },
   async deleteTheme(id: string) {
@@ -32,6 +33,7 @@ export const dbService = {
   async saveUser(user: Omit<User, 'id'> | User) {
     if (!isCloudEnabled) return
     const { data, error } = await supabase.from('users').upsert(user).select()
+    if (error) console.error("Save User Error", error)
     return { data, error }
   },
   async deleteUser(id: string) {
@@ -44,21 +46,44 @@ export const dbService = {
     if (!isCloudEnabled) return defaultActivities
     const { data, error } = await supabase.from('activities').select('*').order('planejamento', { ascending: true })
     if (error) { console.error('GetActivities Error:', error); return defaultActivities }
-    return data || []
+    
+    // Mapear de snake_case para camelCase
+    return (data || []).map(row => {
+      const act = { ...row } as any;
+      if (act.data_prevista_finalizacao !== undefined) act.dataPrevistaFinalizacao = act.data_prevista_finalizacao;
+      if (act.percentual_andamento !== undefined) act.percentualAndamento = act.percentual_andamento;
+      if (act.data_finalizada !== undefined) act.dataFinalizada = act.data_finalizada;
+      if (act.esforco_realizado !== undefined) act.esforcoRealizado = act.esforco_realizado;
+      if (act.dias_esperados_conclusao !== undefined) act.diasEsperadosConclusao = act.dias_esperados_conclusao;
+
+      delete act.data_prevista_finalizacao;
+      delete act.percentual_andamento;
+      delete act.data_finalizada;
+      delete act.esforco_realizado;
+      delete act.dias_esperados_conclusao;
+      return act;
+    });
   },
   async saveActivity(act: Omit<Activity, 'id'> | Activity) {
     if (!isCloudEnabled) return
     
     // Mapear camelCase para snake_case do Supabase
-    const dbPayload = {
-      ...act,
-      data_prevista_finalizacao: (act as any).dataPrevistaFinalizacao,
-      percentual_andamento: (act as any).percentualAndamento,
-      data_finalizada: (act as any).dataFinalizada,
-      esforco_realizado: (act as any).esforcoRealizado
-    };
+    const dbPayload = { ...act } as any;
+    dbPayload.data_prevista_finalizacao = (act as any).dataPrevistaFinalizacao;
+    dbPayload.percentual_andamento = (act as any).percentualAndamento;
+    dbPayload.data_finalizada = (act as any).dataFinalizada;
+    dbPayload.esforco_realizado = (act as any).esforcoRealizado;
+    dbPayload.dias_esperados_conclusao = (act as any).diasEsperadosConclusao;
+    
+    // Remover chaves camelCase para não dar erro Schema no Supabase
+    delete dbPayload.dataPrevistaFinalizacao;
+    delete dbPayload.percentualAndamento;
+    delete dbPayload.dataFinalizada;
+    delete dbPayload.esforcoRealizado;
+    delete dbPayload.diasEsperadosConclusao;
 
     const { data, error } = await supabase.from('activities').upsert(dbPayload).select()
+    if (error) console.error("Save Activity Error", error)
     return { data, error }
   },
   async deleteActivity(id: string) {
@@ -71,11 +96,29 @@ export const dbService = {
     if (!isCloudEnabled) return defaultHenkatens
     const { data, error } = await supabase.from('henkatens').select('*').order('date', { ascending: true })
     if (error) { console.error('GetHenkatens Error:', error); return defaultHenkatens }
-    return data || []
+    
+    return (data || []).map(row => {
+      const evt = { ...row } as any;
+      if (evt.end_date !== undefined) evt.endDate = evt.end_date;
+      if (evt.postponed_date !== undefined) evt.postponedDate = evt.postponed_date;
+      
+      delete evt.end_date;
+      delete evt.postponed_date;
+      return evt;
+    });
   },
   async saveHenkaten(evt: Omit<HenkatenEvent, 'id'> | HenkatenEvent) {
     if (!isCloudEnabled) return
-    const { data, error } = await supabase.from('henkatens').upsert(evt).select()
+    
+    const dbPayload = { ...evt } as any;
+    if (dbPayload.endDate !== undefined) dbPayload.end_date = dbPayload.endDate;
+    if (dbPayload.postponedDate !== undefined) dbPayload.postponed_date = dbPayload.postponedDate;
+    
+    delete dbPayload.endDate;
+    delete dbPayload.postponedDate;
+
+    const { data, error } = await supabase.from('henkatens').upsert(dbPayload).select()
+    if (error) console.error("Save Henkaten Error", error)
     return { data, error }
   },
   async deleteHenkaten(id: string) {
