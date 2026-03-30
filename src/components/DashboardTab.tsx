@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   CheckCircle2, Clock, AlertCircle, TrendingUp,
-  Users, BarChart2, Target
+  Users, BarChart2, Target, Play, Pause, FastForward
 } from 'lucide-react';
 import type { Activity, Theme, User } from '../types';
 
@@ -14,6 +14,37 @@ interface Props {
 
 export default function DashboardTab({ currentUser, activities, themes, users }: Props) {
   const [showManagement, setShowManagement] = useState(false);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const [scrollSpeed, setScrollSpeed] = useState(1);
+
+  // Lógica de Auto-scroll para Apresentação
+  useEffect(() => {
+    if (!isScrolling) return;
+
+    const scrollContainer = document.querySelector('.main-content');
+    if (!scrollContainer) return;
+
+    let direction = 1;
+    const interval = setInterval(() => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      
+      if (scrollTop + clientHeight >= scrollHeight - 10) {
+        direction = -1; // Sobe
+      } else if (scrollTop <= 10) {
+        direction = 1; // Desce
+      }
+
+      scrollContainer.scrollBy({
+        top: direction * scrollSpeed,
+        behavior: 'auto'
+      });
+    }, 50);
+
+    return () => clearInterval(interval);
+  }, [isScrolling, scrollSpeed]);
+
+  const toggleScroll = () => setIsScrolling(!isScrolling);
+  const cycleSpeed = () => setScrollSpeed(prev => prev === 3 ? 1 : prev + 1);
 
   const stats = useMemo(() => {
     const total = activities.length;
@@ -81,15 +112,34 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
           <h1 className="tab-title">Resultados Industriais</h1>
           <p className="tab-subtitle">Monitoramento de performance da equipe LSL</p>
         </div>
-        <div className="management-toggle">
-          <label className="toggle-label">
-            <input 
-              type="checkbox" 
-              checked={showManagement} 
-              onChange={() => setShowManagement(!showManagement)} 
-            />
-            <span className="toggle-text">Ver Administradores / Gestão</span>
-          </label>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div className="management-toggle">
+            <label className="toggle-label">
+              <input 
+                type="checkbox" 
+                checked={showManagement} 
+                onChange={() => setShowManagement(!showManagement)} 
+              />
+              <span className="toggle-text">Ver Gestão</span>
+            </label>
+          </div>
+          
+          <button 
+            className={`scroll-ctrl-btn ${isScrolling ? 'active' : ''}`}
+            onClick={toggleScroll}
+            title={isScrolling ? 'Pausar Rolagem' : 'Iniciar Apresentação'}
+          >
+            {isScrolling ? <Pause size={18} /> : <Play size={18} />}
+          </button>
+
+          <button 
+            className="scroll-ctrl-btn"
+            onClick={cycleSpeed}
+            title="Ajustar Velocidade (1x, 2x, 3x)"
+          >
+            <FastForward size={18} />
+            <span style={{ fontSize: '0.7rem', fontWeight: '800' }}>{scrollSpeed}x</span>
+          </button>
         </div>
       </div>
 
