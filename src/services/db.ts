@@ -48,7 +48,17 @@ export const dbService = {
   },
   async saveActivity(act: Omit<Activity, 'id'> | Activity) {
     if (!isCloudEnabled) return
-    const { data, error } = await supabase.from('activities').upsert(act).select()
+    
+    // Mapear camelCase para snake_case do Supabase
+    const dbPayload = {
+      ...act,
+      data_prevista_finalizacao: (act as any).dataPrevistaFinalizacao,
+      percentual_andamento: (act as any).percentualAndamento,
+      data_finalizada: (act as any).dataFinalizada,
+      esforco_realizado: (act as any).esforcoRealizado
+    };
+
+    const { data, error } = await supabase.from('activities').upsert(dbPayload).select()
     return { data, error }
   },
   async deleteActivity(id: string) {
@@ -123,10 +133,10 @@ export const dbService = {
         tema: themeId,
         responsavel: userId,
         prioridade: a.prioridade,
-        dataPrevistaFinalizacao: a.dataPrevistaFinalizacao,
-        percentualAndamento: a.percentualAndamento,
-        dataFinalizada: a.dataFinalizada,
-        esforcoRealizado: a.esforcoRealizado,
+        data_prevista_finalizacao: a.dataPrevistaFinalizacao,
+        percentual_andamento: a.percentualAndamento,
+        data_finalizada: a.dataFinalizada,
+        esforco_realizado: a.esforcoRealizado,
         status: a.status,
         week: a.week
       });
