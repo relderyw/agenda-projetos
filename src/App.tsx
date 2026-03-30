@@ -127,8 +127,8 @@ export default function App() {
   }
 
   const navItemsRaw: { key: Tab; label: string; icon: React.ReactNode }[] = [
-    { key: 'atividades', label: 'Atividades',  icon: <ListTodo size={20} /> },
     { key: 'kanban',     label: 'Programação', icon: <Kanban size={20} /> },
+    { key: 'atividades', label: 'Atividades',  icon: <ListTodo size={20} /> },
     { key: 'dashboard',  label: 'Dashboard',   icon: <LayoutDashboard size={20} /> },
     { key: 'henkatens',  label: 'Henkatens',   icon: <Calendar size={20} /> },
     { key: 'cadastros',  label: 'Cadastros',   icon: <BookOpen size={20} /> },
