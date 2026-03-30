@@ -21,7 +21,11 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
     const pendentes = activities.filter(a => a.status === 'PENDENTE').length;
     const emAndamento = activities.filter(a => a.status === 'EM ANDAMENTO').length;
     const atrasadas = activities.filter(a => a.diasEsperadosConclusao < 0 && a.status !== 'FINALIZADA').length;
-    const avgProgress = total > 0 ? Math.round(activities.reduce((s, a) => s + a.percentualAndamento, 0) / total) : 0;
+    
+    // Garantir que percentualAndamento seja número antes de reduzir para evitar NaN
+    const validProgress = activities.map(a => Number(a.percentualAndamento) || 0);
+    const avgProgress = total > 0 ? Math.round(validProgress.reduce((s, p) => s + p, 0) / total) : 0;
+    
     return { total, finalizadas, pendentes, emAndamento, atrasadas, avgProgress };
   }, [activities]);
 
@@ -40,7 +44,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
     const pending = acts.filter(a => a.status === 'PENDENTE').length;
     const late = acts.filter(a => a.diasEsperadosConclusao < 0 && a.status !== 'FINALIZADA').length;
     return { user: u, total, done, pending, late, pct };
-  }), [activities, filteredUsers]);
+  }).sort((a,b) => b.total - a.total), [activities, filteredUsers]);
 
   // Por tema
   const byTheme = useMemo(() => {
@@ -71,11 +75,11 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
   }, [activities]);
 
   return (
-    <div className="tab-content">
+    <div className="tab-content dashboard-revamp">
       <div className="tab-header">
         <div>
-          <h1 className="tab-title">Dashboard</h1>
-          <p className="tab-subtitle">Visão geral das atividades</p>
+          <h1 className="tab-title">Resultados Industriais</h1>
+          <p className="tab-subtitle">Monitoramento de performance da equipe LSL</p>
         </div>
         <div className="management-toggle">
           <label className="toggle-label">
@@ -89,14 +93,13 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* KPI Section with Glass Effect */}
       <div className="kpi-grid">
-        <KpiCard icon={<BarChart2 size={22} />} color="blue" label="Total de Atividades" value={stats.total} />
-        <KpiCard icon={<CheckCircle2 size={22} />} color="green" label="Finalizadas" value={stats.finalizadas} sub={`${stats.total > 0 ? Math.round((stats.finalizadas / stats.total) * 100) : 0}% do total`} />
-        <KpiCard icon={<AlertCircle size={22} />} color="red" label="Pendentes" value={stats.pendentes} />
-        <KpiCard icon={<Clock size={22} />} color="amber" label="Em Andamento" value={stats.emAndamento} />
-        <KpiCard icon={<Target size={22} />} color="rose" label="Atrasadas" value={stats.atrasadas} />
-        <KpiCard icon={<TrendingUp size={22} />} color="purple" label="Progresso Médio" value={`${stats.avgProgress}%`} />
+        <KpiCard icon={<BarChart2 size={24} />} color="blue" label="Total" value={stats.total} />
+        <KpiCard icon={<CheckCircle2 size={24} />} color="green" label="Finalizadas" value={stats.finalizadas} sub={`${stats.total > 0 ? Math.round((stats.finalizadas / stats.total) * 100) : 0}% de conclusão`} />
+        <KpiCard icon={<AlertCircle size={24} />} color="red" label="Pendentes" value={stats.pendentes} />
+        <KpiCard icon={<Clock size={24} />} color="amber" label="Em Andamento" value={stats.emAndamento} />
+        <KpiCard icon={<TrendingUp size={24} />} color="purple" label="Performance" value={`${stats.avgProgress}%`} />
       </div>
 
       <div className="dash-two-col">

@@ -20,7 +20,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : null
   })
 
-  const [activeTab, setActiveTab] = useState<Tab>('atividades')
+  const [activeTab, setActiveTab] = useState<Tab>('kanban')
   const [activities, setActivities] = useState<Activity[]>([])
   const [themes, setThemes] = useState<Theme[]>([])
   const [users, setUsers] = useState<User[]>([])
@@ -28,7 +28,7 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
-    return (localStorage.getItem('theme') as ThemeMode) || 'dark'
+    return (localStorage.getItem('theme') as ThemeMode) || 'light'
   });
 
   // Apply Auth Persist
