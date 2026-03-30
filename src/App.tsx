@@ -66,13 +66,13 @@ export default function App() {
     }
   }, [])
 
-  // ── ONE-TIME MIGRATION TRIGGER ──
+  // ── ONE-TIME MIGRATION TRIGGER (V318 - FULL EXCEL) ──
   useEffect(() => {
     const runMigration = async () => {
-      const alreadyDone = localStorage.getItem('isMigrationDone')
+      const alreadyDone = localStorage.getItem('isMigrationDone_V318')
       if (alreadyDone === 'true') return;
       
-      console.log('🔄 Sincronizando dados oficiais do Excel com a Nuvem...');
+      console.log('🔄 Sincronizando dados definitivos do Excel (318 linhas) com a Nuvem...');
       const res = await dbService.performOneTimeMigration(
         MIGRATION_THEMES,
         MIGRATION_USERS,
@@ -80,8 +80,8 @@ export default function App() {
       );
       
       if (res.success) {
-        localStorage.setItem('isMigrationDone', 'true')
-        loadData(); // Reload to see new data
+        localStorage.setItem('isMigrationDone_V318', 'true')
+        loadData(); // Reload to see the 318 new tasks
       }
     };
     runMigration();
