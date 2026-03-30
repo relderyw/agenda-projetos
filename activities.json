@@ -1,598 +1,4 @@
-import type { Theme, User, Activity } from '../types';
-
-export const MIGRATION_THEMES: Omit<Theme, 'id'>[] = [
-  {
-    "name": "O/S 103Ki",
-    "color": "#3b82f6"
-  },
-  {
-    "name": "O/S K2G",
-    "color": "#8b5cf6"
-  },
-  {
-    "name": "Adequação L/O Format. Carros",
-    "color": "#10b981"
-  },
-  {
-    "name": "Alt. de embalagem Eixo",
-    "color": "#f59e0b"
-  },
-  {
-    "name": "Pendências INFRA",
-    "color": "#ef4444"
-  },
-  {
-    "name": "Extra Fluxo",
-    "color": "#06b6d4"
-  },
-  {
-    "name": "Pintura DCC",
-    "color": "#f97316"
-  },
-  {
-    "name": "P.P Dinâmico CQ",
-    "color": "#ec4899"
-  },
-  {
-    "name": "Pintura Hines",
-    "color": "#6366f1"
-  },
-  {
-    "name": "Transf. Dep. F",
-    "color": "#14b8a6"
-  },
-  {
-    "name": "T&P",
-    "color": "#84cc16"
-  },
-  {
-    "name": "P.P DINÂMICO - NAC",
-    "color": "#a855f7"
-  },
-  {
-    "name": "Desvert. AXAL",
-    "color": "#3b82f6"
-  },
-  {
-    "name": "Mapeamento de embalagem",
-    "color": "#8b5cf6"
-  },
-  {
-    "name": "Inventário de carros",
-    "color": "#10b981"
-  },
-  {
-    "name": "T&P P/ NM",
-    "color": "#f59e0b"
-  },
-  {
-    "name": "Confecção de carros",
-    "color": "#ef4444"
-  },
-  {
-    "name": "1.8 Mi",
-    "color": "#06b6d4"
-  },
-  {
-    "name": "Aro K3W/K3H/K99",
-    "color": "#f97316"
-  },
-  {
-    "name": "P.P DINÂMICO - CQ",
-    "color": "#ec4899"
-  },
-  {
-    "name": "Alt. K1SJ",
-    "color": "#6366f1"
-  },
-  {
-    "name": "Automação DCC",
-    "color": "#14b8a6"
-  },
-  {
-    "name": "Desocupação Dep. F",
-    "color": "#84cc16"
-  },
-  {
-    "name": "E2 porta palete dinâmico",
-    "color": "#a855f7"
-  },
-  {
-    "name": "Elab. Yamagomori",
-    "color": "#3b82f6"
-  },
-  {
-    "name": "Cadastro FSEMLOC",
-    "color": "#8b5cf6"
-  },
-  {
-    "name": "Dimensional",
-    "color": "#10b981"
-  },
-  {
-    "name": "Henkaten",
-    "color": "#f59e0b"
-  },
-  {
-    "name": "Retrovisor, Filtro do K2K",
-    "color": "#ef4444"
-  },
-  {
-    "name": "Diretoria",
-    "color": "#06b6d4"
-  },
-  {
-    "name": "Volumetria",
-    "color": "#f97316"
-  },
-  {
-    "name": "A proposta",
-    "color": "#ec4899"
-  },
-  {
-    "name": "Acompanhamento DCC",
-    "color": "#6366f1"
-  },
-  {
-    "name": "Área de controle",
-    "color": "#14b8a6"
-  },
-  {
-    "name": "AR-Comprimido",
-    "color": "#84cc16"
-  },
-  {
-    "name": "P.P Dinâmico",
-    "color": "#a855f7"
-  },
-  {
-    "name": "Bloco 209",
-    "color": "#3b82f6"
-  },
-  {
-    "name": "Bloco 108",
-    "color": "#8b5cf6"
-  },
-  {
-    "name": "PALM",
-    "color": "#10b981"
-  },
-  {
-    "name": "Mapeamento Nacional",
-    "color": "#f59e0b"
-  },
-  {
-    "name": "Mapeamento Importado",
-    "color": "#ef4444"
-  },
-  {
-    "name": "AMR",
-    "color": "#06b6d4"
-  },
-  {
-    "name": "Novos Modelos",
-    "color": "#f97316"
-  },
-  {
-    "name": "Item a Item",
-    "color": "#ec4899"
-  },
-  {
-    "name": "Bloco 207",
-    "color": "#6366f1"
-  },
-  {
-    "name": "Hines",
-    "color": "#14b8a6"
-  },
-  {
-    "name": "SALA DE MONITORAMENTO",
-    "color": "#84cc16"
-  },
-  {
-    "name": "Ajuste L/O DCC",
-    "color": "#a855f7"
-  },
-  {
-    "name": "P.S HINES",
-    "color": "#3b82f6"
-  }
-];
-
-export const MIGRATION_USERS: Omit<User, 'id'>[] = [
-  {
-    "name": "ALECSANDRA",
-    "username": "alecsandra",
-    "password": "123",
-    "role": "Analista",
-    "email": "alecsandra@lslgr.com.br",
-    "color": "#3b82f6",
-    "permissions": {
-      "atividades": {
-        "view": true,
-        "edit": true,
-        "delete": true
-      },
-      "henkatens": {
-        "view": true,
-        "edit": true,
-        "delete": false
-      },
-      "cadastros": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      },
-      "usuarios": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      }
-    }
-  },
-  {
-    "name": "DEOCLECIO",
-    "username": "deoclecio",
-    "password": "123",
-    "role": "Analista",
-    "email": "deoclecio@lslgr.com.br",
-    "color": "#8b5cf6",
-    "permissions": {
-      "atividades": {
-        "view": true,
-        "edit": true,
-        "delete": true
-      },
-      "henkatens": {
-        "view": true,
-        "edit": true,
-        "delete": false
-      },
-      "cadastros": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      },
-      "usuarios": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      }
-    }
-  },
-  {
-    "name": "EVELYN",
-    "username": "evelyn",
-    "password": "123",
-    "role": "Analista",
-    "email": "evelyn@lslgr.com.br",
-    "color": "#10b981",
-    "permissions": {
-      "atividades": {
-        "view": true,
-        "edit": true,
-        "delete": true
-      },
-      "henkatens": {
-        "view": true,
-        "edit": true,
-        "delete": false
-      },
-      "cadastros": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      },
-      "usuarios": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      }
-    }
-  },
-  {
-    "name": "FELIPE",
-    "username": "felipe",
-    "password": "123",
-    "role": "Analista",
-    "email": "felipe@lslgr.com.br",
-    "color": "#f59e0b",
-    "permissions": {
-      "atividades": {
-        "view": true,
-        "edit": true,
-        "delete": true
-      },
-      "henkatens": {
-        "view": true,
-        "edit": true,
-        "delete": false
-      },
-      "cadastros": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      },
-      "usuarios": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      }
-    }
-  },
-  {
-    "name": "GABRIELE",
-    "username": "gabriele",
-    "password": "123",
-    "role": "Analista",
-    "email": "gabriele@lslgr.com.br",
-    "color": "#ef4444",
-    "permissions": {
-      "atividades": {
-        "view": true,
-        "edit": true,
-        "delete": true
-      },
-      "henkatens": {
-        "view": true,
-        "edit": true,
-        "delete": false
-      },
-      "cadastros": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      },
-      "usuarios": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      }
-    }
-  },
-  {
-    "name": "GUSTAVO",
-    "username": "gustavo",
-    "password": "123",
-    "role": "Analista",
-    "email": "gustavo@lslgr.com.br",
-    "color": "#06b6d4",
-    "permissions": {
-      "atividades": {
-        "view": true,
-        "edit": true,
-        "delete": true
-      },
-      "henkatens": {
-        "view": true,
-        "edit": true,
-        "delete": false
-      },
-      "cadastros": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      },
-      "usuarios": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      }
-    }
-  },
-  {
-    "name": "HUDSON",
-    "username": "hudson",
-    "password": "123",
-    "role": "Analista",
-    "email": "hudson@lslgr.com.br",
-    "color": "#f97316",
-    "permissions": {
-      "atividades": {
-        "view": true,
-        "edit": true,
-        "delete": true
-      },
-      "henkatens": {
-        "view": true,
-        "edit": true,
-        "delete": false
-      },
-      "cadastros": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      },
-      "usuarios": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      }
-    }
-  },
-  {
-    "name": "JADERSON",
-    "username": "jaderson",
-    "password": "123",
-    "role": "Analista",
-    "email": "jaderson@lslgr.com.br",
-    "color": "#ec4899",
-    "permissions": {
-      "atividades": {
-        "view": true,
-        "edit": true,
-        "delete": true
-      },
-      "henkatens": {
-        "view": true,
-        "edit": true,
-        "delete": false
-      },
-      "cadastros": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      },
-      "usuarios": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      }
-    }
-  },
-  {
-    "name": "JOAO P",
-    "username": "joao_p",
-    "password": "123",
-    "role": "Analista",
-    "email": "joao_p@lslgr.com.br",
-    "color": "#6366f1",
-    "permissions": {
-      "atividades": {
-        "view": true,
-        "edit": true,
-        "delete": true
-      },
-      "henkatens": {
-        "view": true,
-        "edit": true,
-        "delete": false
-      },
-      "cadastros": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      },
-      "usuarios": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      }
-    }
-  },
-  {
-    "name": "JOAO V",
-    "username": "joao_v",
-    "password": "123",
-    "role": "Analista",
-    "email": "joao_v@lslgr.com.br",
-    "color": "#14b8a6",
-    "permissions": {
-      "atividades": {
-        "view": true,
-        "edit": true,
-        "delete": true
-      },
-      "henkatens": {
-        "view": true,
-        "edit": true,
-        "delete": false
-      },
-      "cadastros": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      },
-      "usuarios": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      }
-    }
-  },
-  {
-    "name": "LUCAS",
-    "username": "lucas",
-    "password": "123",
-    "role": "Analista",
-    "email": "lucas@lslgr.com.br",
-    "color": "#84cc16",
-    "permissions": {
-      "atividades": {
-        "view": true,
-        "edit": true,
-        "delete": true
-      },
-      "henkatens": {
-        "view": true,
-        "edit": true,
-        "delete": false
-      },
-      "cadastros": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      },
-      "usuarios": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      }
-    }
-  },
-  {
-    "name": "MARCOS V",
-    "username": "marcos_v",
-    "password": "123",
-    "role": "Analista",
-    "email": "marcos_v@lslgr.com.br",
-    "color": "#a855f7",
-    "permissions": {
-      "atividades": {
-        "view": true,
-        "edit": true,
-        "delete": true
-      },
-      "henkatens": {
-        "view": true,
-        "edit": true,
-        "delete": false
-      },
-      "cadastros": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      },
-      "usuarios": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      }
-    }
-  },
-  {
-    "name": "WILLIAN",
-    "username": "willian",
-    "password": "123",
-    "role": "Analista",
-    "email": "willian@lslgr.com.br",
-    "color": "#3b82f6",
-    "permissions": {
-      "atividades": {
-        "view": true,
-        "edit": true,
-        "delete": true
-      },
-      "henkatens": {
-        "view": true,
-        "edit": true,
-        "delete": false
-      },
-      "cadastros": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      },
-      "usuarios": {
-        "view": false,
-        "edit": false,
-        "delete": false
-      }
-    }
-  }
-];
-
-export const MIGRATION_ACTIVITIES: any[] = [
+[
   {
     "planejamento": "2026-03-09",
     "descricao": "Outsourcing - analise de área (Dep. Externo / DCC) - Consolidação dos itens (102 + 103KI)",
@@ -602,7 +8,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-10",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-11",
-    "esforcoRealizado": 2,
+    "esforcoRealizado": 2.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -615,7 +21,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-11",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 2,
+    "esforcoRealizado": 2.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -628,7 +34,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -641,7 +47,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-13",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -654,7 +60,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-16",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -667,7 +73,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-16",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -680,7 +86,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-17",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -693,7 +99,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-17",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -706,7 +112,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-19",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-18",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -719,7 +125,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-19",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-18",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -732,7 +138,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-19",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -745,7 +151,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-19",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -758,7 +164,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-24",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-23",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -771,7 +177,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-24",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-24",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -784,7 +190,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-25",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-25",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -797,7 +203,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-25",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-26",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -810,7 +216,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-27",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -823,7 +229,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-11",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 3,
+    "esforcoRealizado": 3.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -836,7 +242,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-10",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-11",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -849,7 +255,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -862,7 +268,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -875,7 +281,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-13",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -888,7 +294,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-13",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -901,7 +307,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-13",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -914,7 +320,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -927,7 +333,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -940,7 +346,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-19",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -953,7 +359,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-19",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -966,7 +372,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-24",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -979,7 +385,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-25",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -992,7 +398,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-26",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -1005,7 +411,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-09",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-14",
-    "esforcoRealizado": 5,
+    "esforcoRealizado": 5.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1018,7 +424,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-09",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 3,
+    "esforcoRealizado": 3.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1031,7 +437,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-10",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-11",
-    "esforcoRealizado": 2,
+    "esforcoRealizado": 2.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1044,7 +450,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-11",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-11",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1057,7 +463,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1070,7 +476,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-17",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -1083,7 +489,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-24",
-    "esforcoRealizado": 6,
+    "esforcoRealizado": 6.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -1096,7 +502,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-24",
-    "esforcoRealizado": 6,
+    "esforcoRealizado": 6.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -1109,7 +515,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-24",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -1122,7 +528,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-25",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -1135,7 +541,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -1148,7 +554,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 90,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": ""
   },
@@ -1161,7 +567,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 90,
     "dataFinalizada": "2026-03-27",
-    "esforcoRealizado": 4,
+    "esforcoRealizado": 4.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -1174,7 +580,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-27",
-    "esforcoRealizado": 3,
+    "esforcoRealizado": 3.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -1187,7 +593,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-28",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-24",
-    "esforcoRealizado": -4,
+    "esforcoRealizado": -4.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -1200,7 +606,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-10",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-10",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1213,7 +619,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1226,7 +632,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-14",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-14",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1239,7 +645,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-18",
-    "esforcoRealizado": 2,
+    "esforcoRealizado": 2.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -1252,7 +658,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-19",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-19",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -1265,7 +671,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -1278,7 +684,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -1291,7 +697,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -1304,7 +710,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-24",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-24",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -1317,7 +723,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-26",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-26",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -1330,7 +736,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-31",
     "percentualAndamento": 25,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -1343,7 +749,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-09",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-10",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1356,7 +762,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-11",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 3,
+    "esforcoRealizado": 3.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1369,7 +775,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-09",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-09",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1382,7 +788,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1395,7 +801,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -1408,7 +814,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -1421,7 +827,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -1434,7 +840,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -1447,7 +853,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-18",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -1460,7 +866,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-18",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -1473,7 +879,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-19",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-20",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -1486,7 +892,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-19",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-20",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -1499,7 +905,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-24",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-23",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -1512,7 +918,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-26",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-24",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -1525,7 +931,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-26",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-27",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -1538,7 +944,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-27",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -1551,7 +957,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-13",
-    "esforcoRealizado": 4,
+    "esforcoRealizado": 4.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1564,7 +970,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-14",
-    "esforcoRealizado": 2,
+    "esforcoRealizado": 2.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1577,7 +983,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -1590,7 +996,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 40,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -1603,7 +1009,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 60,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -1616,7 +1022,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -1629,7 +1035,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-13",
-    "esforcoRealizado": 4,
+    "esforcoRealizado": 4.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1642,7 +1048,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-10",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-11",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1655,7 +1061,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -1668,7 +1074,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -1681,7 +1087,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-19",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-20",
-    "esforcoRealizado": 4,
+    "esforcoRealizado": 4.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -1694,7 +1100,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-17",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -1707,7 +1113,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-19",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-20",
-    "esforcoRealizado": 2,
+    "esforcoRealizado": 2.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -1720,7 +1126,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-19",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -1733,7 +1139,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -1746,7 +1152,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -1759,7 +1165,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-25",
     "percentualAndamento": 15,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -1772,7 +1178,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-24",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -1785,7 +1191,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-26",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-24",
-    "esforcoRealizado": -1,
+    "esforcoRealizado": -1.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -1798,7 +1204,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -1811,7 +1217,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-25",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -1824,7 +1230,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-24",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-24",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -1837,7 +1243,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-13",
-    "esforcoRealizado": 4,
+    "esforcoRealizado": 4.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1850,7 +1256,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -1863,7 +1269,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-13",
-    "esforcoRealizado": 3,
+    "esforcoRealizado": 3.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1876,7 +1282,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -1889,7 +1295,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -1902,7 +1308,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -1915,7 +1321,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-25",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -1928,7 +1334,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -1941,7 +1347,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-10",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-10",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1954,7 +1360,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-10",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-10",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1967,7 +1373,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1980,7 +1386,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-11",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-11",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -1993,7 +1399,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-14",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-14",
-    "esforcoRealizado": 3,
+    "esforcoRealizado": 3.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -2006,7 +1412,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-17",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2019,7 +1425,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-17",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2032,7 +1438,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-18",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2045,7 +1451,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-19",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-19",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2058,7 +1464,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-18",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2071,7 +1477,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-18",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2084,7 +1490,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-18",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2097,7 +1503,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-18",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2110,7 +1516,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-18",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2123,7 +1529,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-18",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2136,7 +1542,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-18",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2149,7 +1555,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-18",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2162,7 +1568,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-20",
-    "esforcoRealizado": 2,
+    "esforcoRealizado": 2.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2175,7 +1581,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-18",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2188,7 +1594,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-23",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-23",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -2201,7 +1607,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-24",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-23",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -2214,7 +1620,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-24",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-23",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -2227,7 +1633,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-24",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-23",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -2240,7 +1646,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-25",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-24",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -2253,7 +1659,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-25",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-24",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -2266,7 +1672,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-25",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-24",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -2279,7 +1685,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-25",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-24",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -2292,7 +1698,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-25",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-24",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -2305,7 +1711,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-25",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-24",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -2318,7 +1724,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -2331,7 +1737,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-23",
-    "esforcoRealizado": -2,
+    "esforcoRealizado": -2.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -2344,7 +1750,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 40,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -2357,7 +1763,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -2370,7 +1776,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -2383,7 +1789,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -2396,7 +1802,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -2409,7 +1815,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-24",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-23",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -2422,7 +1828,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-24",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-23",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -2435,7 +1841,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-24",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-24",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -2448,7 +1854,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-09",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-09",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -2461,7 +1867,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-09",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-11",
-    "esforcoRealizado": 2,
+    "esforcoRealizado": 2.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -2474,7 +1880,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-09",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-11",
-    "esforcoRealizado": 2,
+    "esforcoRealizado": 2.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -2487,7 +1893,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-10",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -2500,7 +1906,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -2513,7 +1919,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -2526,7 +1932,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -2539,7 +1945,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-23",
-    "esforcoRealizado": 7,
+    "esforcoRealizado": 7.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2552,7 +1958,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-23",
-    "esforcoRealizado": 5,
+    "esforcoRealizado": 5.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2565,7 +1971,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-24",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-25",
-    "esforcoRealizado": 2,
+    "esforcoRealizado": 2.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -2578,7 +1984,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-25",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-26",
-    "esforcoRealizado": 2,
+    "esforcoRealizado": 2.0,
     "status": "FINALIZADA",
     "week": "W4 - Mar"
   },
@@ -2591,7 +1997,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-26",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -2604,7 +2010,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 50,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -2617,7 +2023,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-25",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-25",
-    "esforcoRealizado": -1,
+    "esforcoRealizado": -1.0,
     "status": "FINALIZADA",
     "week": ""
   },
@@ -2630,7 +2036,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -2643,7 +2049,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-10",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-10",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -2656,7 +2062,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-10",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-10",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -2669,7 +2075,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-11",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -2682,7 +2088,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 50,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -2695,7 +2101,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -2708,7 +2114,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -2721,7 +2127,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-13",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -2734,7 +2140,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-17",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2747,7 +2153,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-16",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-16",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2760,7 +2166,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -2773,7 +2179,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-17",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2786,7 +2192,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-19",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -2799,7 +2205,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -2812,7 +2218,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -2825,7 +2231,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-18",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-18",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2838,7 +2244,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-26",
     "percentualAndamento": 50,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -2851,7 +2257,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-23",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -2864,7 +2270,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-26",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -2877,7 +2283,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -2890,7 +2296,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-20",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W3 - Mar"
   },
@@ -2903,7 +2309,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-11",
     "percentualAndamento": 40,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -2916,7 +2322,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-10",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-10",
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -2929,7 +2335,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -2942,7 +2348,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -2955,7 +2361,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -2968,7 +2374,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -2981,7 +2387,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-13",
-    "esforcoRealizado": 1,
+    "esforcoRealizado": 1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -2994,7 +2400,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-14",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -3007,7 +2413,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": -1,
+    "esforcoRealizado": -1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -3020,7 +2426,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": -1,
+    "esforcoRealizado": -1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -3033,7 +2439,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-16",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -3046,7 +2452,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 90,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -3059,7 +2465,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-17",
     "percentualAndamento": 50,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -3072,7 +2478,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-25",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -3085,7 +2491,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-26",
     "percentualAndamento": 65,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -3098,7 +2504,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-09",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -3111,7 +2517,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-09",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -3124,7 +2530,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-10",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-12",
-    "esforcoRealizado": 3,
+    "esforcoRealizado": 3.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -3137,7 +2543,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-13",
     "percentualAndamento": 100,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W2 - Mar"
   },
@@ -3150,7 +2556,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-11",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-14",
-    "esforcoRealizado": 3,
+    "esforcoRealizado": 3.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -3163,7 +2569,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-12",
     "percentualAndamento": 100,
     "dataFinalizada": "2026-03-11",
-    "esforcoRealizado": -1,
+    "esforcoRealizado": -1.0,
     "status": "FINALIZADA",
     "week": "W2 - Mar"
   },
@@ -3176,7 +2582,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 10,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -3189,7 +2595,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -3202,7 +2608,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-20",
     "percentualAndamento": 50,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W3 - Mar"
   },
@@ -3215,7 +2621,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 80,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -3228,7 +2634,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-27",
     "percentualAndamento": 75,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W4 - Mar"
   },
@@ -3241,7 +2647,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-31",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3254,7 +2660,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-01",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3267,7 +2673,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3280,7 +2686,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-02",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3293,7 +2699,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3306,7 +2712,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3319,7 +2725,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-30",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3332,7 +2738,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-01",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3345,7 +2751,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-02",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3358,7 +2764,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3371,7 +2777,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-01",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3384,7 +2790,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-02",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3397,7 +2803,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3410,7 +2816,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-31",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3423,7 +2829,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-31",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3436,7 +2842,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-02",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3449,7 +2855,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3462,7 +2868,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3475,7 +2881,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-01",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3488,7 +2894,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-01",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3501,7 +2907,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-30",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3514,7 +2920,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-02",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3527,7 +2933,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3540,7 +2946,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3553,7 +2959,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-31",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3566,7 +2972,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-02",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3579,7 +2985,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3592,7 +2998,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-31",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3605,7 +3011,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-02",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3618,7 +3024,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3631,7 +3037,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-02",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3644,7 +3050,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3657,7 +3063,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-01",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3670,7 +3076,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3683,7 +3089,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3696,7 +3102,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": ""
   },
@@ -3709,7 +3115,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-30",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3722,7 +3128,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 70,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3735,7 +3141,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3748,7 +3154,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3761,7 +3167,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3774,7 +3180,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-01",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3787,7 +3193,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-03-31",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3800,7 +3206,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-02",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3813,7 +3219,7 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": "2026-04-03",
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": "W1 - Abr"
   },
@@ -3826,8 +3232,8 @@ export const MIGRATION_ACTIVITIES: any[] = [
     "dataPrevistaFinalizacao": null,
     "percentualAndamento": 0,
     "dataFinalizada": null,
-    "esforcoRealizado": 0,
+    "esforcoRealizado": 0.0,
     "status": "PENDENTE",
     "week": ""
   }
-];
+]
