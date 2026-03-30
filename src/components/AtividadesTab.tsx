@@ -58,17 +58,17 @@ const empty = (): Omit<Activity, 'id'> => ({
 
 // ── Sortable column header ─────────────────────────────────
 function SortTh({
-  label, sortKey, current, dir, onClick
+  label, sortKey, current, dir, onClick, resizable
 }: {
-  label: string; sortKey: SortKey; current: SortKey; dir: SortDir; onClick: (k: SortKey) => void;
+  label: string; sortKey: SortKey; current: SortKey; dir: SortDir; onClick: (k: SortKey) => void; resizable?: boolean;
 }) {
   const active = current === sortKey;
   return (
     <th
-      className={`sortable-th ${active ? 'sort-active' : ''}`}
+      className={`sortable-th ${active ? 'sort-active' : ''} ${resizable ? 'resizable-th' : ''}`}
       onClick={() => onClick(sortKey)}
     >
-      <div className="th-inner">
+      <div className={`th-inner ${resizable ? 'resizable-inner' : ''}`}>
         <span>{label}</span>
         <span className="sort-icon">
           {active
@@ -161,8 +161,50 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
 
   const handleSave = () => {
     if (!form.descricao.trim() || !form.responsavel || !form.tema) return;
-    if (modal.editing) onUpdate({ ...form, id: modal.editing.id });
-    else onAdd({ ...form, id: crypto.randomUUID() });
+    
+    const act = { ...form };
+    
+    // Calcular automaticamente a Week da data do planejamento
+    if (act.planejamento) {
+      // Usar Date baseada na string (split para evitar timezone timezone problems)
+      const [y, m, d] = act.planejamento.split('-').map(Number);
+      const planDate = new Date(y, m - 1, d);
+      
+      if (!isNaN(planDate.getTime())) {
+        const dayOfMonth = planDate.getDate();
+        const weekNum = Math.ceil(dayOfMonth / 7);
+        const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+        const monthStr = months[planDate.getMonth()];
+        act.week = `W${weekNum > 5 ? 5 : weekNum} - ${monthStr}`;
+      }
+    }
+
+    // Calcular Dias Esperados (Data Prevista - Planejamento)
+    if (act.planejamento && act.dataPrevistaFinalizacao) {
+      const [y1, m1, d1] = act.planejamento.split('-').map(Number);
+      const [y2, m2, d2] = act.dataPrevistaFinalizacao.split('-').map(Number);
+      const date1 = new Date(y1, m1 - 1, d1);
+      const date2 = new Date(y2, m2 - 1, d2);
+      const diffTime = date2.getTime() - date1.getTime();
+      act.diasEsperadosConclusao = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    } else {
+      act.diasEsperadosConclusao = 0;
+    }
+
+    // Calcular Esforço Realizado (Data Finalizada - Planejamento)
+    if (act.planejamento && act.dataFinalizada) {
+      const [y1, m1, d1] = act.planejamento.split('-').map(Number);
+      const [y2, m2, d2] = act.dataFinalizada.split('-').map(Number);
+      const date1 = new Date(y1, m1 - 1, d1);
+      const date2 = new Date(y2, m2 - 1, d2);
+      const diffTime = date2.getTime() - date1.getTime();
+      act.esforcoRealizado = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    } else {
+      act.esforcoRealizado = 0;
+    }
+
+    if (modal.editing) onUpdate({ ...act, id: modal.editing.id });
+    else onAdd({ ...act, id: crypto.randomUUID() });
     closeModal();
   };
 
@@ -271,7 +313,7 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
             <thead>
               <tr>
                 <SortTh label="Planejamento"       sortKey="planejamento"           {...thProps} />
-                <SortTh label="Descrição"           sortKey="descricao"              {...thProps} />
+                <SortTh label="Descrição"           sortKey="descricao"              {...thProps} resizable />
                 <SortTh label="Tema"                sortKey="tema"                   {...thProps} />
                 <SortTh label="Responsável"         sortKey="responsavel"            {...thProps} />
                 <SortTh label="Prioridade"          sortKey="prioridade"             {...thProps} />
@@ -437,24 +479,6 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
                     <Calendar size={15} />
                     <input type="date" value={form.dataFinalizada ?? ''} onChange={e => setForm(f => ({ ...f, dataFinalizada: e.target.value }))} />
                   </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Dias Esperados p/ Conclusão</label>
-                  <input type="number" value={form.diasEsperadosConclusao}
-                    onChange={e => setForm(f => ({ ...f, diasEsperadosConclusao: Number(e.target.value) }))} />
-                </div>
-
-                <div className="form-group">
-                  <label>Esforço Realizado (dias)</label>
-                  <input type="number" min={0} value={form.esforcoRealizado}
-                    onChange={e => setForm(f => ({ ...f, esforcoRealizado: Number(e.target.value) }))} />
-                </div>
-
-                <div className="form-group">
-                  <label>Week</label>
-                  <input type="text" placeholder="ex: W2 - Mar" value={form.week}
-                    onChange={e => setForm(f => ({ ...f, week: e.target.value }))} />
                 </div>
               </div>
             </div>
