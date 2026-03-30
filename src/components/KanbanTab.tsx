@@ -298,14 +298,17 @@ export default function KanbanTab({ activities, themes, users }: Props) {
               <span className="toggle-text">Ver Gestão</span>
             </label>
           </div>
-          <button className={`kb-nav-btn ${autoScroll ? 'kb-nav-today-active' : ''}`} onClick={() => setAutoScroll(!autoScroll)} title="Scroll Automático">
-            {autoScroll ? <Pause size={18} /> : <Play size={18} />}
-          </button>
-          {autoScroll && (
-            <button className="kb-nav-btn" onClick={() => setSpeed(s => s >= 3 ? 1 : s + 1)} title="Velocidade">
-              <FastForward size={16} /> {speed}x
+
+          <div className="presentation-bar">
+            <button className={`kb-nav-btn ${autoScroll ? 'kb-nav-today-active' : ''}`} onClick={() => setAutoScroll(!autoScroll)} title="Scroll Automático">
+              {autoScroll ? <Pause size={18} /> : <Play size={18} />}
             </button>
-          )}
+            {autoScroll && (
+              <button className="kb-nav-btn" onClick={() => setSpeed(s => s >= 3 ? 1 : s + 1)} title="Velocidade">
+                <FastForward size={16} /> {speed}x
+              </button>
+            )}
+          </div>
 
           <div style={{ width: '1px', height: '20px', background: 'var(--border-color)', margin: '0 0.5rem' }}></div>
 

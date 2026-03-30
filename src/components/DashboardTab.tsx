@@ -16,6 +16,11 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
   const [showManagement, setShowManagement] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(1);
+  
+  // Novos Filtros
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectedUser, setSelectedUser] = useState<string>('all');
 
   // Lógica de Auto-scroll para Apresentação
   useEffect(() => {
@@ -46,19 +51,32 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
   const toggleScroll = () => setIsScrolling(!isScrolling);
   const cycleSpeed = () => setScrollSpeed(prev => prev === 3 ? 1 : prev + 1);
 
+  const filteredActivities = useMemo(() => {
+    return activities.filter(a => {
+      const matchUser = selectedUser === 'all' || a.responsavel === selectedUser;
+      const matchStart = !startDate || a.planejamento >= startDate;
+      const matchEnd = !endDate || a.planejamento <= endDate;
+      return matchUser && matchStart && matchEnd;
+    });
+  }, [activities, selectedUser, startDate, endDate]);
+
   const stats = useMemo(() => {
-    const total = activities.length;
-    const finalizadas = activities.filter(a => a.status === 'FINALIZADA').length;
-    const pendentes = activities.filter(a => a.status === 'PENDENTE').length;
-    const emAndamento = activities.filter(a => a.status === 'EM ANDAMENTO').length;
-    const atrasadas = activities.filter(a => a.diasEsperadosConclusao < 0 && a.status !== 'FINALIZADA').length;
+    const total = filteredActivities.length;
+    const finalizadas = filteredActivities.filter(a => a.status === 'FINALIZADA').length;
+    const pendentes = filteredActivities.filter(a => a.status === 'PENDENTE').length;
+    const emAndamento = filteredActivities.filter(a => a.status === 'EM ANDAMENTO').length;
+    const today = new Date().toISOString().slice(0, 10);
+    const atrasadas = filteredActivities.filter(a => 
+      a.status !== 'FINALIZADA' && 
+      a.dataPrevistaFinalizacao && 
+      a.dataPrevistaFinalizacao < today
+    ).length;
     
-    // Garantir que percentualAndamento seja número antes de reduzir para evitar NaN
-    const validProgress = activities.map(a => Number(a.percentualAndamento) || 0);
+    const validProgress = filteredActivities.map(a => Number(a.percentualAndamento) || 0);
     const avgProgress = total > 0 ? Math.round(validProgress.reduce((s, p) => s + p, 0) / total) : 0;
     
     return { total, finalizadas, pendentes, emAndamento, atrasadas, avgProgress };
-  }, [activities]);
+  }, [filteredActivities]);
 
   // Filtro de usuários (Ocultar Admin/Gestão por padrão)
   const filteredUsers = useMemo(() => {
@@ -95,7 +113,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
   // Por semana
   const byWeek = useMemo(() => {
     const map: Record<string, { total: number; done: number }> = {};
-    activities.forEach(a => {
+    filteredActivities.forEach(a => {
       if (!a.week) return;
       if (!map[a.week]) map[a.week] = { total: 0, done: 0 };
       map[a.week].total++;
@@ -103,43 +121,137 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
     });
     return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]))
       .map(([week, v]) => ({ week, ...v, pct: Math.round((v.done / v.total) * 100) }));
-  }, [activities]);
+  }, [filteredActivities]);
+
+  // ── Rankings de Performance (Restrito à Gestão) ──
+  const topLateThemes = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const map: Record<string, number> = {};
+    activities.forEach(a => {
+      if (a.status !== 'FINALIZADA' && a.dataPrevistaFinalizacao && a.dataPrevistaFinalizacao < today) {
+        map[a.tema] = (map[a.tema] || 0) + 1;
+      }
+    });
+    return Object.entries(map)
+      .map(([tid, count]) => ({ theme: themes.find(t => t.id === tid), count }))
+      .sort((a,b) => b.count - a.count).slice(0, 5);
+  }, [activities, themes]);
+
+  const topLateUsers = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const map: Record<string, number> = {};
+    activities.forEach(a => {
+      if (a.status !== 'FINALIZADA' && a.dataPrevistaFinalizacao && a.dataPrevistaFinalizacao < today) {
+        map[a.responsavel] = (map[a.responsavel] || 0) + 1;
+      }
+    });
+    return Object.entries(map)
+      .map(([uid, count]) => ({ user: users.find(u => u.id === uid), count }))
+      .sort((a,b) => b.count - a.count).slice(0, 5);
+  }, [activities, users]);
+
+  const topDeliveryUsers = useMemo(() => {
+    const map: Record<string, number> = {};
+    activities.forEach(a => {
+      if (a.status === 'FINALIZADA') {
+        map[a.responsavel] = (map[a.responsavel] || 0) + 1;
+      }
+    });
+    return Object.entries(map)
+      .map(([uid, count]) => ({ user: users.find(u => u.id === uid), count }))
+      .sort((a,b) => b.count - a.count).slice(0, 5);
+  }, [activities, users]);
+
+  // ── Gráfico Anual (Abr 26 - Mar 27) ──
+  const monthlyData = useMemo(() => {
+    const months = [
+      { label: 'Abr/26', start: '2026-04-01', end: '2026-04-30' },
+      { label: 'Mai/26', start: '2026-05-01', end: '2026-05-31' },
+      { label: 'Jun/26', start: '2026-06-01', end: '2026-06-30' },
+      { label: 'Jul/26', start: '2026-07-01', end: '2026-07-31' },
+      { label: 'Ago/26', start: '2026-08-01', end: '2026-08-31' },
+      { label: 'Set/26', start: '2026-09-01', end: '2026-09-30' },
+      { label: 'Out/26', start: '2026-10-01', end: '2026-10-31' },
+      { label: 'Nov/26', start: '2026-11-01', end: '2026-11-30' },
+      { label: 'Dez/26', start: '2026-12-01', end: '2026-12-31' },
+      { label: 'Jan/27', start: '2027-01-01', end: '2027-01-31' },
+      { label: 'Fev/27', start: '2027-02-01', end: '2027-02-28' },
+      { label: 'Mar/27', start: '2027-03-01', end: '2027-03-31' }
+    ];
+
+    const extraFlowTheme = themes.find(t => t.name.toLowerCase().includes('extra fluxo'))?.id;
+
+    return months.map(m => {
+      const plano = activities.filter(a => a.planejamento >= m.start && a.planejamento <= m.end).length;
+      const real = activities.filter(a => a.status === 'FINALIZADA' && a.dataFinalizada && a.dataFinalizada >= m.start && a.dataFinalizada <= m.end).length;
+      const extra = activities.filter(a => a.tema === extraFlowTheme && a.planejamento >= m.start && a.planejamento <= m.end).length;
+      return { month: m.label, plano, real, extra };
+    });
+  }, [activities, themes]);
+
+  const isAdminOrGestao = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão';
 
   return (
     <div className="tab-content dashboard-revamp">
-      <div className="tab-header">
+      <div className="tab-header dashboard-header">
         <div>
-          <h1 className="tab-title">Resultados</h1>
-          <p className="tab-subtitle">Monitoramento de performance da equipe LSL</p>
+          <h1 className="tab-title">Gestão de Resultados</h1>
+          <p className="tab-subtitle">Performance e Monitoramento Tático LSL</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div className="management-toggle">
-            <label className="toggle-label">
-              <input 
-                type="checkbox" 
-                checked={showManagement} 
-                onChange={() => setShowManagement(!showManagement)} 
-              />
-              <span className="toggle-text">Ver Gestão</span>
-            </label>
-          </div>
-          
-          <button 
-            className={`scroll-ctrl-btn ${isScrolling ? 'active' : ''}`}
-            onClick={toggleScroll}
-            title={isScrolling ? 'Pausar Rolagem' : 'Iniciar Apresentação'}
-          >
-            {isScrolling ? <Pause size={18} /> : <Play size={18} />}
-          </button>
 
-          <button 
-            className="scroll-ctrl-btn"
-            onClick={cycleSpeed}
-            title="Ajustar Velocidade (1x, 2x, 3x)"
-          >
-            <FastForward size={18} />
-            <span style={{ fontSize: '0.7rem', fontWeight: '800' }}>{scrollSpeed}x</span>
-          </button>
+        <div className="dashboard-controls">
+          <div className="filter-group">
+            <div className="filter-item">
+              <label>Período</label>
+              <div className="date-inputs">
+                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                <span>até</span>
+                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+              </div>
+            </div>
+            <div className="filter-item">
+              <label>Responsável</label>
+              <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)}>
+                <option value="all">Todos os Analistas</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </select>
+            </div>
+            <button className="clear-filter" onClick={() => { setStartDate(''); setEndDate(''); setSelectedUser('all'); }}>Limpar</button>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div className="management-toggle">
+              <label className="toggle-label">
+                <input 
+                  type="checkbox" 
+                  checked={showManagement} 
+                  onChange={() => setShowManagement(!showManagement)} 
+                />
+                <span className="toggle-text">Ver Gestão</span>
+              </label>
+            </div>
+            
+            <div className="presentation-bar">
+              <button 
+                className={`scroll-ctrl-btn ${isScrolling ? 'active' : ''}`}
+                onClick={toggleScroll}
+                title={isScrolling ? 'Pausar Rolagem' : 'Iniciar Apresentação'}
+              >
+                {isScrolling ? <Pause size={18} /> : <Play size={18} />}
+              </button>
+
+              <button 
+                className="scroll-ctrl-btn"
+                onClick={cycleSpeed}
+                title="Ajustar Velocidade (1x, 2x, 3x)"
+              >
+                <FastForward size={18} />
+                <span style={{ fontSize: '0.7rem', fontWeight: '800' }}>{scrollSpeed}x</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -213,8 +325,70 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
               </div>
             ))}
           </div>
+          
+          <div className="monthly-chart-section">
+            <h4 className="chart-title-sm">Desempenho Anual (Fiscal Year 26/27)</h4>
+            <div className="monthly-grid">
+              {monthlyData.map(m => (
+                <div key={m.month} className="monthly-col">
+                  <div className="monthly-bars">
+                    <div className="m-bar plano" style={{ height: `${Math.min(100, m.plano * 5)}px` }} title={`Plano: ${m.plano}`} />
+                    <div className="m-bar real" style={{ height: `${Math.min(100, m.real * 5)}px` }} title={`Real: ${m.real}`} />
+                    <div className="m-bar extra" style={{ height: `${Math.min(100, m.extra * 5)}px` }} title={`Extra: ${m.extra}`} />
+                  </div>
+                  <span className="month-lbl">{m.month.split('/')[0]}</span>
+                </div>
+              ))}
+            </div>
+            <div className="chart-legend">
+              <span className="leg-item"><i className="leg-dot plano" /> Plano</span>
+              <span className="leg-item"><i className="leg-dot real" /> Real</span>
+              <span className="leg-item"><i className="leg-dot extra" /> Extra Fluxo</span>
+            </div>
+          </div>
         </div>
       </div>
+
+      {isAdminOrGestao && (
+        <div className="management-insights">
+          <div className="dash-card insight-card">
+            <div className="dash-card-header"><h3>Top Temas Atrasados</h3></div>
+            <div className="ranking-list">
+              {topLateThemes.map((t, i) => (
+                <div key={t.theme?.id} className="ranking-item">
+                  <span className="rank-num">{i+1}º</span>
+                  <span className="rank-name">{t.theme?.name}</span>
+                  <span className="rank-val red">{t.count} ativ.</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="dash-card insight-card">
+            <div className="dash-card-header"><h3>Gargalos por Analista (Atrasos)</h3></div>
+            <div className="ranking-list">
+              {topLateUsers.map((u, i) => (
+                <div key={u.user?.id} className="ranking-item">
+                  <span className="rank-num">{i+1}º</span>
+                  <span className="rank-name">{u.user?.name}</span>
+                  <span className="rank-val orange">{u.count} atrasos</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="dash-card insight-card">
+            <div className="dash-card-header"><h3>Top Performers (Entregas)</h3></div>
+            <div className="ranking-list">
+              {topDeliveryUsers.map((u, i) => (
+                <div key={u.user?.id} className="ranking-item">
+                  <span className="rank-num">{i+1}º</span>
+                  <span className="rank-name">{u.user?.name}</span>
+                  <span className="rank-val green">{u.count} finalizadas</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Por Tema */}
       <div className="dash-card">
