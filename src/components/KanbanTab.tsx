@@ -61,26 +61,6 @@ function weekRangeLabel(start: Date): string {
 }
 
 // ── Status chip ──────────────────────────────────────────────────────────────
-function StatusIcon({ status }: { status: Activity['status'] }) {
-  if (status === 'FINALIZADA')   return <CheckCircle2 size={11} />
-  if (status === 'EM ANDAMENTO') return <Clock size={11} />
-  if (status === 'PENDENTE')     return <AlertCircle size={11} />
-  return <Minus size={11} />
-}
-
-function statusClass(status: Activity['status']): string {
-  if (status === 'FINALIZADA')   return 'kb-status-done'
-  if (status === 'EM ANDAMENTO') return 'kb-status-prog'
-  return 'kb-status-pend'
-}
-
-function prioClass(p: Activity['prioridade']): string {
-  if (p === 'Alta')  return 'kb-prio-alta'
-  if (p === 'Média') return 'kb-prio-media'
-  return 'kb-prio-baixa'
-}
-
-// ── Card ─────────────────────────────────────────────────────────────────────
 function statusClassFront(displayStatusType: string): string {
   if (displayStatusType === 'done') return 'kb-status-done'
   if (displayStatusType === 'prog') return 'kb-status-prog'
@@ -93,6 +73,12 @@ function StatusIconFront({ type }: { type: string }) {
   if (type === 'prog') return <Clock size={11} />
   if (type === 'late') return <AlertCircle size={11} />
   return <Minus size={11} />
+}
+
+function prioClass(p: Activity['prioridade']): string {
+  if (p === 'Alta')  return 'kb-prio-alta'
+  if (p === 'Média') return 'kb-prio-media'
+  return 'kb-prio-baixa'
 }
 
 // ── Card ─────────────────────────────────────────────────────────────────────
@@ -127,7 +113,6 @@ function ActivityCard({
 
   return (
     <div className={cardClass}>
-      {/* progress strip */}
       <div className="kb-card-prog-strip">
         <div
           className="kb-card-prog-fill"
@@ -135,7 +120,6 @@ function ActivityCard({
         />
       </div>
 
-      {/* theme chip */}
       {theme && (
         <span
           className="kb-theme-chip"
@@ -145,10 +129,8 @@ function ActivityCard({
         </span>
       )}
 
-      {/* description */}
       <p className="kb-card-desc">{act.descricao}</p>
 
-      {/* footer */}
       <div className="kb-card-footer">
         <span className={`kb-status-badge ${statusClassFront(displayStatusType)}`}>
           <StatusIconFront type={displayStatusType} />
@@ -163,10 +145,7 @@ function ActivityCard({
   )
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
 export default function KanbanTab({ activities, themes, users }: Props) {
-  const [showManagement, setShowManagement] = useState(false);
-
   const today = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
@@ -180,7 +159,6 @@ export default function KanbanTab({ activities, themes, users }: Props) {
     return addDays(base, weekOffset * 7)
   }, [today, weekOffset])
 
-  // Days of the week (Mon–Sat)
   const days = useMemo(() =>
     WEEK_DAYS.map((wd, i) => ({
       ...wd,
@@ -189,30 +167,29 @@ export default function KanbanTab({ activities, themes, users }: Props) {
     })), [weekStart, today]
   )
 
-  // Lookup maps
   const themeMap = useMemo(() => Object.fromEntries(themes.map(t => [t.id, t])), [themes])
   
-  // Filtro de usuários para as raias do Kanban
-  const filteredUsers = useMemo(() => {
-    if (showManagement) return users;
-    return users.filter(u => u.role !== 'Administrador' && u.role !== 'Gestão');
-  }, [users, showManagement]);
+  // Regra LSL: Apenas analistas aparecem no quadro
+  const onlyAnalysts = useMemo(() => {
+    return users.filter(u => u.role === 'Analista');
+  }, [users]);
 
-  // Filter activities for this week
   const weekActs = useMemo(() => {
     const startStr = formatDate(weekStart)
     const endStr   = formatDate(addDays(weekStart, 5))
     return activities.filter(a => {
+      // Filtrar apenas se responsavel for analista
+      if (!onlyAnalysts.some(u => u.id === a.responsavel)) return false;
+      
       if (!a.planejamento) return false
       const actStart = a.planejamento
       const actEnd = a.dataPrevistaFinalizacao && a.dataPrevistaFinalizacao.length === 10 ? a.dataPrevistaFinalizacao : actStart
       return actStart <= endStr && actEnd >= startStr
     })
-  }, [activities, weekStart])
+  }, [activities, weekStart, onlyAnalysts])
 
-  // Group by user → by day
   const byUser = useMemo(() => {
-    return filteredUsers.map(user => {
+    return onlyAnalysts.map(user => {
       const userActs = weekActs.filter(a => a.responsavel === user.id)
       const byDay = days.map(day => {
         const dStr = formatDate(day.date)
@@ -229,17 +206,16 @@ export default function KanbanTab({ activities, themes, users }: Props) {
       const done  = userActs.filter(a => a.status === 'FINALIZADA').length
       return { user, byDay, total, done }
     })
-  }, [filteredUsers, weekActs, days])
+  }, [onlyAnalysts, weekActs, days])
 
   const isCurrentWeek = weekOffset === 0
 
-  // Auto-scroll logic (Ajustado para o container principal)
+  // Scroll Automático Compartilhado
   const [autoScroll, setAutoScroll] = useState(false)
-  const [speed, setSpeed] = useState(1) // 1 to 3
+  const [speed, setSpeed] = useState(1)
 
   useEffect(() => {
     if (!autoScroll) return
-    
     const el = document.querySelector('.main-content')
     if (!el) return
 
@@ -250,7 +226,6 @@ export default function KanbanTab({ activities, themes, users }: Props) {
     const tick = () => {
       const scrollEl = document.querySelector('.main-content')
       if (!scrollEl) return
-      
       const maxScroll = scrollEl.scrollHeight - scrollEl.clientHeight
       if (maxScroll <= 0) return
       
@@ -263,11 +238,9 @@ export default function KanbanTab({ activities, themes, users }: Props) {
         pos = 0
         direction = 1
       }
-      
       scrollEl.scrollTop = pos
       animationId = requestAnimationFrame(tick)
     }
-    
     animationId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(animationId)
   }, [autoScroll, speed])
@@ -276,7 +249,6 @@ export default function KanbanTab({ activities, themes, users }: Props) {
 
   return (
     <div className="tab-content kb-root">
-      {/* ── Header ── */}
       <div className="tab-header">
         <div>
           <h1 className="tab-title">Programação Semanal</h1>
@@ -288,30 +260,7 @@ export default function KanbanTab({ activities, themes, users }: Props) {
         </div>
 
         <div className="kb-week-nav">
-          <div className="management-toggle" style={{ marginRight: '1rem' }}>
-            <label className="toggle-label">
-              <input 
-                type="checkbox" 
-                checked={showManagement} 
-                onChange={() => setShowManagement(!showManagement)} 
-              />
-              <span className="toggle-text">Ver Gestão</span>
-            </label>
-          </div>
-
-          <div className="presentation-bar">
-            <button className={`kb-nav-btn ${autoScroll ? 'kb-nav-today-active' : ''}`} onClick={() => setAutoScroll(!autoScroll)} title="Scroll Automático">
-              {autoScroll ? <Pause size={18} /> : <Play size={18} />}
-            </button>
-            {autoScroll && (
-              <button className="kb-nav-btn" onClick={() => setSpeed(s => s >= 3 ? 1 : s + 1)} title="Velocidade">
-                <FastForward size={16} /> {speed}x
-              </button>
-            )}
-          </div>
-
           <div style={{ width: '1px', height: '20px', background: 'var(--border-color)', margin: '0 0.5rem' }}></div>
-
           <button className="kb-nav-btn" onClick={() => setWeekOffset(o => o - 1)} title="Semana anterior">
             <ChevronLeft size={18} />
           </button>
@@ -329,13 +278,28 @@ export default function KanbanTab({ activities, themes, users }: Props) {
         </div>
       </div>
 
-      {/* ── Board ── */}
-      <div className="kb-board" ref={scrollRef}>
-        {/* Column headers */}
-        <div className="kb-col-headers">
-          {/* swimlane label area */}
-          <div className="kb-swimlane-lbl-head" />
+      {/* Barra de Comando Flutuante Unificada */}
+      <div className="presentation-floating-bar">
+        <div className="pres-bar-content">
+          <div className="pres-speed-info">
+            <span className="speed-tag">{speed}x</span>
+          </div>
+          <button 
+            className={`pres-btn ${autoScroll ? 'active' : ''}`}
+            onClick={() => setAutoScroll(!autoScroll)}
+            title={autoScroll ? 'Pausar' : 'Play'}
+          >
+            {autoScroll ? <Pause size={20} /> : <Play size={20} />}
+          </button>
+          <button className="pres-btn" onClick={() => setSpeed(s => s >= 3 ? 1 : s + 1)} title="Mudar Velocidade">
+            <FastForward size={20} />
+          </button>
+        </div>
+      </div>
 
+      <div className="kb-board" ref={scrollRef}>
+        <div className="kb-col-headers">
+          <div className="kb-swimlane-lbl-head" />
           {days.map(day => (
             <div key={day.short} className={`kb-col-header ${day.isToday ? 'kb-col-today' : ''}`}>
               <span className="kb-col-day">{day.label}</span>
@@ -347,11 +311,9 @@ export default function KanbanTab({ activities, themes, users }: Props) {
           ))}
         </div>
 
-        {/* Swimlanes */}
         <div className="kb-swimlanes">
           {byUser.map(({ user, byDay, total, done }) => (
             <div key={user.id} className="kb-swimlane">
-              {/* Analyst label */}
               <div className="kb-swimlane-lbl">
                 <div className="kb-analyst-avatar" style={{ background: user.color }}>
                   {user.name.charAt(0)}
@@ -373,14 +335,10 @@ export default function KanbanTab({ activities, themes, users }: Props) {
                 </div>
               </div>
 
-              {/* Day cells */}
               {byDay.map(({ date, acts }) => {
                 const dayDef = days.find(d => formatDate(d.date) === date)
                 return (
-                  <div
-                    key={date}
-                    className={`kb-cell ${dayDef?.isToday ? 'kb-cell-today' : ''}`}
-                  >
+                  <div key={date} className={`kb-cell ${dayDef?.isToday ? 'kb-cell-today' : ''}`}>
                     {acts.length === 0 ? (
                       <div className="kb-empty-cell" />
                     ) : (
@@ -399,7 +357,6 @@ export default function KanbanTab({ activities, themes, users }: Props) {
             </div>
           ))}
 
-          {/* Empty state */}
           {byUser.every(u => u.total === 0) && (
             <div className="kb-no-acts">
               <Calendar size={36} style={{ opacity: 0.25 }} />

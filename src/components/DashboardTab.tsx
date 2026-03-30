@@ -13,14 +13,19 @@ interface Props {
 }
 
 export default function DashboardTab({ currentUser, activities, themes, users }: Props) {
-  const [showManagement, setShowManagement] = useState(false);
+  // Estados de Controle e Scroll
   const [isScrolling, setIsScrolling] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(1);
   
-  // Novos Filtros
+  // Filtros
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedUser, setSelectedUser] = useState<string>('all');
+
+  // Filtro Permanente: Apenas Analistas nos indicadores
+  const onlyAnalysts = useMemo(() => {
+    return users.filter(u => u.role === 'Analista');
+  }, [users]);
 
   // Lógica de Auto-scroll para Apresentação
   useEffect(() => {
@@ -49,16 +54,20 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
   }, [isScrolling, scrollSpeed]);
 
   const toggleScroll = () => setIsScrolling(!isScrolling);
-  const cycleSpeed = () => setScrollSpeed(prev => prev === 3 ? 1 : prev + 1);
+  const cycleSpeed = () => setScrollSpeed(prev => (prev === 3 ? 1 : prev + 1));
 
   const filteredActivities = useMemo(() => {
     return activities.filter(a => {
+      // Regra: Somente atividades de analistas aparecem no Dashboard
+      const isAnalystAct = onlyAnalysts.some(u => u.id === a.responsavel);
+      if (!isAnalystAct) return false;
+      
       const matchUser = selectedUser === 'all' || a.responsavel === selectedUser;
       const matchStart = !startDate || a.planejamento >= startDate;
       const matchEnd = !endDate || a.planejamento <= endDate;
       return matchUser && matchStart && matchEnd;
     });
-  }, [activities, selectedUser, startDate, endDate]);
+  }, [activities, onlyAnalysts, selectedUser, startDate, endDate]);
 
   const stats = useMemo(() => {
     const total = filteredActivities.length;
@@ -78,27 +87,23 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
     return { total, finalizadas, pendentes, emAndamento, atrasadas, avgProgress };
   }, [filteredActivities]);
 
-  // Filtro de usuários (Ocultar Admin/Gestão por padrão)
-  const filteredUsers = useMemo(() => {
-    if (showManagement) return users;
-    return users.filter(u => u.role !== 'Administrador' && u.role !== 'Gestão');
-  }, [users, showManagement]);
-
-  // Por responsável
-  const byUser = useMemo(() => filteredUsers.map(u => {
-    const acts = activities.filter(a => a.responsavel === u.id);
+  // Por responsável (Apenas analistas)
+  const byUser = useMemo(() => onlyAnalysts.map(u => {
+    const acts = filteredActivities.filter(a => a.responsavel === u.id);
     const done = acts.filter(a => a.status === 'FINALIZADA').length;
     const total = acts.length;
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-    const pending = acts.filter(a => a.status === 'PENDENTE').length;
-    const late = acts.filter(a => a.diasEsperadosConclusao < 0 && a.status !== 'FINALIZADA').length;
-    return { user: u, total, done, pending, late, pct };
-  }).sort((a,b) => b.total - a.total), [activities, filteredUsers]);
+    const late = acts.filter(a => {
+      const today = new Date().toISOString().slice(0, 10);
+      return a.dataPrevistaFinalizacao && a.dataPrevistaFinalizacao < today && a.status !== 'FINALIZADA';
+    }).length;
+    return { user: u, total, done, late, pct };
+  }).sort((a,b) => b.total - a.total), [filteredActivities, onlyAnalysts]);
 
   // Por tema
   const byTheme = useMemo(() => {
     const map: Record<string, { count: number; done: number }> = {};
-    activities.forEach(a => {
+    filteredActivities.forEach(a => {
       if (!map[a.tema]) map[a.tema] = { count: 0, done: 0 };
       map[a.tema].count++;
       if (a.status === 'FINALIZADA') map[a.tema].done++;
@@ -108,7 +113,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
       ...v,
       pct: Math.round((v.done / v.count) * 100),
     })).sort((a, b) => b.count - a.count);
-  }, [activities, themes]);
+  }, [filteredActivities, themes]);
 
   // Por semana
   const byWeek = useMemo(() => {
@@ -123,11 +128,13 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
       .map(([week, v]) => ({ week, ...v, pct: Math.round((v.done / v.total) * 100) }));
   }, [filteredActivities]);
 
-  // ── Rankings de Performance (Restrito à Gestão) ──
+  // ── Rankings de Performance (Gestão) ──
+  const isAdminOrGestao = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão';
+
   const topLateThemes = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     const map: Record<string, number> = {};
-    activities.forEach(a => {
+    filteredActivities.forEach(a => {
       if (a.status !== 'FINALIZADA' && a.dataPrevistaFinalizacao && a.dataPrevistaFinalizacao < today) {
         map[a.tema] = (map[a.tema] || 0) + 1;
       }
@@ -135,34 +142,34 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
     return Object.entries(map)
       .map(([tid, count]) => ({ theme: themes.find(t => t.id === tid), count }))
       .sort((a,b) => b.count - a.count).slice(0, 5);
-  }, [activities, themes]);
+  }, [filteredActivities, themes]);
 
   const topLateUsers = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     const map: Record<string, number> = {};
-    activities.forEach(a => {
+    filteredActivities.forEach(a => {
       if (a.status !== 'FINALIZADA' && a.dataPrevistaFinalizacao && a.dataPrevistaFinalizacao < today) {
         map[a.responsavel] = (map[a.responsavel] || 0) + 1;
       }
     });
     return Object.entries(map)
-      .map(([uid, count]) => ({ user: users.find(u => u.id === uid), count }))
+      .map(([uid, count]) => ({ user: onlyAnalysts.find(u => u.id === uid), count }))
       .sort((a,b) => b.count - a.count).slice(0, 5);
-  }, [activities, users]);
+  }, [filteredActivities, onlyAnalysts]);
 
   const topDeliveryUsers = useMemo(() => {
     const map: Record<string, number> = {};
-    activities.forEach(a => {
+    filteredActivities.forEach(a => {
       if (a.status === 'FINALIZADA') {
         map[a.responsavel] = (map[a.responsavel] || 0) + 1;
       }
     });
     return Object.entries(map)
-      .map(([uid, count]) => ({ user: users.find(u => u.id === uid), count }))
+      .map(([uid, count]) => ({ user: onlyAnalysts.find(u => u.id === uid), count }))
       .sort((a,b) => b.count - a.count).slice(0, 5);
-  }, [activities, users]);
+  }, [filteredActivities, onlyAnalysts]);
 
-  // ── Gráfico Anual (Abr 26 - Mar 27) ──
+  // ── Gráfico Anual ──
   const monthlyData = useMemo(() => {
     const months = [
       { label: 'Abr/26', start: '2026-04-01', end: '2026-04-30' },
@@ -178,18 +185,14 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
       { label: 'Fev/27', start: '2027-02-01', end: '2027-02-28' },
       { label: 'Mar/27', start: '2027-03-01', end: '2027-03-31' }
     ];
-
     const extraFlowTheme = themes.find(t => t.name.toLowerCase().includes('extra fluxo'))?.id;
-
     return months.map(m => {
-      const plano = activities.filter(a => a.planejamento >= m.start && a.planejamento <= m.end).length;
-      const real = activities.filter(a => a.status === 'FINALIZADA' && a.dataFinalizada && a.dataFinalizada >= m.start && a.dataFinalizada <= m.end).length;
-      const extra = activities.filter(a => a.tema === extraFlowTheme && a.planejamento >= m.start && a.planejamento <= m.end).length;
+      const plano = filteredActivities.filter(a => a.planejamento >= m.start && a.planejamento <= m.end).length;
+      const real = filteredActivities.filter(a => a.status === 'FINALIZADA' && a.dataFinalizada && a.dataFinalizada >= m.start && a.dataFinalizada <= m.end).length;
+      const extra = filteredActivities.filter(a => a.tema === extraFlowTheme && a.planejamento >= m.start && a.planejamento <= m.end).length;
       return { month: m.label, plano, real, extra };
     });
-  }, [activities, themes]);
-
-  const isAdminOrGestao = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão';
+  }, [filteredActivities, themes]);
 
   return (
     <div className="tab-content dashboard-revamp">
@@ -213,26 +216,15 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
               <label>Responsável</label>
               <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)}>
                 <option value="all">Todos os Analistas</option>
-                {users.map(u => (
+                {onlyAnalysts.map(u => (
                   <option key={u.id} value={u.id}>{u.name}</option>
                 ))}
               </select>
             </div>
             <button className="clear-filter" onClick={() => { setStartDate(''); setEndDate(''); setSelectedUser('all'); }}>Limpar</button>
           </div>
-
-            <div className="management-toggle">
-              <label className="toggle-label">
-                <input 
-                  type="checkbox" 
-                  checked={showManagement} 
-                  onChange={() => setShowManagement(!showManagement)} 
-                />
-                <span className="toggle-text">Ver Gestão</span>
-              </label>
-            </div>
-          </div>
         </div>
+      </div>
 
       {/* Floating Presentation Bar */}
       <div className="presentation-floating-bar">
@@ -253,7 +245,6 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
         </div>
       </div>
 
-      {/* KPI Section with Glass Effect */}
       <div className="kpi-grid">
         <KpiCard icon={<BarChart2 size={24} />} color="blue" label="Total" value={stats.total} />
         <KpiCard icon={<CheckCircle2 size={24} />} color="green" label="Finalizadas" value={stats.finalizadas} sub={`${stats.total > 0 ? Math.round((stats.finalizadas / stats.total) * 100) : 0}% de conclusão`} />
@@ -263,7 +254,6 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
       </div>
 
       <div className="dash-two-col">
-        {/* Por Responsável (Agora em Colunas) */}
         <div className="dash-card">
           <div className="dash-card-header">
             <Users size={18} />
@@ -273,10 +263,10 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
             {byUser.map(({ user, total, done, pct }) => (
               <div key={user.id} className="analyst-col">
                 <div className="col-bar-container">
+                  <span className="col-pct-label">{pct}%</span>
                   <div className="col-bar-full">
                     <div className="col-bar-done" style={{ height: `${pct}%`, background: user.color }} />
                   </div>
-                  <span className="col-pct-label">{pct}%</span>
                 </div>
                 <div className="col-avatar" style={{ background: user.color }}>{user.name[0]}</div>
                 <span className="col-name-abbr">{user.name.split(' ')[0]}</span>
@@ -285,12 +275,11 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
             {byUser.length === 0 && <p className="empty-state">Nenhum analista selecionado</p>}
           </div>
           <div className="analyst-legend">
-            <span className="leg-item"><i className="leg-dot" style={{ background: 'var(--border)' }} /> Pendente</span>
-            <span className="leg-item"><i className="leg-dot" style={{ background: 'var(--primary-color)' }} /> Finalizado</span>
+            <span className="leg-item"><i className="leg-dot chart-plano" /> Pendente</span>
+            <span className="leg-item"><i className="leg-dot chart-real" /> Finalizado</span>
           </div>
         </div>
 
-        {/* Por Semana */}
         <div className="dash-card">
           <div className="dash-card-header">
             <BarChart2 size={18} />
@@ -323,9 +312,9 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                 return (
                   <div key={m.month} className="monthly-col">
                     <div className="monthly-bars">
-                      <div className="m-bar plano" style={{ height: `${(m.plano / maxVal) * 100}%` }} title={`Plano: ${m.plano}`} />
-                      <div className="m-bar real" style={{ height: `${(m.real / maxVal) * 100}%` }} title={`Real: ${m.real}`} />
-                      <div className="m-bar extra" style={{ height: `${(m.extra / maxVal) * 100}%` }} title={`Extra: ${m.extra}`} />
+                      <div className="m-bar chart-plano" style={{ height: `${(m.plano / maxVal) * 100}%` }} title={`Plano: ${m.plano}`} />
+                      <div className="m-bar chart-real" style={{ height: `${(m.real / maxVal) * 100}%` }} title={`Real: ${m.real}`} />
+                      <div className="m-bar chart-extra" style={{ height: `${(m.extra / maxVal) * 100}%` }} title={`Extra: ${m.extra}`} />
                     </div>
                     <span className="month-lbl">{m.month.split('/')[0]}</span>
                   </div>
@@ -382,11 +371,10 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
         </div>
       )}
 
-      {/* Por Tema */}
       <div className="dash-card">
         <div className="dash-card-header">
           <Target size={18} />
-          <h3>Por Tema</h3>
+          <h3>Produtividade por Tema</h3>
         </div>
         <div className="theme-grid-list">
           {byTheme.map(({ theme, count, done, pct }) => (
