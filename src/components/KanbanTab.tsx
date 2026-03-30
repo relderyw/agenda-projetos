@@ -233,43 +233,46 @@ export default function KanbanTab({ activities, themes, users }: Props) {
 
   const isCurrentWeek = weekOffset === 0
 
-  // Auto-scroll logic
-  const scrollRef = useRef<HTMLDivElement>(null)
+  // Auto-scroll logic (Ajustado para o container principal)
   const [autoScroll, setAutoScroll] = useState(false)
   const [speed, setSpeed] = useState(1) // 1 to 3
 
   useEffect(() => {
-    if (!autoScroll || !scrollRef.current) return
+    if (!autoScroll) return
     
+    const el = document.querySelector('.main-content')
+    if (!el) return
+
     let animationId: number
     let direction = 1
-    let pos = scrollRef.current.scrollTop
+    let pos = el.scrollTop
     
     const tick = () => {
-      const el = scrollRef.current
-      if (!el) return
+      const scrollEl = document.querySelector('.main-content')
+      if (!scrollEl) return
       
-      const maxScroll = el.scrollHeight - el.clientHeight
-      if (maxScroll <= 0) return // Nothing to scroll
+      const maxScroll = scrollEl.scrollHeight - scrollEl.clientHeight
+      if (maxScroll <= 0) return
       
       pos += direction * 0.75 * speed
       
       if (pos >= maxScroll) {
         pos = maxScroll
         direction = -1
-        // pause a bit at bottom? (optional, skipping for smoothness)
       } else if (pos <= 0) {
         pos = 0
         direction = 1
       }
       
-      el.scrollTop = pos
+      scrollEl.scrollTop = pos
       animationId = requestAnimationFrame(tick)
     }
     
     animationId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(animationId)
   }, [autoScroll, speed])
+
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   return (
     <div className="tab-content kb-root">

@@ -1024,11 +1024,7 @@
    KANBAN SEMANAL
 ═══════════════════════════════════════════════ */
 .kb-root {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding-bottom: 1rem;
+  padding-bottom: 2rem;
 }
 
 /* Navigation */
@@ -1078,8 +1074,7 @@
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 16px;
-  overflow: auto; /* IMPORTANTE: Permite a rolagem interna do Kanban */
-  flex: 1;
+  overflow: visible; /* Deixa o container principal rolar tudo */
   transition: background 0.3s ease;
   position: relative;
 }
@@ -1090,9 +1085,9 @@
   grid-template-columns: 160px repeat(6, 1fr);
   border-bottom: 2px solid var(--border);
   position: sticky;
-  top: 0;
+  top: -2rem; /* Compensa o padding do tab-content para colar no topo real */
   z-index: 100;
-  min-width: fit-content;
+  min-width: 1000px;
 }
 
 .kb-swimlane-lbl-head {
@@ -1183,7 +1178,7 @@
   position: sticky;
   left: 0;
   z-index: 50;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+  box-shadow: 2px 0 10px rgba(0,0,0,0.08); /* Sombra para destacar ao rolar */
 }
 
 .kb-analyst-avatar {

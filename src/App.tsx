@@ -9,7 +9,6 @@ import KanbanTab from './components/KanbanTab'
 import HenkatensTab from './components/HenkatensTab'
 import Login from './components/Login'
 import { dbService } from './services/db'
-import { MIGRATION_THEMES, MIGRATION_USERS, MIGRATION_ACTIVITIES } from './services/migrationData'
 import './App.css'
 
 type ThemeMode = 'dark' | 'light'
@@ -66,26 +65,6 @@ export default function App() {
     }
   }, [])
 
-  // ── ONE-TIME MIGRATION TRIGGER (V318 - FULL EXCEL) ──
-  useEffect(() => {
-    const runMigration = async () => {
-      const alreadyDone = localStorage.getItem('isMigrationDone_V318')
-      if (alreadyDone === 'true') return;
-      
-      console.log('🔄 Sincronizando dados definitivos do Excel (318 linhas) com a Nuvem...');
-      const res = await dbService.performOneTimeMigration(
-        MIGRATION_THEMES,
-        MIGRATION_USERS,
-        MIGRATION_ACTIVITIES
-      );
-      
-      if (res.success) {
-        localStorage.setItem('isMigrationDone_V318', 'true')
-        loadData(); // Reload to see the 318 new tasks
-      }
-    };
-    runMigration();
-  }, [loadData])
 
   useEffect(() => {
     loadData()
