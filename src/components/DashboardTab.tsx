@@ -221,7 +221,6 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
             <button className="clear-filter" onClick={() => { setStartDate(''); setEndDate(''); setSelectedUser('all'); }}>Limpar</button>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <div className="management-toggle">
               <label className="toggle-label">
                 <input 
@@ -232,26 +231,25 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                 <span className="toggle-text">Ver Gestão</span>
               </label>
             </div>
-            
-            <div className="presentation-bar">
-              <button 
-                className={`scroll-ctrl-btn ${isScrolling ? 'active' : ''}`}
-                onClick={toggleScroll}
-                title={isScrolling ? 'Pausar Rolagem' : 'Iniciar Apresentação'}
-              >
-                {isScrolling ? <Pause size={18} /> : <Play size={18} />}
-              </button>
-
-              <button 
-                className="scroll-ctrl-btn"
-                onClick={cycleSpeed}
-                title="Ajustar Velocidade (1x, 2x, 3x)"
-              >
-                <FastForward size={18} />
-                <span style={{ fontSize: '0.7rem', fontWeight: '800' }}>{scrollSpeed}x</span>
-              </button>
-            </div>
           </div>
+        </div>
+
+      {/* Floating Presentation Bar */}
+      <div className="presentation-floating-bar">
+        <div className="pres-bar-content">
+          <div className="pres-speed-info">
+            <span className="speed-tag">{scrollSpeed}x</span>
+          </div>
+          <button 
+            className={`pres-btn ${isScrolling ? 'active' : ''}`}
+            onClick={toggleScroll}
+            title={isScrolling ? 'Pausar' : 'Play'}
+          >
+            {isScrolling ? <Pause size={20} /> : <Play size={20} />}
+          </button>
+          <button className="pres-btn" onClick={cycleSpeed} title="Mudar Velocidade">
+            <FastForward size={20} />
+          </button>
         </div>
       </div>
 
@@ -265,39 +263,30 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
       </div>
 
       <div className="dash-two-col">
-        {/* Por Responsável */}
+        {/* Por Responsável (Agora em Colunas) */}
         <div className="dash-card">
           <div className="dash-card-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Users size={18} />
-                <h3>Por Responsável</h3>
-              </div>
-            </div>
+            <Users size={18} />
+            <h3>Performance por Analista</h3>
           </div>
-          <div className="user-stats">
-            {byUser.length === 0 && <p className="empty-state">Nenhum responsável filtrado</p>}
-            {byUser.map(({ user, total, done, pending, late, pct }) => (
-              <div key={user.id} className="user-stat-row">
-                <div className="user-stat-header">
-                  <div className="user-chip">
-                    <span className="user-avatar" style={{ background: user.color }}>{user.name[0]}</span>
-                    <span>{user.name}</span>
+          <div className="analyst-column-chart">
+            {byUser.map(({ user, total, done, pct }) => (
+              <div key={user.id} className="analyst-col">
+                <div className="col-bar-container">
+                  <div className="col-bar-full">
+                    <div className="col-bar-done" style={{ height: `${pct}%`, background: user.color }} />
                   </div>
-                  <div className="user-stat-nums">
-                    <span className="stat-pill green">{done} ✓</span>
-                    <span className="stat-pill red">{pending} pend.</span>
-                    {late > 0 && <span className="stat-pill orange">{late} atras.</span>}
-                  </div>
+                  <span className="col-pct-label">{pct}%</span>
                 </div>
-                <div className="stat-progress-row">
-                  <div className="prog-bar">
-                    <div className="prog-fill" style={{ width: `${pct}%`, background: user.color }} />
-                  </div>
-                  <span className="prog-label">{pct}% ({total} ativ.)</span>
-                </div>
+                <div className="col-avatar" style={{ background: user.color }}>{user.name[0]}</div>
+                <span className="col-name-abbr">{user.name.split(' ')[0]}</span>
               </div>
             ))}
+            {byUser.length === 0 && <p className="empty-state">Nenhum analista selecionado</p>}
+          </div>
+          <div className="analyst-legend">
+            <span className="leg-item"><i className="leg-dot" style={{ background: 'var(--border)' }} /> Pendente</span>
+            <span className="leg-item"><i className="leg-dot" style={{ background: 'var(--primary-color)' }} /> Finalizado</span>
           </div>
         </div>
 
@@ -329,21 +318,24 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
           <div className="monthly-chart-section">
             <h4 className="chart-title-sm">Desempenho Anual (Fiscal Year 26/27)</h4>
             <div className="monthly-grid">
-              {monthlyData.map(m => (
-                <div key={m.month} className="monthly-col">
-                  <div className="monthly-bars">
-                    <div className="m-bar plano" style={{ height: `${Math.min(100, m.plano * 5)}px` }} title={`Plano: ${m.plano}`} />
-                    <div className="m-bar real" style={{ height: `${Math.min(100, m.real * 5)}px` }} title={`Real: ${m.real}`} />
-                    <div className="m-bar extra" style={{ height: `${Math.min(100, m.extra * 5)}px` }} title={`Extra: ${m.extra}`} />
+              {monthlyData.map(m => {
+                const maxVal = Math.max(m.plano, m.real, m.extra, 1);
+                return (
+                  <div key={m.month} className="monthly-col">
+                    <div className="monthly-bars">
+                      <div className="m-bar plano" style={{ height: `${(m.plano / maxVal) * 100}%` }} title={`Plano: ${m.plano}`} />
+                      <div className="m-bar real" style={{ height: `${(m.real / maxVal) * 100}%` }} title={`Real: ${m.real}`} />
+                      <div className="m-bar extra" style={{ height: `${(m.extra / maxVal) * 100}%` }} title={`Extra: ${m.extra}`} />
+                    </div>
+                    <span className="month-lbl">{m.month.split('/')[0]}</span>
                   </div>
-                  <span className="month-lbl">{m.month.split('/')[0]}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="chart-legend">
-              <span className="leg-item"><i className="leg-dot plano" /> Plano</span>
-              <span className="leg-item"><i className="leg-dot real" /> Real</span>
-              <span className="leg-item"><i className="leg-dot extra" /> Extra Fluxo</span>
+              <span className="leg-item"><i className="leg-dot chart-plano" /> Plano</span>
+              <span className="leg-item"><i className="leg-dot chart-real" /> Real</span>
+              <span className="leg-item"><i className="leg-dot chart-extra" /> Extra Fluxo</span>
             </div>
           </div>
         </div>
