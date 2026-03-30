@@ -259,24 +259,29 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
             <Users size={18} />
             <h3>Performance por Analista</h3>
           </div>
-          <div className="analyst-column-chart">
+          <div className="analyst-column-chart custom-scrollbar">
             {byUser.map(({ user, total, done, pct }) => (
-              <div key={user.id} className="analyst-col">
-                <div className="col-bar-container">
-                  <span className="col-pct-label">{pct}%</span>
-                  <div className="col-bar-full">
-                    <div className="col-bar-done" style={{ height: `${pct}%`, background: user.color }} />
+              <div key={user.id} className="analyst-capsule">
+                <div className="capsule-header">
+                  <span className="capsule-pct">{pct}%</span>
+                </div>
+                <div className="capsule-track">
+                  <div className="capsule-fill" style={{ height: `${pct}%`, background: `linear-gradient(to bottom, ${user.color}, ${user.color}dd)` }}>
+                    <div className="capsule-shine"></div>
                   </div>
                 </div>
-                <div className="col-avatar" style={{ background: user.color }}>{user.name[0]}</div>
-                <span className="col-name-abbr">{user.name.split(' ')[0]}</span>
+                <div className="capsule-footer">
+                  <div className="capsule-avatar" style={{ background: user.color }}>{user.name[0]}</div>
+                  <span className="capsule-name">{user.name.split(' ')[0]}</span>
+                  <span className="capsule-total">{total} ativ.</span>
+                </div>
               </div>
             ))}
-            {byUser.length === 0 && <p className="empty-state">Nenhum analista selecionado</p>}
+            {byUser.length === 0 && <p className="empty-state-msg">Nenhum analista encontrado no período selecionado.</p>}
           </div>
           <div className="analyst-legend">
-            <span className="leg-item"><i className="leg-dot chart-plano" /> Pendente</span>
-            <span className="leg-item"><i className="leg-dot chart-real" /> Finalizado</span>
+            <span className="leg-item"><i className="leg-dot chart-plano" /> Planejado</span>
+            <span className="leg-item"><i className="leg-dot chart-real" /> Concluído</span>
           </div>
         </div>
 
@@ -335,37 +340,37 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
           <div className="dash-card insight-card">
             <div className="dash-card-header"><h3>Top Temas Atrasados</h3></div>
             <div className="ranking-list">
-              {topLateThemes.map((t, i) => (
+              {topLateThemes.length > 0 ? topLateThemes.map((t, i) => (
                 <div key={t.theme?.id} className="ranking-item">
                   <span className="rank-num">{i+1}º</span>
                   <span className="rank-name">{t.theme?.name}</span>
                   <span className="rank-val red">{t.count} ativ.</span>
                 </div>
-              ))}
+              )) : <div className="empty-ranking-msg">✓ Nenhum tema com atraso identificado</div>}
             </div>
           </div>
           <div className="dash-card insight-card">
             <div className="dash-card-header"><h3>Gargalos por Analista (Atrasos)</h3></div>
             <div className="ranking-list">
-              {topLateUsers.map((u, i) => (
+              {topLateUsers.length > 0 ? topLateUsers.map((u, i) => (
                 <div key={u.user?.id} className="ranking-item">
                   <span className="rank-num">{i+1}º</span>
                   <span className="rank-name">{u.user?.name}</span>
                   <span className="rank-val orange">{u.count} atrasos</span>
                 </div>
-              ))}
+              )) : <div className="empty-ranking-msg">✓ Todos os analistas em dia</div>}
             </div>
           </div>
           <div className="dash-card insight-card">
             <div className="dash-card-header"><h3>Top Performers (Entregas)</h3></div>
             <div className="ranking-list">
-              {topDeliveryUsers.map((u, i) => (
+              {topDeliveryUsers.length > 0 ? topDeliveryUsers.map((u, i) => (
                 <div key={u.user?.id} className="ranking-item">
                   <span className="rank-num">{i+1}º</span>
                   <span className="rank-name">{u.user?.name}</span>
                   <span className="rank-val green">{u.count} finalizadas</span>
                 </div>
-              ))}
+              )) : <div className="empty-ranking-msg">Aguardando entregas...</div>}
             </div>
           </div>
         </div>
