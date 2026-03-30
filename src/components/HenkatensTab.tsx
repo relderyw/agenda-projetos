@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, X, Save, Download } from 'lucide-react';
 import type { HenkatenEvent, HenkatenType, User } from '../types';
 
@@ -252,7 +253,7 @@ export default function HenkatensTab({ currentUser, events, onAddEvent, onUpdate
       </div>
 
       {/* Modal Formulário */}
-      {modal.open && (
+      {modal.open && createPortal(
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-box" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
@@ -333,7 +334,8 @@ export default function HenkatensTab({ currentUser, events, onAddEvent, onUpdate
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
