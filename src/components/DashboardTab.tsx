@@ -109,7 +109,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
     <div className="tab-content dashboard-revamp">
       <div className="tab-header">
         <div>
-          <h1 className="tab-title">Resultados Industriais</h1>
+          <h1 className="tab-title">Resultados</h1>
           <p className="tab-subtitle">Monitoramento de performance da equipe LSL</p>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
