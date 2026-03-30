@@ -93,13 +93,12 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
   const [modal, setModal] = useState<{ open: boolean; editing: Activity | null }>({ open: false, editing: null });
   const [form, setForm] = useState<Omit<Activity, 'id'>>(empty());
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [showManagement, setShowManagement] = useState(false);
 
-  // Filtrar usuários para dropdowns e lógica de exibição
+  // Apenas analistas aparecem nos dropdowns e na lista de atividades
   const filteredUsers = useMemo(() => {
-    if (showManagement) return users;
     return users.filter(u => u.role !== 'Administrador' && u.role !== 'Gestão');
-  }, [users, showManagement]);
+  }, [users]);
+
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -117,12 +116,12 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
       const matchStatus = filterStatus === 'all' || a.status === filterStatus;
       const matchPrio = filterPrio === 'all' || a.prioridade === filterPrio;
       
-      // Se não estiver mostrando gestão, ocultar atividades atribuídas a eles se o filtro de resp. for 'all'
+      // Sempre ocultar atividades atribuídas a Administrador ou Gestão
       const u = users.find(usr => usr.id === a.responsavel);
       const isManagement = u?.role === 'Administrador' || u?.role === 'Gestão';
-      const matchManagement = showManagement || !isManagement;
+      if (isManagement) return false;
 
-      return matchSearch && matchResp && matchStatus && matchPrio && matchManagement;
+      return matchSearch && matchResp && matchStatus && matchPrio;
     });
 
     if (!sortKey) return f;
@@ -211,16 +210,6 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
           <p className="tab-subtitle">{filteredAndSorted.length} de {activities.length} atividades</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <div className="management-toggle">
-            <label className="toggle-label">
-              <input 
-                type="checkbox" 
-                checked={showManagement} 
-                onChange={() => setShowManagement(!showManagement)} 
-              />
-              <span className="toggle-text">Ver Gestão</span>
-            </label>
-          </div>
           {currentUser?.role === 'Administrador' && (
             <button className="btn-ghost" onClick={exportCSV} title="Exportar para Excel (CSV)">
               <Download size={18} /> Baixar Excel
