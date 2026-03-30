@@ -9,6 +9,7 @@ import KanbanTab from './components/KanbanTab'
 import HenkatensTab from './components/HenkatensTab'
 import Login from './components/Login'
 import { dbService } from './services/db'
+import { MIGRATION_THEMES, MIGRATION_USERS, MIGRATION_ACTIVITIES } from './services/migrationData'
 import './App.css'
 
 type ThemeMode = 'dark' | 'light'
@@ -64,6 +65,27 @@ export default function App() {
       setLoading(false)
     }
   }, [])
+
+  // ── ONE-TIME MIGRATION TRIGGER ──
+  useEffect(() => {
+    const runMigration = async () => {
+      const alreadyDone = localStorage.getItem('isMigrationDone')
+      if (alreadyDone === 'true') return;
+      
+      console.log('🔄 Sincronizando dados oficiais do Excel com a Nuvem...');
+      const res = await dbService.performOneTimeMigration(
+        MIGRATION_THEMES,
+        MIGRATION_USERS,
+        MIGRATION_ACTIVITIES
+      );
+      
+      if (res.success) {
+        localStorage.setItem('isMigrationDone', 'true')
+        loadData(); // Reload to see new data
+      }
+    };
+    runMigration();
+  }, [loadData])
 
   useEffect(() => {
     loadData()

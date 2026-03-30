@@ -1,0 +1,72 @@
+import type { Theme, User, Activity } from '../types';
+
+export const MIGRATION_THEMES: Omit<Theme, 'id'>[] = [
+  { name: 'O/S 103Ki', color: '#3b82f6' },
+  { name: 'O/S K2G', color: '#8b5cf6' },
+  { name: 'Adequação L/O Format. Carros', color: '#06b6d4' },
+  { name: 'Alt. de embalagem Eixo', color: '#f59e0b' },
+  { name: 'Pendências INFRA', color: '#ef4444' },
+  { name: 'Extra Fluxo', color: '#f97316' },
+  { name: 'Pintura DCC', color: '#14b8a6' },
+  { name: 'P.P Dinâmico CQ', color: '#ec4899' },
+  { name: 'Pintura Hines', color: '#6366f1' },
+  { name: 'Transf. Dep. F', color: '#10b981' },
+  { name: 'T&P', color: '#84cc16' },
+  { name: 'P.P DINÂMICO - NAC', color: '#a855f7' },
+  { name: 'Desvert. AXAL', color: '#3b82f6' },
+  { name: 'Mapeamento de embalagem', color: '#10b981' },
+  { name: 'Inventário de carros', color: '#f59e0b' },
+  { name: 'T&P P/ NM', color: '#06b6d4' },
+  { name: 'Confecção de carros', color: '#8b5cf6' },
+  { name: '1.8 Mi', color: '#ef4444' },
+  { name: 'Aro K3W/K3H/K99', color: '#f97316' },
+  { name: 'P.P DINÂMICO - CQ', color: '#ec4899' },
+  { name: 'Alt. K1SJ', color: '#6366f1' },
+  { name: 'Automação DCC', color: '#14b8a6' },
+  { name: 'Desocupação Dep. F', color: '#84cc16' },
+  { name: 'E2 porta palete dinâmico', color: '#a855f7' },
+  { name: 'Elab. Yamagomori', color: '#3b82f6' },
+  { name: 'Cadastro FSEMLOC', color: '#10b981' },
+  { name: 'Dimensional', color: '#f59e0b' },
+  { name: 'Henkaten', color: '#ef4444' },
+  { name: 'Retrovisor, Filtro do K2K', color: '#06b6d4' },
+  { name: 'Diretoria', color: '#8b5cf6' },
+  { name: 'Volumetria', color: '#f97316' },
+  { name: 'A proposta', color: '#ec4899' },
+  { name: 'Acompanhamento DCC', color: '#6366f1' },
+  { name: 'Área de controle', color: '#14b8a6' },
+  { name: 'AR-Comprimido', color: '#84cc16' },
+  { name: 'P.P Dinâmico', color: '#a855f7' },
+  { name: 'Bloco 209', color: '#3b82f6' },
+  { name: 'Bloco 108', color: '#10b981' },
+  { name: 'PALM', color: '#f59e0b' },
+  { name: 'Mapeamento Nacional', color: '#ef4444' },
+  { name: 'Mapeamento Importado', color: '#06b6d4' },
+  { name: 'AMR', color: '#8b5cf6' }
+];
+
+export const MIGRATION_USERS: Omit<User, 'id'>[] = [
+  { name: 'ALECSANDRA', username: 'alecsandra_lemos', password: 'lemos2026', role: 'Analista', email: 'alecsandra_lemos@lslgr.com.br', color: '#3b82f6', permissions: { atividades: { view: true, edit: true, delete: true }, henkatens: { view: true, edit: true, delete: false }, cadastros: { view: false, edit: false, delete: false }, usuarios: { view: false, edit: false, delete: false } } },
+  { name: 'DEOCLECIO', username: 'deoclecio_viana', password: '2026viana', role: 'Analista', email: 'deoclecio_viana@lslgr.com.br', color: '#8b5cf6', permissions: { atividades: { view: true, edit: true, delete: true }, henkatens: { view: true, edit: true, delete: false }, cadastros: { view: false, edit: false, delete: false }, usuarios: { view: false, edit: false, delete: false } } },
+  { name: 'EVELYN', username: 'evelyn_para', password: 'evelyn26', role: 'Analista', email: 'evelyn_para@lslgr.com.br', color: '#10b981', permissions: { atividades: { view: true, edit: true, delete: true }, henkatens: { view: true, edit: true, delete: false }, cadastros: { view: false, edit: false, delete: false }, usuarios: { view: false, edit: false, delete: false } } },
+  { name: 'FELIPE', username: 'felipe_serrao', password: 'serrao@202', role: 'Analista', email: 'felipe_serrao@lslgr.com.br', color: '#f59e0b', permissions: { atividades: { view: true, edit: true, delete: true }, henkatens: { view: true, edit: true, delete: false }, cadastros: { view: false, edit: false, delete: false }, usuarios: { view: false, edit: false, delete: false } } },
+  { name: 'GABRIELE', username: 'gabriele_araujo', password: 'gabi#26', role: 'Analista', email: 'gabriele_araujo@lslgr.com.br', color: '#ef4444', permissions: { atividades: { view: true, edit: true, delete: true }, henkatens: { view: true, edit: true, delete: false }, cadastros: { view: false, edit: false, delete: false }, usuarios: { view: false, edit: false, delete: false } } },
+  { name: 'GUSTAVO', username: 'gustavo_lucas', password: '#26gustavo', role: 'Analista', email: 'gustavo_lucas@lslgr.com.br', color: '#06b6d4', permissions: { atividades: { view: true, edit: true, delete: true }, henkatens: { view: true, edit: true, delete: false }, cadastros: { view: false, edit: false, delete: false }, usuarios: { view: false, edit: false, delete: false } } },
+  { name: 'HUDSON', username: 'hudson_silva', password: 'hudson#s', role: 'Analista', email: 'hudson_silva@lslgr.com.br', color: '#f97316', permissions: { atividades: { view: true, edit: true, delete: true }, henkatens: { view: true, edit: true, delete: false }, cadastros: { view: false, edit: false, delete: false }, usuarios: { view: false, edit: false, delete: false } } },
+  { name: 'JADERSON', username: 'jaderson_tavares', password: 'tavares_#', role: 'Analista', email: 'jaderson_tavares@lslgr.com.br', color: '#ec4899', permissions: { atividades: { view: true, edit: true, delete: true }, henkatens: { view: true, edit: true, delete: false }, cadastros: { view: false, edit: false, delete: false }, usuarios: { view: false, edit: false, delete: false } } },
+  { name: 'JOAO P', username: 'joao_caitano', password: 'leonel26', role: 'Analista', email: 'joao_caitano@lslgr.com.br', color: '#6366f1', permissions: { atividades: { view: true, edit: true, delete: true }, henkatens: { view: true, edit: true, delete: false }, cadastros: { view: false, edit: false, delete: false }, usuarios: { view: false, edit: false, delete: false } } },
+  { name: 'JOAO V', username: 'joao_duarte', password: 'victor!26', role: 'Analista', email: 'joao_duarte@lslgr.com.br', color: '#14b8a6', permissions: { atividades: { view: true, edit: true, delete: true }, henkatens: { view: true, edit: true, delete: false }, cadastros: { view: false, edit: false, delete: false }, usuarios: { view: false, edit: false, delete: false } } },
+  { name: 'LUCAS', username: 'lucas_costa', password: 'costa*26', role: 'Analista', email: 'lucas_costa@lslgr.com.br', color: '#84cc16', permissions: { atividades: { view: true, edit: true, delete: true }, henkatens: { view: true, edit: true, delete: false }, cadastros: { view: false, edit: false, delete: false }, usuarios: { view: false, edit: false, delete: false } } },
+  { name: 'MARCOS V', username: 'marcos_filho', password: 'mv_2026', role: 'Analista', email: 'marcos_filho@lslgr.com.br', color: '#a855f7', permissions: { atividades: { view: true, edit: true, delete: true }, henkatens: { view: true, edit: true, delete: false }, cadastros: { view: false, edit: false, delete: false }, usuarios: { view: false, edit: false, delete: false } } },
+  { name: 'WILLIAN', username: 'willian_nascimento', password: 'wn_2026#', role: 'Analista', email: 'willian_nascimento@lslgr.com.br', color: '#3b82f6', permissions: { atividades: { view: true, edit: true, delete: true }, henkatens: { view: true, edit: true, delete: false }, cadastros: { view: false, edit: false, delete: false }, usuarios: { view: false, edit: false, delete: false } } }
+];
+
+export const MIGRATION_ACTIVITIES: any[] = [
+  { planejamento: '2026-03-09', descricao: 'Outsourcing - analise de área (Dep. Externo / DCC) - Consolidação dos itens (102 + 103KI)', themeName: 'O/S 103Ki', userName: 'ALECSANDRA', prioridade: 'Média', dataPrevistaFinalizacao: '2026-03-10', percentualAndamento: 100, dataFinalizada: '2026-03-11', esforcoRealizado: 2, status: 'FINALIZADA', week: 'W2 - Mar' },
+  { planejamento: '2026-03-10', descricao: 'Outsourcing - analise de área (Dep. Externo / DCC) - Input das informações de embalagens / mix / utilização', themeName: 'O/S 103Ki', userName: 'ALECSANDRA', prioridade: 'Média', dataPrevistaFinalizacao: '2026-03-11', percentualAndamento: 100, dataFinalizada: '2026-03-12', esforcoRealizado: 2, status: 'FINALIZADA', week: 'W2 - Mar' },
+  { planejamento: '2026-03-11', descricao: 'Outsourcing - analise de área (Dep. Externo / DCC) - Mapeamento no genba dos itens s/ informação (similar)', themeName: 'O/S 103Ki', userName: 'ALECSANDRA', prioridade: 'Média', dataPrevistaFinalizacao: '2026-03-12', percentualAndamento: 100, dataFinalizada: '2026-03-12', esforcoRealizado: 1, status: 'FINALIZADA', week: 'W2 - Mar' },
+  { planejamento: '2026-03-13', descricao: 'Outsourcing - analise de área (Dep. Externo / DCC) - Distribuição do volume de henkatens por área', themeName: 'O/S 103Ki', userName: 'ALECSANDRA', prioridade: 'Média', dataPrevistaFinalizacao: '2026-03-13', percentualAndamento: 100, dataFinalizada: '2026-03-13', esforcoRealizado: 0, status: 'FINALIZADA', week: 'W2 - Mar' },
+  { planejamento: '2026-03-16', descricao: 'Levantar os impactos para retirada do processo de formatação da carcaça e cabeçote do K2G - Impacto de área', themeName: 'O/S K2G', userName: 'ALECSANDRA', prioridade: 'Média', dataPrevistaFinalizacao: '2026-03-17', percentualAndamento: 100, dataFinalizada: '2026-03-16', esforcoRealizado: 0, status: 'FINALIZADA', week: 'W3 - Mar' },
+  { planejamento: '2026-03-09', descricao: 'Avaliar pendências de área Hines - Bloco 108', themeName: 'Bloco 108', userName: 'DEOCLECIO', prioridade: 'Média', dataPrevistaFinalizacao: '2026-03-11', percentualAndamento: 100, dataFinalizada: '2026-03-12', esforcoRealizado: 3, status: 'FINALIZADA', week: 'W2 - Mar' },
+  { planejamento: '2026-03-10', descricao: 'Segregar material para pintura do layout picking (Format. Carro)', themeName: 'Adequação L/O Format. Carros', userName: 'DEOCLECIO', prioridade: 'Baixa', dataPrevistaFinalizacao: '2026-03-10', percentualAndamento: 100, dataFinalizada: '2026-03-10', esforcoRealizado: 1, status: 'FINALIZADA', week: 'W2 - Mar' }
+];

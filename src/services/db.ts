@@ -71,5 +71,69 @@ export const dbService = {
   async deleteHenkaten(id: string) {
     if (!isCloudEnabled) return
     return await supabase.from('henkatens').delete().eq('id', id)
+  },
+
+  // --- ONE-TIME MIGRATION FROM EXCEL ---
+  async performOneTimeMigration(
+    themes: { name: string; color: string }[],
+    users: any[],
+    activities: any[]
+  ) {
+    if (!isCloudEnabled) return { success: false, message: 'Cloud not enabled' };
+
+    console.log('🚀 Iniciando Migração Massiva...');
+
+    // 1. Inserir Temas
+    const themeMap: Record<string, string> = {};
+    for (const t of themes) {
+      const { data, error } = await supabase.from('themes').upsert({ name: t.name, color: t.color }).select();
+      if (error) console.error('Migration: Theme Error', error);
+      if (data?.[0]) themeMap[t.name] = data[0].id;
+    }
+
+    // 2. Inserir Usuários
+    const userMap: Record<string, string> = {};
+    for (const u of users) {
+      const { data, error } = await supabase.from('users').upsert({ 
+        name: u.name, 
+        username: u.username, 
+        password: u.password, 
+        role: u.role, 
+        email: u.email, 
+        color: u.color,
+        permissions: u.permissions 
+      }).select();
+      if (error) console.error('Migration: User Error', error);
+      if (data?.[0]) userMap[u.name] = data[0].id;
+    }
+
+    // 3. Inserir Atividades (vincular por nomes)
+    for (const a of activities) {
+      const themeId = themeMap[a.themeName];
+      const userId = userMap[a.userName];
+      
+      if (!themeId || !userId) {
+        console.warn(`Pulando atividade: Tema ou Usuário não encontrado para [${a.descricao}]`);
+        continue;
+      }
+
+      const { error } = await supabase.from('activities').insert({
+        planejamento: a.planejamento,
+        descricao: a.descricao,
+        tema: themeId,
+        responsavel: userId,
+        prioridade: a.prioridade,
+        dataPrevistaFinalizacao: a.dataPrevistaFinalizacao,
+        percentualAndamento: a.percentualAndamento,
+        dataFinalizada: a.dataFinalizada,
+        esforcoRealizado: a.esforcoRealizado,
+        status: a.status,
+        week: a.week
+      });
+      if (error) console.error('Migration: Activity Error', error);
+    }
+
+    console.log('✅ Migração concluída com sucesso!');
+    return { success: true };
   }
 }
