@@ -331,8 +331,6 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
                 <SortTh label="Dt. Prev. Finalização" sortKey="dataPrevistaFinalizacao" {...thProps} />
                 <SortTh label="% Andamento"         sortKey="percentualAndamento"    {...thProps} />
                 <SortTh label="Dt. Finalizada"      sortKey="dataFinalizada"         {...thProps} />
-                <SortTh label="Dias Esperados"      sortKey="diasEsperadosConclusao" {...thProps} />
-                <SortTh label="Esforço"             sortKey="esforcoRealizado"       {...thProps} />
                 <SortTh label="Status"              sortKey="status"                 {...thProps} />
                 <SortTh label="Week"                sortKey="week"                   {...thProps} />
                 <th></th>
@@ -340,7 +338,7 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
             </thead>
             <tbody>
               {filteredAndSorted.length === 0 && (
-                <tr><td colSpan={13} className="empty-row">Nenhuma atividade encontrada</td></tr>
+                <tr><td colSpan={11} className="empty-row">Nenhuma atividade encontrada</td></tr>
               )}
               {filteredAndSorted.map(a => {
                 const tema = getTheme(a.tema);
@@ -377,8 +375,6 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
                       </div>
                     </td>
                     <td className="td-date">{a.dataFinalizada ? fmtDate(a.dataFinalizada) : '—'}</td>
-                    <td className={`td-num ${a.diasEsperadosConclusao < 0 ? 'neg' : ''}`}>{a.diasEsperadosConclusao}</td>
-                    <td className="td-num">{a.esforcoRealizado}</td>
                     <td>
                       <span className={`status-badge ${getStatusClass(a.status)}`}>
                         {getStatusIcon(a.status)}
@@ -400,7 +396,6 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
         </div>
       </div>
 
-      {/* Modal Formulário */}
       {modal.open && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
@@ -424,7 +419,17 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
                   <label>Planejamento *</label>
                   <div className="input-icon-wrap">
                     <Calendar size={15} />
-                    <input type="date" value={form.planejamento} onChange={e => setForm(f => ({ ...f, planejamento: e.target.value }))} />
+                    <input type="date" value={form.planejamento} onChange={e => {
+                      const date = e.target.value;
+                      const d = new Date(date);
+                      const day = d.getUTCDate();
+                      let w = 'W1';
+                      if (day > 7) w = 'W2';
+                      if (day > 14) w = 'W3';
+                      if (day > 21) w = 'W4';
+                      const month = d.toLocaleString('pt-BR', { month: 'short' });
+                      setForm(f => ({ ...f, planejamento: date, week: `${w} - ${month}` }));
+                    }} />
                   </div>
                 </div>
 
