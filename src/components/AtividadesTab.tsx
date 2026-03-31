@@ -319,7 +319,7 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
 
       {/* Table */}
       <div className="table-card">
-        <div className="table-scroll custom-scroll" style={{ maxHeight: 'calc(100vh - 280px)', overflow: 'auto' }}>
+        <div className="table-scroll custom-scroll" style={{ maxHeight: 'calc(100vh - 220px)', overflow: 'auto' }}>
           <table className="data-table">
             <thead>
               <tr>
