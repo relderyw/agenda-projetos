@@ -208,6 +208,17 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
     closeModal();
   };
 
+  const isActionAllowed = (activity: Activity, action: 'edit' | 'delete') => {
+    const hasBasePermission = action === 'edit' ? canEdit : canDelete;
+    if (!hasBasePermission || !currentUser) return false;
+    
+    // Gestores e Administradores podem editar/deletar qualquer coisa
+    if (currentUser.role === 'Administrador' || currentUser.role === 'Gestão') return true;
+    
+    // Analistas só podem editar/deletar o que for deles mesmos
+    return currentUser.role === 'Analista' && activity.responsavel === currentUser.id;
+  };
+
   const getTheme = (id: string) => themes.find(t => t.id === id);
   const getUser = (id: string) => users.find(u => u.id === id);
 
@@ -377,8 +388,8 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
                     <td className="td-week">{a.week}</td>
                     <td>
                       <div className="row-actions">
-                        {canEdit && <button className="action-btn edit" onClick={() => openEdit(a)} title="Editar"><Edit2 size={14} /></button>}
-                        {canDelete && <button className="action-btn del" onClick={() => setDeleteConfirm(a.id)} title="Excluir"><Trash2 size={14} /></button>}
+                        {isActionAllowed(a, 'edit') && <button className="action-btn edit" onClick={() => openEdit(a)} title="Editar"><Edit2 size={14} /></button>}
+                        {isActionAllowed(a, 'delete') && <button className="action-btn del" onClick={() => setDeleteConfirm(a.id)} title="Excluir"><Trash2 size={14} /></button>}
                       </div>
                     </td>
                   </tr>

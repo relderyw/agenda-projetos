@@ -151,10 +151,20 @@ export default function HenkatensTab({ currentUser, events, onAddEvent, onUpdate
   // Group events by date
   const eventsByDate = useMemo(() => {
     const map = new Map<string, HenkatenEvent[]>();
+    
+    const addEvt = (dStr: string, e: HenkatenEvent) => {
+      if (!map.has(dStr)) map.set(dStr, []);
+      map.get(dStr)!.push(e);
+    };
+
     events.forEach(evt => {
-      const eDate = evt.date;
-      if (!map.has(eDate)) map.set(eDate, []);
-      map.get(eDate)!.push(evt);
+      // Adiciona na data planejada original
+      addEvt(evt.date, evt);
+      
+      // Duplica no calendário se foi postergado para uma nova data
+      if (evt.status === 'Postergado' && evt.postponedDate && evt.postponedDate !== evt.date) {
+        addEvt(evt.postponedDate, evt);
+      }
     });
     return map;
   }, [events]);

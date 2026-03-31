@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX } from 'lucide-react'
+import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert } from 'lucide-react'
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from './data'
 import type { Activity, Theme, User, Tab, HenkatenEvent } from './types'
 import AtividadesTab from './components/AtividadesTab'
@@ -7,6 +7,7 @@ import DashboardTab from './components/DashboardTab'
 import CadastrosTab from './components/CadastrosTab'
 import KanbanTab from './components/KanbanTab'
 import HenkatensTab from './components/HenkatensTab'
+import LogsTab from './components/LogsTab'
 import Login from './components/Login'
 import { dbService } from './services/db'
 import './App.css'
@@ -132,12 +133,16 @@ export default function App() {
     { key: 'dashboard',  label: 'Dashboard',   icon: <LayoutDashboard size={20} /> },
     { key: 'henkatens',  label: 'Henkatens',   icon: <Calendar size={20} /> },
     { key: 'cadastros',  label: 'Cadastros',   icon: <BookOpen size={20} /> },
+    { key: 'logs',       label: 'Logs',        icon: <ShieldAlert size={20} /> },
   ]
 
   const navItems = navItemsRaw.filter(item => {
     if (item.key === 'cadastros' && currentUser?.permissions) {
       // Show cadastros if user can view either themes or users
       return currentUser.permissions.cadastros.view || currentUser.permissions.usuarios.view;
+    }
+    if (item.key === 'logs' && currentUser?.role !== 'Administrador') {
+      return false;
     }
     return true;
   })
@@ -313,6 +318,13 @@ export default function App() {
             onAddUser={addUser}
             onUpdateUser={updateUser}
             onDeleteUser={deleteUser}
+          />
+        )}
+        {activeTab === 'logs' && (
+          <LogsTab
+            currentUser={currentUser}
+            users={users}
+            activities={activities}
           />
         )}
       </main>

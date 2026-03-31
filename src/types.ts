@@ -52,7 +52,7 @@ export interface Activity {
 }
 
 // ─── App State ────────────────────────────────────────────
-export type Tab = 'atividades' | 'dashboard' | 'cadastros' | 'kanban' | 'henkatens';
+export type Tab = 'atividades' | 'dashboard' | 'cadastros' | 'kanban' | 'henkatens' | 'logs';
 
 // ─── Henkatens ──────────────────────────────────────────
 export type HenkatenType =
