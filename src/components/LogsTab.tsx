@@ -10,14 +10,14 @@ interface Props {
 }
 
 export default function LogsTab({ currentUser, users, activities }: Props) {
-  const [onlineUsers, setOnlineUsers] = useState<Record<string, { lastSeen: Date }>>({});
+  const [onlineUsers, setOnlineUsers] = useState<Record<string, boolean>>({});
   const [status, setStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
 
   useEffect(() => {
     if (!currentUser || !supabase) return;
     
-    // Conecta no canal de tracking de Presença
-    const channel = supabase.channel('online-users', {
+    // Conecta no canal de tracking de Presença (nome único por projeto se possível)
+    const channel = supabase.channel('lsl_presence_tracker', {
       config: {
         presence: {
           key: currentUser.id,
@@ -27,29 +27,34 @@ export default function LogsTab({ currentUser, users, activities }: Props) {
 
     const handleSync = () => {
       const state = channel.presenceState();
-      const activeMap: Record<string, { lastSeen: Date }> = {};
+      const activeMap: Record<string, boolean> = {};
       
-      Object.keys(state).forEach(key => {
-        // key here is the 'presence key' we defined above (currentUser.id)
-        activeMap[key] = { lastSeen: new Date() };
+      // Itera em todos os "buckets" de presença (chaves)
+      Object.keys(state).forEach((key) => {
+        const userPresences = state[key] as any[];
+        userPresences.forEach((presence) => {
+          if (presence.userId) {
+            activeMap[presence.userId] = true;
+          }
+        });
       });
 
+      // Log para debug interno (ajuda a saber se algo está chegando)
+      console.log('Realtime Presence Sync:', activeMap);
       setOnlineUsers(activeMap);
     };
 
     channel
       .on('presence', { event: 'sync' }, handleSync)
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        handleSync();
-      })
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        handleSync();
-      })
+      .on('presence', { event: 'join' }, handleSync)
+      .on('presence', { event: 'leave' }, handleSync)
       .subscribe(async (subStatus) => {
         if (subStatus === 'SUBSCRIBED') {
           setStatus('connected');
+          // Envia o ID para que outros saibam que estou online
           await channel.track({
             userId: currentUser.id,
+            userRole: currentUser.role,
             onlineAt: new Date().toISOString(),
           });
         } else if (subStatus === 'CLOSED' || subStatus === 'CHANNEL_ERROR') {
