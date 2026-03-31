@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert } from 'lucide-react'
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from './data'
-import type { Activity, Theme, User, Tab, HenkatenEvent } from './types'
+import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry } from './types'
 import AtividadesTab from './components/AtividadesTab'
 import DashboardTab from './components/DashboardTab'
 import CadastrosTab from './components/CadastrosTab'
@@ -26,6 +26,7 @@ export default function App() {
   const [themes, setThemes] = useState<Theme[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [henkatens, setHenkatens] = useState<HenkatenEvent[]>([])
+  const [logs, setLogs] = useState<LogEntry[]>([])
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
@@ -56,16 +57,18 @@ export default function App() {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const [a, t, u, h] = await Promise.all([
+      const [a, t, u, h, l] = await Promise.all([
         dbService.getActivities(),
         dbService.getThemes(),
         dbService.getUsers(),
-        dbService.getHenkatens()
+        dbService.getHenkatens(),
+        dbService.getTodayLogs()
       ])
       setActivities(a)
       setThemes(t)
       setUsers(u)
       setHenkatens(h)
+      setLogs(l)
     } finally {
       setLoading(false)
     }
@@ -120,14 +123,19 @@ export default function App() {
   const addActivity = async (a: Activity) => {
     setActivities(prev => [a, ...prev])
     await dbService.saveActivity(a)
+    const l = await dbService.getTodayLogs(); setLogs(l)
   }
   const updateActivity = async (a: Activity) => {
     setActivities(prev => prev.map(p => p.id === a.id ? a : p))
     await dbService.saveActivity(a)
+    const l = await dbService.getTodayLogs(); setLogs(l)
   }
   const deleteActivity = async (id: string) => {
+    if (!currentUser) return;
     setActivities(prev => prev.filter(p => p.id !== id))
     await dbService.deleteActivity(id)
+    await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Atividade' })
+    const l = await dbService.getTodayLogs(); setLogs(l)
   }
 
   // ── Themes CRUD ──────────────────────────────────────────
@@ -370,6 +378,7 @@ export default function App() {
             currentUser={currentUser}
             users={users}
             activities={activities}
+            logs={logs}
             onlineUsers={onlineUsers}
             realtimeStatus={realtimeStatus}
           />

@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase'
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from '../data'
-import type { Activity, Theme, User, HenkatenEvent } from '../types'
+import type { Activity, Theme, User, HenkatenEvent, LogEntry } from '../types'
 
 const isCloudEnabled = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
 
@@ -12,10 +12,18 @@ export const dbService = {
     if (error) { console.error('GetThemes Error:', error); return defaultThemes }
     return data || []
   },
-  async saveTheme(theme: Omit<Theme, 'id'> | Theme) {
+  async saveTheme(theme: Omit<Theme, 'id'> | Theme, user?: User) {
     if (!isCloudEnabled) return
     const { data, error } = await supabase.from('themes').upsert(theme).select()
     if (error) console.error("Save Theme Error", error)
+    if (!error && user) {
+      await this.saveLog({
+        userId: user.id,
+        userName: user.name,
+        action: 'Ajustou Cadastro de Tema',
+        target: (theme as any).name || 'Tema',
+      })
+    }
     return { data, error }
   },
   async deleteTheme(id: string) {
@@ -30,10 +38,18 @@ export const dbService = {
     if (error) { console.error('GetUsers Error:', error); return defaultUsers }
     return data || []
   },
-  async saveUser(user: Omit<User, 'id'> | User) {
+  async saveUser(user: Omit<User, 'id'> | User, adminUser?: User) {
     if (!isCloudEnabled) return
     const { data, error } = await supabase.from('users').upsert(user).select()
     if (error) console.error("Save User Error", error)
+    if (!error && adminUser) {
+      await this.saveLog({
+        userId: adminUser.id,
+        userName: adminUser.name,
+        action: 'Gerenciou Usuário',
+        target: (user as any).name || 'Usuário',
+      })
+    }
     return { data, error }
   },
   async deleteUser(id: string) {
@@ -84,6 +100,17 @@ export const dbService = {
 
     const { data, error } = await supabase.from('activities').upsert(dbPayload).select()
     if (error) console.error("Save Activity Error", error)
+    
+    // Auto Logging
+    if (!error && act.responsavel) {
+      const isNew = !(act as any).id;
+      await this.saveLog({
+        userId: act.responsavel,
+        userName: act.responsavel, // Temporário, resolvido no App level ou via query
+        action: isNew ? 'Criou Nova Atividade' : 'Atualizou Atividade',
+        target: act.descricao.substring(0, 50),
+      })
+    }
     return { data, error }
   },
   async deleteActivity(id: string) {
@@ -119,10 +146,42 @@ export const dbService = {
 
     const { data, error } = await supabase.from('henkatens').upsert(dbPayload).select()
     if (error) console.error("Save Henkaten Error", error)
+    
+    if (!error && (evt as any).responsible) {
+      await this.saveLog({
+        userId: (evt as any).responsible,
+        userName: (evt as any).responsible,
+        action: 'Atualizou Henkaten',
+        target: evt.title,
+      })
+    }
     return { data, error }
   },
   async deleteHenkaten(id: string) {
     if (!isCloudEnabled) return
     return await supabase.from('henkatens').delete().eq('id', id)
   },
+
+  // --- LOGS ---
+  async getTodayLogs(): Promise<LogEntry[]> {
+    if (!isCloudEnabled) return []
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const { data, error } = await supabase
+      .from('app_logs')
+      .select('*')
+      .gte('timestamp', `${todayStr}T00:00:00Z`)
+      .order('timestamp', { ascending: false })
+    
+    if (error) { console.error('GetLogs Error:', error); return [] }
+    return data || []
+  },
+  async saveLog(log: Omit<LogEntry, 'id' | 'timestamp'>) {
+    if (!isCloudEnabled) return
+    const dbPayload = {
+      ...log,
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString()
+    }
+    return await supabase.from('app_logs').insert(dbPayload)
+  }
 };

@@ -75,3 +75,13 @@ export interface HenkatenEvent {
   status?: HenkatenStatus; // Status do evento
   postponedDate?: string;  // Nova data se postergado
 }
+
+// ─── Logs ──────────────────────────────────────────────
+export interface LogEntry {
+  id: string;
+  userId: string;
+  userName: string;
+  action: string;      // Ex: "Criou Atividade", "Editou Henkaten"
+  target?: string;     // Ex: Descrição ou Título do item
+  timestamp: string;   // ISO String
+}
