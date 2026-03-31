@@ -104,9 +104,10 @@ export const dbService = {
     // Auto Logging
     if (!error && act.responsavel) {
       const isNew = !(act as any).id;
+      // Tentaremos obter o nome ou usar o ID se não houver opção
       await this.saveLog({
         userId: act.responsavel,
-        userName: act.responsavel, // Temporário, resolvido no App level ou via query
+        userName: act.responsavel, // Nome será atualizado no App que realiza a ação
         action: isNew ? 'Criou Nova Atividade' : 'Atualizou Atividade',
         target: act.descricao.substring(0, 50),
       })
@@ -182,6 +183,18 @@ export const dbService = {
       id: crypto.randomUUID(),
       timestamp: new Date().toISOString()
     }
-    return await supabase.from('app_logs').insert(dbPayload)
+    
+    // 1. Salvar no Banco (Histórico)
+    const { error } = await supabase.from('app_logs').insert(dbPayload)
+    if (error) {
+      console.error('[ERRO SUPABASE] Falha ao gravar LOG. Verifique as permissões RLS no banco:', error);
+    }
+    
+    // 2. Broadcast (Tempo-Real instantâneo para quem estiver online)
+    await supabase.channel('lsl_presence_tracker').send({
+      type: 'broadcast',
+      event: 'new_log',
+      payload: dbPayload
+    })
   }
 };
