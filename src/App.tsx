@@ -79,10 +79,13 @@ export default function App() {
     loadData()
   }, [loadData])
 
-  // --- Realtime Presence Tracker Effect ---
+    // --- Realtime Presence & Logs Tracker Effect ---
   useEffect(() => {
     if (!currentUser || !supabase) return;
     
+    // Debug: Mostrar quem sou eu no sistema
+    console.log('[DEBUG] Sou o usuário ID:', currentUser.id, 'Nome:', currentUser.name);
+
     const channel = supabase.channel('lsl_presence_tracker', {
       config: { presence: { key: currentUser.id } },
     });
@@ -103,6 +106,20 @@ export default function App() {
       .on('presence', { event: 'sync' }, handleSync)
       .on('presence', { event: 'join' }, handleSync)
       .on('presence', { event: 'leave' }, handleSync)
+      // OUVIR LOGS EM TEMPO REAL (Por Broadcast)
+      .on('broadcast', { event: 'new_log' }, ({ payload }) => {
+        console.log('[DEBUG] Recebi log via Broadcast:', payload);
+        if (payload && payload.userId) {
+          setLogs(prev => [payload, ...prev.slice(0, 49)]);
+        }
+      })
+      // OUVIR LOGS EM TEMPO REAL (Pela Tabela)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'app_logs' }, (payload) => {
+        console.log('[DEBUG] Recebi log via Tabela:', payload.new);
+        if (payload.new && payload.new.userId) {
+          setLogs(prev => [payload.new as LogEntry, ...prev.slice(0, 49)]);
+        }
+      })
       .subscribe(async (subStatus) => {
         if (subStatus === 'SUBSCRIBED') {
           setRealtimeStatus('connected');
@@ -121,63 +138,88 @@ export default function App() {
 
   // ── Activities CRUD ──────────────────────────────────────
   const addActivity = async (a: Activity) => {
+    if (!currentUser) return;
     setActivities(prev => [a, ...prev])
+    const newLog = { userId: currentUser.id, userName: currentUser.name, action: 'Criou Nova Atividade', target: a.descricao.substring(0, 30), timestamp: new Date().toISOString(), id: crypto.randomUUID() };
+    setLogs(prev => [newLog, ...prev.slice(0, 49)]);
     await dbService.saveActivity(a)
-    const l = await dbService.getTodayLogs(); setLogs(l)
+    await dbService.saveLog(newLog)
   }
   const updateActivity = async (a: Activity) => {
+    if (!currentUser) return;
     setActivities(prev => prev.map(p => p.id === a.id ? a : p))
+    const newLog = { userId: currentUser.id, userName: currentUser.name, action: 'Atualizou Atividade', target: a.descricao.substring(0, 30), timestamp: new Date().toISOString(), id: crypto.randomUUID() };
+    setLogs(prev => [newLog, ...prev.slice(0, 49)]);
     await dbService.saveActivity(a)
-    const l = await dbService.getTodayLogs(); setLogs(l)
+    await dbService.saveLog(newLog)
   }
   const deleteActivity = async (id: string) => {
     if (!currentUser) return;
+    const act = activities.find(p => p.id === id);
     setActivities(prev => prev.filter(p => p.id !== id))
+    const newLog = { userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Atividade', target: act?.descricao.substring(0, 30), timestamp: new Date().toISOString(), id: crypto.randomUUID() };
+    setLogs(prev => [newLog, ...prev.slice(0, 49)]);
     await dbService.deleteActivity(id)
-    await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Atividade' })
-    const l = await dbService.getTodayLogs(); setLogs(l)
+    await dbService.saveLog(newLog)
   }
 
   // ── Themes CRUD ──────────────────────────────────────────
   const addTheme = async (t: Theme) => {
+    if (!currentUser) return;
     setThemes(prev => [...prev, t])
-    await dbService.saveTheme(t)
+    await dbService.saveTheme(t, currentUser)
   }
   const updateTheme = async (t: Theme) => {
+    if (!currentUser) return;
     setThemes(prev => prev.map(p => p.id === t.id ? t : p))
-    await dbService.saveTheme(t)
+    await dbService.saveTheme(t, currentUser)
   }
   const deleteTheme = async (id: string) => {
+    if (!currentUser) return;
+    const theme = themes.find(t => t.id === id);
     setThemes(prev => prev.filter(p => p.id !== id))
     await dbService.deleteTheme(id)
+    await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Tema', target: theme?.name })
   }
 
   // ── Users CRUD ───────────────────────────────────────────
   const addUser = async (u: User) => {
+    if (!currentUser) return;
     setUsers(prev => [...prev, u])
-    await dbService.saveUser(u)
+    await dbService.saveUser(u, currentUser)
   }
   const updateUser = async (u: User) => {
+    if (!currentUser) return;
     setUsers(prev => prev.map(p => p.id === u.id ? u : p))
-    await dbService.saveUser(u)
+    await dbService.saveUser(u, currentUser)
   }
   const deleteUser = async (id: string) => {
+    if (!currentUser) return;
+    const userToDel = users.find(u => u.id === id);
     setUsers(prev => prev.filter(p => p.id !== id))
     await dbService.deleteUser(id)
+    await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Usuário', target: userToDel?.name })
   }
 
   // ── Henkatens CRUD ────────────────────────────────────────
   const addHenkaten = async (e: HenkatenEvent) => {
+    if (!currentUser) return;
     setHenkatens(prev => [...prev, e])
     await dbService.saveHenkaten(e)
+    await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Criou Henkaten', target: e.title })
   }
   const updateHenkaten = async (e: HenkatenEvent) => {
+    if (!currentUser) return;
     setHenkatens(prev => prev.map(ev => ev.id === e.id ? e : ev))
     await dbService.saveHenkaten(e)
+    await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Atualizou Henkaten', target: e.title })
   }
   const deleteHenkaten = async (id: string) => {
+    if (!currentUser) return;
+    const event = henkatens.find(e => e.id === id);
     setHenkatens(prev => prev.filter(ev => ev.id !== id))
     await dbService.deleteHenkaten(id)
+    await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Henkaten', target: event?.title })
   }
 
   const navItemsRaw: { key: Tab; label: string; icon: React.ReactNode }[] = [

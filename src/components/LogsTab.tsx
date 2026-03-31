@@ -13,15 +13,19 @@ interface Props {
 }
 
 export default function LogsTab({ currentUser, users, activities, logs, onlineUsers, realtimeStatus }: Props) {
-  // Checa quem já atualizou a agenda hoje baseada nos LOGS REAIS
-  const todayStr = new Date().toISOString().slice(0, 10);
+  // Pegar a data local de hoje em formato YYYY-MM-DD
+  const localToday = new Date().toLocaleDateString('en-CA'); // 'en-CA' produz YYYY-MM-DD
   
   const analysts = useMemo(() => users.filter(u => u.role === 'Analista'), [users]);
   
   const analystsUpdateStatus = useMemo(() => {
     return analysts.map(analyst => {
-      // Filtra logs deste analista hoje
-      const userLogsToday = logs.filter(l => l.userId === analyst.id);
+      // Filtra logs deste analista no dia local de hoje
+      const userLogsToday = logs.filter(l => {
+        const logDate = new Date(l.timestamp).toLocaleDateString('en-CA');
+        return l.userId === analyst.id && logDate === localToday;
+      });
+      
       const hasUpdatesToday = userLogsToday.length > 0;
       const lastUpdate = hasUpdatesToday ? userLogsToday[0].timestamp : null;
       
@@ -79,7 +83,7 @@ export default function LogsTab({ currentUser, users, activities, logs, onlineUs
         <div className="dash-card">
           <div className="dash-card-header">
             <ActivityIcon size={18} />
-            <h3>Ações Realizadas ({todayStr.split('-').reverse().join('/')})</h3>
+            <h3>Ações Realizadas ({localToday.split('-').reverse().join('/')})</h3>
           </div>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
             Baseado em cliques reais nos botões de salvar, editar e excluir do sistema.
