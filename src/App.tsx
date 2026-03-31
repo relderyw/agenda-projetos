@@ -10,6 +10,7 @@ import HenkatensTab from './components/HenkatensTab'
 import LogsTab from './components/LogsTab'
 import Login from './components/Login'
 import { dbService } from './services/db'
+import { supabase } from './lib/supabase'
 import './App.css'
 
 type ThemeMode = 'dark' | 'light'
@@ -30,6 +31,10 @@ export default function App() {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     return (localStorage.getItem('theme') as ThemeMode) || 'light'
   });
+
+  // --- Realtime Presence State ---
+  const [onlineUsers, setOnlineUsers] = useState<Record<string, boolean>>({});
+  const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
 
   // Apply Auth Persist
   useEffect(() => {
@@ -70,6 +75,46 @@ export default function App() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  // --- Realtime Presence Tracker Effect ---
+  useEffect(() => {
+    if (!currentUser || !supabase) return;
+    
+    const channel = supabase.channel('lsl_presence_tracker', {
+      config: { presence: { key: currentUser.id } },
+    });
+
+    const handleSync = () => {
+      const state = channel.presenceState();
+      const activeMap: Record<string, boolean> = {};
+      Object.keys(state).forEach((key) => {
+        const userPresences = state[key] as any[];
+        userPresences.forEach((presence) => {
+          if (presence.userId) activeMap[presence.userId] = true;
+        });
+      });
+      setOnlineUsers(activeMap);
+    };
+
+    channel
+      .on('presence', { event: 'sync' }, handleSync)
+      .on('presence', { event: 'join' }, handleSync)
+      .on('presence', { event: 'leave' }, handleSync)
+      .subscribe(async (subStatus) => {
+        if (subStatus === 'SUBSCRIBED') {
+          setRealtimeStatus('connected');
+          await channel.track({
+            userId: currentUser.id,
+            userRole: currentUser.role,
+            onlineAt: new Date().toISOString(),
+          });
+        } else if (subStatus === 'CLOSED' || subStatus === 'CHANNEL_ERROR') {
+          setRealtimeStatus('error');
+        }
+      });
+
+    return () => { channel.unsubscribe(); };
+  }, [currentUser]);
 
   // ── Activities CRUD ──────────────────────────────────────
   const addActivity = async (a: Activity) => {
@@ -325,6 +370,8 @@ export default function App() {
             currentUser={currentUser}
             users={users}
             activities={activities}
+            onlineUsers={onlineUsers}
+            realtimeStatus={realtimeStatus}
           />
         )}
       </main>

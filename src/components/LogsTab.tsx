@@ -7,67 +7,12 @@ interface Props {
   currentUser: User | null;
   users: User[];
   activities: Activity[];
+  onlineUsers: Record<string, boolean>;
+  realtimeStatus: 'connecting' | 'connected' | 'error';
 }
 
-export default function LogsTab({ currentUser, users, activities }: Props) {
-  const [onlineUsers, setOnlineUsers] = useState<Record<string, boolean>>({});
-  const [status, setStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
-
-  useEffect(() => {
-    if (!currentUser || !supabase) return;
-    
-    // Conecta no canal de tracking de Presença (nome único por projeto se possível)
-    const channel = supabase.channel('lsl_presence_tracker', {
-      config: {
-        presence: {
-          key: currentUser.id,
-        },
-      },
-    });
-
-    const handleSync = () => {
-      const state = channel.presenceState();
-      const activeMap: Record<string, boolean> = {};
-      
-      // Itera em todos os "buckets" de presença (chaves)
-      Object.keys(state).forEach((key) => {
-        const userPresences = state[key] as any[];
-        userPresences.forEach((presence) => {
-          if (presence.userId) {
-            activeMap[presence.userId] = true;
-          }
-        });
-      });
-
-      // Log para debug interno (ajuda a saber se algo está chegando)
-      console.log('Realtime Presence Sync:', activeMap);
-      setOnlineUsers(activeMap);
-    };
-
-    channel
-      .on('presence', { event: 'sync' }, handleSync)
-      .on('presence', { event: 'join' }, handleSync)
-      .on('presence', { event: 'leave' }, handleSync)
-      .subscribe(async (subStatus) => {
-        if (subStatus === 'SUBSCRIBED') {
-          setStatus('connected');
-          // Envia o ID para que outros saibam que estou online
-          await channel.track({
-            userId: currentUser.id,
-            userRole: currentUser.role,
-            onlineAt: new Date().toISOString(),
-          });
-        } else if (subStatus === 'CLOSED' || subStatus === 'CHANNEL_ERROR') {
-          setStatus('error');
-        }
-      });
-
-    return () => {
-      channel.unsubscribe();
-    };
-  }, [currentUser]);
-
-  // Checa quem já atualizou a agenda hoje (Qualquer analista com Atividade onde planejamento === Hojé)
+export default function LogsTab({ currentUser, users, activities, onlineUsers, realtimeStatus }: Props) {
+  // Checa quem já atualizou a agenda hoje (Qualquer analista com Atividade onde planejamento === Hoje)
   const todayStr = new Date().toISOString().slice(0, 10);
   
   const analysts = useMemo(() => users.filter(u => u.role === 'Analista'), [users]);
@@ -108,11 +53,11 @@ export default function LogsTab({ currentUser, users, activities }: Props) {
           <p className="tab-subtitle">Conectividade e acompanhamento de agenda dia-a-dia da equipe de analistas.</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {status === 'connected' ? (
+          {realtimeStatus === 'connected' ? (
             <span style={{ fontSize: '0.7rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(16,185,129,0.1)', padding: '4px 8px', borderRadius: '6px' }}>
               <div className="cloud-dot pulse" style={{ width: 6, height: 6 }} /> Realtime Ativo
             </span>
-          ) : status === 'error' ? (
+          ) : realtimeStatus === 'error' ? (
             <span style={{ fontSize: '0.7rem', color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '4px 8px', borderRadius: '6px' }}>
               Erro na Conexão Realtime
             </span>
