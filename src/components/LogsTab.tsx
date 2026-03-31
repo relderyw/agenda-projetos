@@ -11,41 +11,54 @@ interface Props {
 
 export default function LogsTab({ currentUser, users, activities }: Props) {
   const [onlineUsers, setOnlineUsers] = useState<Record<string, { lastSeen: Date }>>({});
+  const [status, setStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
 
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !supabase) return;
     
     // Conecta no canal de tracking de Presença
-    const roomOne = supabase.channel('online-users');
+    const channel = supabase.channel('online-users', {
+      config: {
+        presence: {
+          key: currentUser.id,
+        },
+      },
+    });
 
-    roomOne
-      .on('presence', { event: 'sync' }, () => {
-        const newState = roomOne.presenceState();
-        const activeMap: Record<string, { lastSeen: Date }> = {};
-        
-        Object.keys(newState).forEach(key => {
-          const presences = newState[key] as any[];
-          presences.forEach(presence => {
-            if (presence.userId) {
-              activeMap[presence.userId] = { lastSeen: new Date() };
-            }
-          });
-        });
+    const handleSync = () => {
+      const state = channel.presenceState();
+      const activeMap: Record<string, { lastSeen: Date }> = {};
+      
+      Object.keys(state).forEach(key => {
+        // key here is the 'presence key' we defined above (currentUser.id)
+        activeMap[key] = { lastSeen: new Date() };
+      });
 
-        setOnlineUsers(activeMap);
+      setOnlineUsers(activeMap);
+    };
+
+    channel
+      .on('presence', { event: 'sync' }, handleSync)
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+        handleSync();
       })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          // Quando conectar, envia o estado da própria pessoa pro mundo
-          await roomOne.track({
+      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+        handleSync();
+      })
+      .subscribe(async (subStatus) => {
+        if (subStatus === 'SUBSCRIBED') {
+          setStatus('connected');
+          await channel.track({
             userId: currentUser.id,
             onlineAt: new Date().toISOString(),
           });
+        } else if (subStatus === 'CLOSED' || subStatus === 'CHANNEL_ERROR') {
+          setStatus('error');
         }
       });
 
     return () => {
-      roomOne.unsubscribe();
+      channel.unsubscribe();
     };
   }, [currentUser]);
 
@@ -88,6 +101,21 @@ export default function LogsTab({ currentUser, users, activities }: Props) {
         <div>
           <h1 className="tab-title">Logs e Monitoramento</h1>
           <p className="tab-subtitle">Conectividade e acompanhamento de agenda dia-a-dia da equipe de analistas.</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {status === 'connected' ? (
+            <span style={{ fontSize: '0.7rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(16,185,129,0.1)', padding: '4px 8px', borderRadius: '6px' }}>
+              <div className="cloud-dot pulse" style={{ width: 6, height: 6 }} /> Realtime Ativo
+            </span>
+          ) : status === 'error' ? (
+            <span style={{ fontSize: '0.7rem', color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '4px 8px', borderRadius: '6px' }}>
+              Erro na Conexão Realtime
+            </span>
+          ) : (
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--bg-input)', padding: '4px 8px', borderRadius: '6px' }}>
+              Conectando ao Realtime...
+            </span>
+          )}
         </div>
       </div>
 
@@ -144,12 +172,13 @@ export default function LogsTab({ currentUser, users, activities }: Props) {
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {users.map(u => {
-              const isOnline = !!onlineUsers[u.id] || u.id === currentUser?.id; // Força online pro próprio user caso atrase socket
+              const isOnline = !!onlineUsers[u.id];
               return (
-                <div key={u.id} style={{
+                <div key={u.id} className="online-user-row" style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   background: 'var(--bg-input)', padding: '0.75rem 1rem', borderRadius: '12px',
-                  opacity: isOnline ? 1 : 0.6
+                  opacity: isOnline ? 1 : 0.6,
+                  transition: 'all 0.3s ease'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <div className="user-avatar" style={{ background: u.color }}>{u.name[0]}</div>
