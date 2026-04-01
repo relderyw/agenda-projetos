@@ -3334,21 +3334,23 @@ Not strictly needed if th stretches, td stretches automatically in standard tabl
 }
 
 /* ── Kanban Popover ── */
-.kb-card {
-  position: relative;
+.kb-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 500; /* Garante que fique sobre outros cards */
 }
 
 .kb-card-popover {
   position: absolute;
-  top: -5px;
-  right: -5px;
-  width: 250px;
+  top: 10px; /* Aparece um pouco abaixo do topo do card */
+  left: 20px;
+  width: 280px;
   background: var(--bg-modal);
   border: 1px solid var(--border-strong);
   border-radius: 12px;
   padding: 1rem;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-  z-index: 100;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  z-index: 1000;
   pointer-events: none;
   opacity: 0;
   transform: translateY(10px) scale(0.95);
