@@ -104,21 +104,10 @@ export const dbService = {
     delete dbPayload.diasEsperadosConclusao;
     delete dbPayload.dataComentario;
 
-    const { data, error } = await supabase.from('activities').upsert(dbPayload).select()
-    if (error) console.error("Save Activity Error", error)
+    const { data, error } = await supabase.from('activities').upsert(dbPayload).select();
+    if (error) console.error("Save Activity Error", error);
     
-    // Auto Logging
-    if (!error && act.responsavel) {
-      const isNew = !(act as any).id;
-      // Tentaremos obter o nome ou usar o ID se não houver opção
-      await this.saveLog({
-        userId: act.responsavel,
-        userName: act.responsavel, // Nome será atualizado no App que realiza a ação
-        action: isNew ? 'Criou Nova Atividade' : 'Atualizou Atividade',
-        target: act.descricao.substring(0, 50),
-      })
-    }
-    return { data, error }
+    return { data, error };
   },
   async deleteActivity(id: string) {
     if (!isCloudEnabled) return { data: null, error: null }
@@ -151,18 +140,10 @@ export const dbService = {
     delete dbPayload.endDate;
     delete dbPayload.postponedDate;
 
-    const { data, error } = await supabase.from('henkatens').upsert(dbPayload).select()
-    if (error) console.error("Save Henkaten Error", error)
+    const { data, error } = await supabase.from('henkatens').upsert(dbPayload).select();
+    if (error) console.error("Save Henkaten Error", error);
     
-    if (!error && (evt as any).responsible) {
-      await this.saveLog({
-        userId: (evt as any).responsible,
-        userName: (evt as any).responsible,
-        action: 'Atualizou Henkaten',
-        target: evt.title,
-      })
-    }
-    return { data, error }
+    return { data, error };
   },
   async deleteHenkaten(id: string) {
     if (!isCloudEnabled) return { data: null, error: null }
