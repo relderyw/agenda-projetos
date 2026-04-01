@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert } from 'lucide-react'
+import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2 } from 'lucide-react'
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from './data'
 import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry } from './types'
 import AtividadesTab from './components/AtividadesTab'
@@ -12,6 +12,13 @@ import Login from './components/Login'
 import { dbService } from './services/db'
 import { supabase } from './lib/supabase'
 import './App.css'
+
+interface Toast {
+  id: string;
+  type: 'success' | 'error' | 'info';
+  title: string;
+  msg: string;
+}
 
 type ThemeMode = 'dark' | 'light'
 
@@ -32,6 +39,15 @@ export default function App() {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     return (localStorage.getItem('theme') as ThemeMode) || 'light'
   });
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const showToast = useCallback((type: Toast['type'], title: string, msg: string) => {
+    const id = crypto.randomUUID();
+    setToasts(prev => [...prev, { id, type, title, msg }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 5000);
+  }, []);
 
   // --- Realtime Presence State ---
   const [onlineUsers, setOnlineUsers] = useState<Record<string, boolean>>({});
@@ -109,15 +125,37 @@ export default function App() {
       // OUVIR LOGS EM TEMPO REAL (Por Broadcast)
       .on('broadcast', { event: 'new_log' }, ({ payload }) => {
         console.log('[DEBUG] Recebi log via Broadcast:', payload);
-        if (payload && payload.userId) {
-          setLogs(prev => [payload, ...prev.slice(0, 49)]);
+        const row = payload as any;
+        if (row) {
+          const mapped: LogEntry = {
+            id: row.id,
+            userId: row.user_id || row.userId,
+            userName: row.user_name || row.userName,
+            action: row.action,
+            target: row.target,
+            timestamp: row.timestamp || new Date().toISOString()
+          };
+          setLogs(prev => [mapped, ...prev.slice(0, 49)]);
         }
       })
       // OUVIR LOGS EM TEMPO REAL (Pela Tabela)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'app_logs' }, (payload) => {
         console.log('[DEBUG] Recebi log via Tabela:', payload.new);
-        if (payload.new && payload.new.userId) {
-          setLogs(prev => [payload.new as LogEntry, ...prev.slice(0, 49)]);
+        const row = payload.new as any;
+        if (row) {
+          const mapped: LogEntry = {
+            id: row.id,
+            userId: row.user_id || row.userId,
+            userName: row.user_name || row.userName,
+            action: row.action,
+            target: row.target,
+            timestamp: row.timestamp || new Date().toISOString()
+          };
+          // Evitar duplicidade se já recebeu via Broadcast
+          setLogs(prev => {
+            if (prev.find(l => l.id === mapped.id)) return prev;
+            return [mapped, ...prev.slice(0, 49)];
+          });
         }
       })
       .subscribe(async (subStatus) => {
@@ -139,87 +177,174 @@ export default function App() {
   // ── Activities CRUD ──────────────────────────────────────
   const addActivity = async (a: Activity) => {
     if (!currentUser) return;
+    // Optimistic update
     setActivities(prev => [a, ...prev])
+    
+    const { error } = await dbService.saveActivity(a)
+    if (error) {
+      setActivities(prev => prev.filter(act => act.id !== a.id)) // rollback
+      showToast('error', 'Erro ao salvar', 'Não foi possível enviar a atividade para a nuvem. Tente novamente.')
+      return;
+    }
+
     const newLog = { userId: currentUser.id, userName: currentUser.name, action: 'Criou Nova Atividade', target: a.descricao.substring(0, 30), timestamp: new Date().toISOString(), id: crypto.randomUUID() };
     setLogs(prev => [newLog, ...prev.slice(0, 49)]);
-    await dbService.saveActivity(a)
     await dbService.saveLog(newLog)
+    showToast('success', 'Sucesso', 'Atividade salva na nuvem.')
   }
   const updateActivity = async (a: Activity) => {
     if (!currentUser) return;
+    const oldActivities = [...activities];
     setActivities(prev => prev.map(p => p.id === a.id ? a : p))
+    
+    const { error } = await dbService.saveActivity(a)
+    if (error) {
+      setActivities(oldActivities) // rollback
+      showToast('error', 'Erro na atualização', 'Falha ao atualizar atividade na nuvem.')
+      return;
+    }
+
     const newLog = { userId: currentUser.id, userName: currentUser.name, action: 'Atualizou Atividade', target: a.descricao.substring(0, 30), timestamp: new Date().toISOString(), id: crypto.randomUUID() };
     setLogs(prev => [newLog, ...prev.slice(0, 49)]);
-    await dbService.saveActivity(a)
     await dbService.saveLog(newLog)
+    showToast('success', 'Atualizado', 'Alterações salvas com sucesso.')
   }
   const deleteActivity = async (id: string) => {
     if (!currentUser) return;
+    const oldActivities = [...activities];
     const act = activities.find(p => p.id === id);
     setActivities(prev => prev.filter(p => p.id !== id))
+    
+    const { error } = await dbService.deleteActivity(id)
+    if (error) {
+      setActivities(oldActivities) // rollback
+      showToast('error', 'Erro ao excluir', 'Não foi possível excluir a atividade.')
+      return;
+    }
+
     const newLog = { userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Atividade', target: act?.descricao.substring(0, 30), timestamp: new Date().toISOString(), id: crypto.randomUUID() };
     setLogs(prev => [newLog, ...prev.slice(0, 49)]);
-    await dbService.deleteActivity(id)
     await dbService.saveLog(newLog)
+    showToast('info', 'Excluído', 'Atividade removida.')
   }
 
   // ── Themes CRUD ──────────────────────────────────────────
   const addTheme = async (t: Theme) => {
     if (!currentUser) return;
     setThemes(prev => [...prev, t])
-    await dbService.saveTheme(t, currentUser)
+    const { error } = await dbService.saveTheme(t, currentUser)
+    if (error) {
+      setThemes(prev => prev.filter(item => item.id !== t.id))
+      showToast('error', 'Erro ao salvar tema', 'Falha na conexão com a nuvem.')
+    } else {
+      showToast('success', 'Tema Criado', `O tema "${t.name}" foi salvo.`)
+    }
   }
   const updateTheme = async (t: Theme) => {
     if (!currentUser) return;
+    const oldThemes = [...themes];
     setThemes(prev => prev.map(p => p.id === t.id ? t : p))
-    await dbService.saveTheme(t, currentUser)
+    const { error } = await dbService.saveTheme(t, currentUser)
+    if (error) {
+      setThemes(oldThemes)
+      showToast('error', 'Erro ao atualizar', 'Não foi possível salvar as alterações do tema.')
+    } else {
+      showToast('success', 'Tema Atualizado', 'Alterações confirmadas na nuvem.')
+    }
   }
   const deleteTheme = async (id: string) => {
     if (!currentUser) return;
+    const oldThemes = [...themes];
     const theme = themes.find(t => t.id === id);
     setThemes(prev => prev.filter(p => p.id !== id))
-    await dbService.deleteTheme(id)
-    await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Tema', target: theme?.name })
+    const { error } = await dbService.deleteTheme(id)
+    if (error) {
+      setThemes(oldThemes)
+      showToast('error', 'Erro ao excluir', 'O tema não pôde ser removido da nuvem.')
+    } else {
+      await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Tema', target: theme?.name })
+      showToast('info', 'Tema Excluído', `O tema "${theme?.name}" foi removido.`)
+    }
   }
 
   // ── Users CRUD ───────────────────────────────────────────
   const addUser = async (u: User) => {
     if (!currentUser) return;
     setUsers(prev => [...prev, u])
-    await dbService.saveUser(u, currentUser)
+    const { error } = await dbService.saveUser(u, currentUser)
+    if (error) {
+      setUsers(prev => prev.filter(item => item.id !== u.id))
+      showToast('error', 'Erro ao criar usuário', 'Não foi possível salvar o novo usuário.')
+    } else {
+      showToast('success', 'Usuário Criado', `${u.name} agora tem acesso ao sistema.`)
+    }
   }
   const updateUser = async (u: User) => {
     if (!currentUser) return;
+    const oldUsers = [...users];
     setUsers(prev => prev.map(p => p.id === u.id ? u : p))
-    await dbService.saveUser(u, currentUser)
+    const { error } = await dbService.saveUser(u, currentUser)
+    if (error) {
+      setUsers(oldUsers)
+      showToast('error', 'Erro na atualização', 'Falha ao salvar alterações do usuário.')
+    } else {
+      showToast('success', 'Usuário Atualizado', 'Permissões e dados sincronizados.')
+    }
   }
   const deleteUser = async (id: string) => {
     if (!currentUser) return;
+    const oldUsers = [...users];
     const userToDel = users.find(u => u.id === id);
     setUsers(prev => prev.filter(p => p.id !== id))
-    await dbService.deleteUser(id)
-    await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Usuário', target: userToDel?.name })
+    const { error } = await dbService.deleteUser(id)
+    if (error) {
+      setUsers(oldUsers)
+      showToast('error', 'Erro ao excluir', 'O usuário não pôde ser removido.')
+    } else {
+      await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Usuário', target: userToDel?.name })
+      showToast('info', 'Usuário Removido', `O acesso de ${userToDel?.name} foi revogado.`)
+    }
   }
 
   // ── Henkatens CRUD ────────────────────────────────────────
   const addHenkaten = async (e: HenkatenEvent) => {
     if (!currentUser) return;
     setHenkatens(prev => [...prev, e])
-    await dbService.saveHenkaten(e)
-    await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Criou Henkaten', target: e.title })
+    const { error } = await dbService.saveHenkaten(e)
+    if (error) {
+      setHenkatens(prev => prev.filter(item => item.id !== e.id))
+      showToast('error', 'Erro ao criar Henkaten', 'Não foi possível salvar o evento.')
+    } else {
+      await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Criou Henkaten', target: e.title })
+      showToast('success', 'Henkaten Criado', `Evento "${e.title}" agendado.`)
+    }
   }
   const updateHenkaten = async (e: HenkatenEvent) => {
     if (!currentUser) return;
+    const oldH = [...henkatens];
     setHenkatens(prev => prev.map(ev => ev.id === e.id ? e : ev))
-    await dbService.saveHenkaten(e)
-    await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Atualizou Henkaten', target: e.title })
+    const { error } = await dbService.saveHenkaten(e)
+    if (error) {
+      setHenkatens(oldH)
+      showToast('error', 'Erro na atualização', 'Falha ao salvar alterações do Henkaten.')
+    } else {
+      await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Atualizou Henkaten', target: e.title })
+      showToast('success', 'Evento Atualizado', 'Informações sincronizadas.')
+    }
   }
   const deleteHenkaten = async (id: string) => {
     if (!currentUser) return;
+    const oldH = [...henkatens];
     const event = henkatens.find(e => e.id === id);
     setHenkatens(prev => prev.filter(ev => ev.id !== id))
-    await dbService.deleteHenkaten(id)
-    await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Henkaten', target: event?.title })
+    const { error } = await dbService.deleteHenkaten(id)
+    if (error) {
+      setHenkatens(oldH)
+      showToast('error', 'Erro ao excluir', 'O evento não pôde ser removido.')
+    } else {
+      await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Henkaten', target: event?.title })
+      showToast('info', 'Evento Excluído', 'Henkaten removido do calendário.')
+    }
   }
 
   const navItemsRaw: { key: Tab; label: string; icon: React.ReactNode }[] = [
@@ -357,9 +482,13 @@ export default function App() {
               <span className="sf-lbl">Pendentes</span>
             </div>
           </div>
-          <div className="cloud-status-badge">
-            <div className="cloud-dot pulse"></div>
-            <span>Sistema em Nuvem (Automático)</span>
+          <div className={`cloud-status-badge ${realtimeStatus}`}>
+            <div className={`cloud-dot ${realtimeStatus === 'connected' ? 'pulse' : ''}`}></div>
+            <span>
+              {realtimeStatus === 'connected' ? 'Sistema em Nuvem (Online)' : 
+               realtimeStatus === 'connecting' ? 'Conectando à Nuvem...' : 
+               'Sistema Offline (Falha)'}
+            </span>
           </div>
         </div>
       </aside>
@@ -426,6 +555,23 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* ── Toast notifications ── */}
+      <div className="toast-container">
+        {toasts.map(t => (
+          <div key={t.id} className={`toast toast-${t.type}`}>
+             <div className="toast-icon">
+                {t.type === 'success' && <CheckCircle2 size={20} style={{ color: '#10b981' }} />}
+                {t.type === 'error' && <ShieldAlert size={20} style={{ color: '#ef4444' }} />}
+                {t.type === 'info' && <RefreshCw size={20} style={{ color: '#3b82f6' }} />}
+             </div>
+             <div className="toast-content">
+                <span className="toast-title">{t.title}</span>
+                <span className="toast-msg">{t.msg}</span>
+             </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

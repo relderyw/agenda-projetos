@@ -81,13 +81,38 @@ function prioClass(p: Activity['prioridade']): string {
   return 'kb-prio-baixa'
 }
 
-// ── Card ─────────────────────────────────────────────────────────────────────
 function ActivityCard({
-  act, theme, isToday
-}: { act: Activity; theme?: Theme; isToday: boolean }) {
-  const pct = act.percentualAndamento
+  act, theme, isToday, cardDate
+}: { act: Activity; theme?: Theme; isToday: boolean; cardDate: string }) {
   
-  const isDone = act.status === 'FINALIZADA' || pct === 100
+  // Lógica Multi-dia: Distribuir o % pelos dias
+  const start = parseLocal(act.planejamento);
+  const endStr = act.dataPrevistaFinalizacao && act.dataPrevistaFinalizacao.length === 10 
+    ? act.dataPrevistaFinalizacao 
+    : act.planejamento;
+  const end = parseLocal(endStr);
+  
+  const totalDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+  const pctTotal = act.percentualAndamento;
+  const completedDays = totalDays * (pctTotal / 100);
+  
+  const current = parseLocal(cardDate);
+  const dayOffset = Math.round((current.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  const dayIndex = dayOffset + 1;
+  
+  let pct = 0;
+  if (dayIndex <= Math.floor(completedDays)) {
+    pct = 100;
+  } else if (dayIndex === Math.ceil(completedDays)) {
+    // Se completedDays é 1.5, o dia 2 (ceil de 1.5) pega os 0.5 (50%)
+    pct = Math.round((completedDays - Math.floor(completedDays)) * 100);
+    if (pct === 0 && completedDays > 0) pct = 0; // Caso de borda
+  }
+  
+  // Forçar 100% se o status global for FINALIZADA
+  if (act.status === 'FINALIZADA') pct = 100;
+
+  const isDone = pct === 100;
   const todayStr = new Date().toISOString().slice(0, 10)
   const isLate = !isDone && act.dataPrevistaFinalizacao && act.dataPrevistaFinalizacao < todayStr
   const isStarted = pct > 0 && pct < 100
@@ -106,7 +131,7 @@ function ActivityCard({
   } else if (isLate) {
     displayStatusLabel = 'Atrasada'
     displayStatusType = 'late'
-  } else if (isStarted) {
+  } else if (isStarted || (pctTotal > 0 && pctTotal < 100)) {
     displayStatusLabel = 'Em andamento'
     displayStatusType = 'prog'
   }
@@ -141,6 +166,17 @@ function ActivityCard({
         )}
         <span className="kb-card-pct">{pct}%</span>
       </div>
+
+      {act.comentario && (
+        <div className="kb-card-popover">
+          <div className="pop-header">
+            <AlertCircle size={14} style={{ color: 'var(--text-muted)' }} />
+            <span className="pop-title">Justificativa / Comentário</span>
+          </div>
+          <div className="pop-content">{act.comentario}</div>
+          {act.dataComentario && <span className="pop-date">Atualizado: {act.dataComentario}</span>}
+        </div>
+      )}
     </div>
   )
 }
@@ -348,6 +384,7 @@ export default function KanbanTab({ activities, themes, users }: Props) {
                           act={act}
                           theme={themeMap[act.tema]}
                           isToday={dayDef?.isToday ?? false}
+                          cardDate={date}
                         />
                       ))
                     )}

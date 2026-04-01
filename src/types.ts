@@ -33,7 +33,7 @@ export interface User {
 
 // ─── Atividades ───────────────────────────────────────────
 export type Priority = 'Alta' | 'Média' | 'Baixa';
-export type Status = 'FINALIZADA' | 'PENDENTE' | 'EM ANDAMENTO';
+export type Status = 'FINALIZADA' | 'PENDENTE' | 'EM ANDAMENTO' | 'POSTERGADA';
 
 export interface Activity {
   id: string;
@@ -49,6 +49,8 @@ export interface Activity {
   esforcoRealizado: number;
   status: Status;
   week: string;               // ex: "W2 - Mar"
+  comentario?: string;
+  dataComentario?: string;
 }
 
 // ─── App State ────────────────────────────────────────────

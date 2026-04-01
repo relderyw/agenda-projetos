@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import {
   Plus, Search, Filter, ChevronDown, Edit2, Trash2,
   CheckCircle2, Clock, AlertCircle, X, Calendar, Save,
-  ChevronsUpDown, ChevronUp, Download
+  ChevronsUpDown, ChevronUp, Download, RefreshCw
 } from 'lucide-react';
 import type { Activity, Theme, User, Priority, Status } from '../types';
 
@@ -20,10 +20,10 @@ type SortKey = keyof Activity | '';
 type SortDir = 'asc' | 'desc';
 
 const PRIORITIES: Priority[] = ['Alta', 'Média', 'Baixa'];
-const STATUSES: Status[] = ['PENDENTE', 'EM ANDAMENTO', 'FINALIZADA'];
+const STATUSES: Status[] = ['PENDENTE', 'EM ANDAMENTO', 'FINALIZADA', 'POSTERGADA'];
 
 const PRIO_ORDER: Record<Priority, number> = { Alta: 0, Média: 1, Baixa: 2 };
-const STATUS_ORDER: Record<Status, number> = { PENDENTE: 0, 'EM ANDAMENTO': 1, FINALIZADA: 2 };
+const STATUS_ORDER: Record<Status, number> = { PENDENTE: 0, 'EM ANDAMENTO': 1, FINALIZADA: 2, POSTERGADA: 3 };
 
 function getStatusIcon(status: Status) {
   if (status === 'FINALIZADA') return <CheckCircle2 size={14} />;
@@ -54,6 +54,8 @@ const empty = (): Omit<Activity, 'id'> => ({
   esforcoRealizado: 0,
   status: 'PENDENTE',
   week: '',
+  comentario: '',
+  dataComentario: ''
 });
 
 // ── Sortable column header ─────────────────────────────────
@@ -93,10 +95,11 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
   const [modal, setModal] = useState<{ open: boolean; editing: Activity | null }>({ open: false, editing: null });
   const [form, setForm] = useState<Omit<Activity, 'id'>>(empty());
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Apenas analistas aparecem nos dropdowns e na lista de atividades
+  // Apenas analistas e outros papéis operacionais aparecem nos dropdowns
   const filteredUsers = useMemo(() => {
-    return users.filter(u => u.role !== 'Administrador' && u.role !== 'Gestão');
+    return users.filter(u => u.role !== 'Administrador');
   }, [users]);
 
 
@@ -159,60 +162,93 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
   const openEdit = (a: Activity) => { setForm({ ...a }); setModal({ open: true, editing: a }); };
   const closeModal = () => setModal({ open: false, editing: null });
 
-  const handleSave = () => {
-    if (!form.descricao.trim() || !form.responsavel || !form.tema) return;
+  const handleSave = async () => {
+    if (!form.descricao.trim()) return alert("A descrição é obrigatória.");
+    if (!form.responsavel) return alert("Selecione um responsável.");
+    if (!form.tema) return alert("Selecione um tema.");
     
-    const act = { ...form };
+    if (form.status === 'POSTERGADA' && !form.dataFinalizada) {
+      return alert("Para postergar, informe a Nova Data (no campo 'Dt. Finalizada' para este recurso).");
+    }
     
-    // Calcular automaticamente a Week da data do planejamento
-    if (act.planejamento) {
-      // Usar Date baseada na string (split para evitar timezone timezone problems)
-      const [y, m, d] = act.planejamento.split('-').map(Number);
-      const planDate = new Date(y, m - 1, d);
+    setIsSaving(true);
+    try {
+      const act = { ...form };
       
-      if (!isNaN(planDate.getTime())) {
-        const dayOfMonth = planDate.getDate();
-        const weekNum = Math.ceil(dayOfMonth / 7);
-        const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-        const monthStr = months[planDate.getMonth()];
-        act.week = `W${weekNum > 5 ? 5 : weekNum} - ${monthStr}`;
+      // Se era edição e mudou para POSTERGADA, vamos disparar a duplicata para a nova data
+      if (modal.editing && form.status === 'POSTERGADA' && modal.editing.status !== 'POSTERGADA') {
+        const duplicate: Activity = {
+           ...act, 
+           id: crypto.randomUUID(),
+           planejamento: act.dataFinalizada || act.planejamento,
+           status: 'PENDENTE',
+           percentualAndamento: 0,
+           dataFinalizada: undefined
+        };
+        await onAdd(duplicate);
+      } else if (!modal.editing && form.status === 'POSTERGADA') {
+        const duplicate: Activity = {
+           ...act, 
+           id: crypto.randomUUID(),
+           planejamento: act.dataFinalizada || act.planejamento,
+           status: 'PENDENTE',
+           percentualAndamento: 0,
+           dataFinalizada: undefined
+        };
+        await onAdd(duplicate);
       }
-    }
 
-    // Calcular Dias Esperados (Data Prevista - Planejamento)
-    if (act.planejamento && act.dataPrevistaFinalizacao) {
-      const [y1, m1, d1] = act.planejamento.split('-').map(Number);
-      const [y2, m2, d2] = act.dataPrevistaFinalizacao.split('-').map(Number);
-      const date1 = new Date(y1, m1 - 1, d1);
-      const date2 = new Date(y2, m2 - 1, d2);
-      const diffTime = date2.getTime() - date1.getTime();
-      act.diasEsperadosConclusao = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    } else {
-      act.diasEsperadosConclusao = 0;
-    }
+      // Cálculos...
+      if (act.planejamento) {
+        const [y, m, d] = act.planejamento.split('-').map(Number);
+        const planDate = new Date(y, m - 1, d);
+        if (!isNaN(planDate.getTime())) {
+          const dayOfMonth = planDate.getDate();
+          const weekNum = Math.ceil(dayOfMonth / 7);
+          const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+          const monthStr = months[planDate.getMonth()];
+          act.week = `W${weekNum > 5 ? 5 : weekNum} - ${monthStr}`;
+        }
+      }
 
-    // Calcular Esforço Realizado (Data Finalizada - Planejamento)
-    if (act.planejamento && act.dataFinalizada) {
-      const [y1, m1, d1] = act.planejamento.split('-').map(Number);
-      const [y2, m2, d2] = act.dataFinalizada.split('-').map(Number);
-      const date1 = new Date(y1, m1 - 1, d1);
-      const date2 = new Date(y2, m2 - 1, d2);
-      const diffTime = date2.getTime() - date1.getTime();
-      act.esforcoRealizado = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    } else {
-      act.esforcoRealizado = 0;
-    }
+      // Cálculos de prazos...
+      if (act.planejamento && act.dataPrevistaFinalizacao) {
+        const [y1, m1, d1] = act.planejamento.split('-').map(Number);
+        const [y2, m2, d2] = act.dataPrevistaFinalizacao.split('-').map(Number);
+        const date1 = new Date(y1, m1 - 1, d1);
+        const date2 = new Date(y2, m2 - 1, d2);
+        act.diasEsperadosConclusao = Math.ceil((date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24));
+      }
 
-    if (modal.editing) onUpdate({ ...act, id: modal.editing.id });
-    else onAdd({ ...act, id: crypto.randomUUID() });
-    closeModal();
+      if (act.planejamento && act.dataFinalizada) {
+        const [y1, m1, d1] = act.planejamento.split('-').map(Number);
+        const [y2, m2, d2] = act.dataFinalizada.split('-').map(Number);
+        const date1 = new Date(y1, m1 - 1, d1);
+        const date2 = new Date(y2, m2 - 1, d2);
+        act.esforcoRealizado = Math.ceil((date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24));
+      }
+
+      if (modal.editing) await onUpdate({ ...act, id: modal.editing.id });
+      else await onAdd({ ...act, id: crypto.randomUUID() });
+      
+      closeModal();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const isActionAllowed = (activity: Activity, action: 'edit' | 'delete') => {
     const hasBasePermission = action === 'edit' ? canEdit : canDelete;
     if (!hasBasePermission || !currentUser) return false;
+
+    // Se estiver POSTERGADA, apenas Admin pode mexer
+    if (activity.status === 'POSTERGADA' && currentUser.role !== 'Administrador') {
+      return false;
+    }
     
-    // Gestores e Administradores podem editar/deletar qualquer coisa
+    // Gestores e Administradores podem editar/deletar qualquer coisa (além da regra acima)
     if (currentUser.role === 'Administrador' || currentUser.role === 'Gestão') return true;
     
     // Analistas só podem editar/deletar o que for deles mesmos
@@ -486,22 +522,63 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
                 <div className="form-group">
                   <label>% Andamento</label>
                   <input type="number" min={0} max={100} value={form.percentualAndamento}
-                    onChange={e => setForm(f => ({ ...f, percentualAndamento: Number(e.target.value) }))} />
+                    onChange={e => {
+                      const val = Number(e.target.value);
+                      setForm(f => ({ 
+                        ...f, 
+                        percentualAndamento: val,
+                        // Se for 100% e não tiver data, coloca hoje. E muda status para FINALIZADA.
+                        dataFinalizada: (val === 100 && !f.dataFinalizada) ? new Date().toISOString().slice(0, 10) : f.dataFinalizada,
+                        status: val === 100 ? 'FINALIZADA' : (val > 0 ? 'EM ANDAMENTO' : 'PENDENTE')
+                      }));
+                    }} />
+                </div>
+
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label>Comentário / Justificativa</label>
+                  <textarea 
+                    value={form.comentario}
+                    placeholder="Adicione um comentário ou motivo do adiamento..."
+                    rows={3}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setForm(f => ({ 
+                        ...f, 
+                        comentario: val,
+                        dataComentario: val ? new Date().toLocaleString('pt-BR') : ''
+                      }));
+                    }}
+                  />
+                  {form.dataComentario && (
+                    <small style={{ color: 'var(--text-muted)', fontSize: '0.7rem', display: 'block', marginTop: '4px' }}>
+                      Último comentário em: {form.dataComentario}
+                    </small>
+                  )}
                 </div>
 
                 <div className="form-group">
-                  <label>Dt. Finalizada</label>
+                  <label>{form.status === 'POSTERGADA' ? 'Nova Data' : 'Dt. Finalizada'}</label>
                   <div className="input-icon-wrap">
                     <Calendar size={15} />
-                    <input type="date" value={form.dataFinalizada ?? ''} onChange={e => setForm(f => ({ ...f, dataFinalizada: e.target.value }))} />
+                    <input type="date" value={form.dataFinalizada ?? ''} onChange={e => {
+                      const date = e.target.value;
+                      setForm(f => ({ 
+                        ...f, 
+                        dataFinalizada: date,
+                        // Se informou data, assume 100% e status FINALIZADA (se não estiver postergado)
+                        percentualAndamento: (date && f.status !== 'POSTERGADA') ? 100 : f.percentualAndamento,
+                        status: (date && f.status !== 'POSTERGADA' && f.status !== 'FINALIZADA') ? 'FINALIZADA' : f.status
+                      }));
+                    }} />
                   </div>
                 </div>
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn-ghost" onClick={closeModal}>Cancelar</button>
-              <button className="btn-primary" onClick={handleSave}>
-                <Save size={16} /> {modal.editing ? 'Salvar Alterações' : 'Adicionar'}
+              <button className="btn-ghost" onClick={closeModal} disabled={isSaving}>Cancelar</button>
+              <button className="btn-primary" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? <RefreshCw size={16} className="spinner" /> : <Save size={16} />}
+                {isSaving ? 'Salvando...' : (modal.editing ? 'Salvar Alterações' : 'Adicionar')}
               </button>
             </div>
           </div>

@@ -13,7 +13,7 @@ export const dbService = {
     return data || []
   },
   async saveTheme(theme: Omit<Theme, 'id'> | Theme, user?: User) {
-    if (!isCloudEnabled) return
+    if (!isCloudEnabled) return { data: null, error: null }
     const { data, error } = await supabase.from('themes').upsert(theme).select()
     if (error) console.error("Save Theme Error", error)
     if (!error && user) {
@@ -27,7 +27,7 @@ export const dbService = {
     return { data, error }
   },
   async deleteTheme(id: string) {
-    if (!isCloudEnabled) return
+    if (!isCloudEnabled) return { data: null, error: null }
     return await supabase.from('themes').delete().eq('id', id)
   },
 
@@ -39,7 +39,7 @@ export const dbService = {
     return data || []
   },
   async saveUser(user: Omit<User, 'id'> | User, adminUser?: User) {
-    if (!isCloudEnabled) return
+    if (!isCloudEnabled) return { data: null, error: null }
     const { data, error } = await supabase.from('users').upsert(user).select()
     if (error) console.error("Save User Error", error)
     if (!error && adminUser) {
@@ -53,7 +53,7 @@ export const dbService = {
     return { data, error }
   },
   async deleteUser(id: string) {
-    if (!isCloudEnabled) return
+    if (!isCloudEnabled) return { data: null, error: null }
     return await supabase.from('users').delete().eq('id', id)
   },
 
@@ -71,17 +71,20 @@ export const dbService = {
       if (act.data_finalizada !== undefined) act.dataFinalizada = act.data_finalizada;
       if (act.esforco_realizado !== undefined) act.esforcoRealizado = act.esforco_realizado;
       if (act.dias_esperados_conclusao !== undefined) act.diasEsperadosConclusao = act.dias_esperados_conclusao;
+      if (act.data_comentario !== undefined) act.dataComentario = act.data_comentario;
+      // comentario já é igual
 
       delete act.data_prevista_finalizacao;
       delete act.percentual_andamento;
       delete act.data_finalizada;
       delete act.esforco_realizado;
       delete act.dias_esperados_conclusao;
+      delete act.data_comentario;
       return act;
     });
   },
   async saveActivity(act: Omit<Activity, 'id'> | Activity) {
-    if (!isCloudEnabled) return
+    if (!isCloudEnabled) return { data: null, error: null }
     
     // Mapear camelCase para snake_case do Supabase
     const dbPayload = { ...act } as any;
@@ -90,6 +93,8 @@ export const dbService = {
     dbPayload.data_finalizada = (act as any).dataFinalizada;
     dbPayload.esforco_realizado = (act as any).esforcoRealizado;
     dbPayload.dias_esperados_conclusao = (act as any).diasEsperadosConclusao;
+    dbPayload.data_comentario = (act as any).dataComentario;
+    // comentario já é igual
     
     // Remover chaves camelCase para não dar erro Schema no Supabase
     delete dbPayload.dataPrevistaFinalizacao;
@@ -97,6 +102,7 @@ export const dbService = {
     delete dbPayload.dataFinalizada;
     delete dbPayload.esforcoRealizado;
     delete dbPayload.diasEsperadosConclusao;
+    delete dbPayload.dataComentario;
 
     const { data, error } = await supabase.from('activities').upsert(dbPayload).select()
     if (error) console.error("Save Activity Error", error)
@@ -115,7 +121,7 @@ export const dbService = {
     return { data, error }
   },
   async deleteActivity(id: string) {
-    if (!isCloudEnabled) return
+    if (!isCloudEnabled) return { data: null, error: null }
     return await supabase.from('activities').delete().eq('id', id)
   },
 
@@ -136,7 +142,7 @@ export const dbService = {
     });
   },
   async saveHenkaten(evt: Omit<HenkatenEvent, 'id'> | HenkatenEvent) {
-    if (!isCloudEnabled) return
+    if (!isCloudEnabled) return { data: null, error: null }
     
     const dbPayload = { ...evt } as any;
     if (dbPayload.endDate !== undefined) dbPayload.end_date = dbPayload.endDate;
@@ -159,27 +165,46 @@ export const dbService = {
     return { data, error }
   },
   async deleteHenkaten(id: string) {
-    if (!isCloudEnabled) return
+    if (!isCloudEnabled) return { data: null, error: null }
     return await supabase.from('henkatens').delete().eq('id', id)
   },
 
   // --- LOGS ---
   async getTodayLogs(): Promise<LogEntry[]> {
     if (!isCloudEnabled) return []
-    const todayStr = new Date().toISOString().slice(0, 10);
+    // Filtro estendido para os últimos 2 dias para evitar sumiço à meia-noite (fuso horário)
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+    const dateStr = date.toISOString().slice(0, 10);
+    
     const { data, error } = await supabase
       .from('app_logs')
       .select('*')
-      .gte('timestamp', `${todayStr}T00:00:00Z`)
+      .gte('timestamp', `${dateStr}T00:00:00Z`)
       .order('timestamp', { ascending: false })
+      .limit(100)
     
     if (error) { console.error('GetLogs Error:', error); return [] }
-    return data || []
+    
+    // Mapear snake_case do banco para camelCase do App
+    return (data || []).map(row => ({
+      id: row.id,
+      userId: row.user_id || row.userId,
+      userName: row.user_name || row.userName,
+      action: row.action,
+      target: row.target,
+      timestamp: row.timestamp || new Date().toISOString()
+    }));
   },
   async saveLog(log: Omit<LogEntry, 'id' | 'timestamp'>) {
-    if (!isCloudEnabled) return
+    if (!isCloudEnabled) return { error: null }
+    
+    // Mapear para snake_case para o banco
     const dbPayload = {
-      ...log,
+      user_id: log.userId,
+      user_name: log.userName,
+      action: log.action,
+      target: log.target,
       id: crypto.randomUUID(),
       timestamp: new Date().toISOString()
     }
@@ -196,5 +221,6 @@ export const dbService = {
       event: 'new_log',
       payload: dbPayload
     })
+    return { error: null }
   }
 };

@@ -3260,3 +3260,134 @@ Not strictly needed if th stretches, td stretches automatically in standard tabl
 .table-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--accent-primary); 
 }
+
+/* ── Toast Notifications ── */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  min-width: 280px;
+  max-width: 400px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--bg-modal);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-primary);
+  animation: toastIn 0.3s ease forwards;
+  pointer-events: auto;
+}
+
+@keyframes toastIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.toast-exit {
+  animation: toastOut 0.3s ease forwards;
+}
+
+@keyframes toastOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
+}
+
+.toast-success { border-left: 4px solid #10b981; }
+.toast-error { border-left: 4px solid #ef4444; }
+.toast-info { border-left: 4px solid #3b82f6; }
+
+.toast-icon { flex-shrink: 0; }
+.toast-content { flex: 1; }
+.toast-title { font-weight: 700; font-size: 0.9rem; display: block; margin-bottom: 2px; }
+.toast-msg { font-size: 0.8rem; color: var(--text-secondary); }
+
+/* ── Connection Status ── */
+.cloud-status-badge.error {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+.cloud-status-badge.error span { color: #ef4444; }
+.cloud-status-badge.error .cloud-dot { background: #ef4444; box-shadow: 0 0 6px #ef4444; animation: none; }
+
+.cloud-status-badge.connecting {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+.cloud-status-badge.connecting span { color: #f59e0b; }
+.cloud-status-badge.connecting .cloud-dot { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; animation: pulse-yellow 2s infinite; }
+
+@keyframes pulse-yellow {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+/* ── Kanban Popover ── */
+.kb-card {
+  position: relative;
+}
+
+.kb-card-popover {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 250px;
+  background: var(--bg-modal);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(10px) scale(0.95);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.kb-card:hover .kb-card-popover {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.pop-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pop-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pop-content {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+.pop-date {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-style: italic;
+  display: block;
+  margin-top: 8px;
+}
