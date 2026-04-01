@@ -87,15 +87,28 @@ export const dbService = {
     if (!isCloudEnabled) return { data: null, error: null }
     
     // Mapear camelCase para snake_case do Supabase
-    const dbPayload = { ...act } as any;
-    dbPayload.data_prevista_finalizacao = (act as any).dataPrevistaFinalizacao;
-    dbPayload.percentual_andamento = (act as any).percentualAndamento;
-    dbPayload.data_finalizada = (act as any).dataFinalizada;
-    dbPayload.esforco_realizado = (act as any).esforcoRealizado;
-    dbPayload.dias_esperados_conclusao = (act as any).diasEsperadosConclusao;
-    dbPayload.data_comentario = (act as any).dataComentario;
-    // comentario já é igual
+    let dbPayload = { ...act } as any;
+
+    // Converter strings vazias para null para evitar erro de sintaxe de data no PostgreSQL (Geral)
+    const cleanEmptyStrings = (obj: any) => {
+      const newObj = { ...obj };
+      Object.keys(newObj).forEach(key => {
+        if (newObj[key] === "") newObj[key] = null;
+      });
+      return newObj;
+    };
     
+    dbPayload.data_prevista_finalizacao = (act as any).dataPrevistaFinalizacao;
+    dbPayload.percentual_andamento = (act as any).percentualAndamento ?? 0;
+    dbPayload.data_finalizada = (act as any).dataFinalizada;
+    dbPayload.esforco_realizado = (act as any).esforcoRealizado ?? 0;
+    dbPayload.dias_esperados_conclusao = (act as any).diasEsperadosConclusao ?? 1;
+    dbPayload.data_comentario = (act as any).dataComentario;
+    dbPayload.planejamento = (act as any).planejamento;
+    
+    // Limpeza final para garantir que nenhum "" vá para o banco (especialmente em campos DATE)
+    dbPayload = cleanEmptyStrings(dbPayload);
+
     // Remover chaves camelCase para não dar erro Schema no Supabase
     delete dbPayload.dataPrevistaFinalizacao;
     delete dbPayload.percentualAndamento;
@@ -134,8 +147,11 @@ export const dbService = {
     if (!isCloudEnabled) return { data: null, error: null }
     
     const dbPayload = { ...evt } as any;
-    if (dbPayload.endDate !== undefined) dbPayload.end_date = dbPayload.endDate;
-    if (dbPayload.postponedDate !== undefined) dbPayload.postponed_date = dbPayload.postponedDate;
+    const cleanDate = (val: any) => (val === "" || val === undefined) ? null : val;
+    
+    if (dbPayload.endDate !== undefined) dbPayload.end_date = cleanDate(dbPayload.endDate);
+    if (dbPayload.postponedDate !== undefined) dbPayload.postponed_date = cleanDate(dbPayload.postponedDate);
+    dbPayload.date = cleanDate(dbPayload.date);
     
     delete dbPayload.endDate;
     delete dbPayload.postponedDate;
