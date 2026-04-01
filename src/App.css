@@ -3342,24 +3342,24 @@ Not strictly needed if th stretches, td stretches automatically in standard tabl
 
 .kb-card-popover {
   position: absolute;
-  top: 10px; /* Aparece um pouco abaixo do topo do card */
-  left: 20px;
-  width: 280px;
+  bottom: calc(100% + 5px); /* Aparece ACIMA do card */
+  left: 50%;
+  transform: translateX(-50%) translateY(10px) scale(0.95);
+  width: 250px;
   background: var(--bg-modal);
-  border: 1px solid var(--border-strong);
+  border: 2px solid var(--accent-primary);
   border-radius: 12px;
   padding: 1rem;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-  z-index: 1000;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  z-index: 2000;
   pointer-events: none;
   opacity: 0;
-  transform: translateY(10px) scale(0.95);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .kb-card:hover .kb-card-popover {
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: translateX(-50%) translateY(0) scale(1);
   pointer-events: auto;
 }
 
@@ -3373,17 +3373,20 @@ Not strictly needed if th stretches, td stretches automatically in standard tabl
 }
 
 .pop-title {
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 800;
   text-transform: uppercase;
   color: var(--text-muted);
+  white-space: normal;
+  line-height: 1.2;
 }
 
 .pop-content {
   font-size: 0.85rem;
-  line-height: 1.4;
+  line-height: 1.5;
   color: var(--text-primary);
   white-space: pre-wrap;
+  word-break: break-all;
 }
 
 .pop-date {
