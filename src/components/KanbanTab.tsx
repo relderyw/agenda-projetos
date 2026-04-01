@@ -157,10 +157,17 @@ function ActivityCard({
       <p className="kb-card-desc">{act.descricao}</p>
 
       <div className="kb-card-footer">
-        <span className={`kb-status-badge ${statusClassFront(displayStatusType)}`}>
-          <StatusIconFront type={displayStatusType} />
-          {displayStatusLabel}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span className={`kb-status-badge ${statusClassFront(displayStatusType)}`}>
+            <StatusIconFront type={displayStatusType} />
+            {displayStatusLabel}
+          </span>
+          {act.comentario && (
+            <div className="kb-comment-indicator" title="Possui justificativa/comentário">
+              <AlertCircle size={12} color="#f59e0b" />
+            </div>
+          )}
+        </div>
         {!isDone && (
           <span className={`kb-prio-dot ${prioClass(act.prioridade)}`} title={act.prioridade} />
         )}
@@ -168,9 +175,9 @@ function ActivityCard({
       </div>
 
       {act.comentario && (
-        <div className="kb-card-popover">
+        <div className="kb-card-popover" style={{ display: 'block' }}>
           <div className="pop-header">
-            <AlertCircle size={14} style={{ color: 'var(--text-muted)' }} />
+            <AlertCircle size={14} style={{ color: '#f59e0b' }} />
             <span className="pop-title">Justificativa / Comentário</span>
           </div>
           <div className="pop-content">{act.comentario}</div>
