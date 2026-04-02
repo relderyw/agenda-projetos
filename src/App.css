@@ -3395,3 +3395,199 @@ Not strictly needed if th stretches, td stretches automatically in standard tabl
   display: block;
   margin-top: 8px;
 }
+/* ─── KNOWLEDGE MATRIX ────────────────────────────────────────── */
+.kn-root {
+  background: var(--bg-app);
+}
+
+.kn-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+.kn-table-wrapper {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.kn-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.kn-table th {
+  padding: 1rem;
+  background: var(--bg-table-hd);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.kn-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.kn-cat-row {
+  background: var(--nav-hover-bg);
+}
+
+.kn-cat-name {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.kn-act-name {
+  padding-left: 1.5rem !important;
+  color: var(--text-desc);
+  font-weight: 500;
+}
+
+.kn-cell-center {
+  text-align: center !important;
+  cursor: pointer;
+  transition: background 0.1s;
+  width: 80px;
+}
+
+.kn-cell-center:hover {
+  background: var(--row-hover);
+}
+
+.kn-status-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.kn-check { color: #10b981; }
+.kn-x { color: #ef4444; }
+.kn-empty { color: var(--text-faint); opacity: 0.3; }
+
+.kn-analyst-head {
+  text-align: center !important;
+  min-width: 90px;
+}
+
+.kn-analyst-name-vertical {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  height: 100px;
+  margin: 0 auto;
+}
+
+.kn-progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: var(--nav-hover-bg);
+  border-top: 1px solid var(--border);
+}
+
+.kn-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.kn-progress-label {
+  min-width: 120px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}
+
+.kn-progress-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: var(--prog-track);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.kn-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  transition: width 0.5s ease-out;
+}
+
+.kn-progress-pct {
+  min-width: 40px;
+  text-align: right;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #3b82f6;
+}
+
+.kn-act-edit-input {
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 2px 4px;
+  width: 100%;
+  border-radius: 4px;
+}
+
+.kn-act-edit-input:focus {
+  border-style: solid;
+  border-color: var(--accent-primary);
+  outline: none;
+  background: var(--bg-input);
+}
+.kb-cell-holiday {
+  background: var(--nav-hover-bg) !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.kb-holiday-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 1rem;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  background: rgba(var(--accent-primary-rgb), 0.05);
+}
+
+.kb-holiday-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #ef4444;
+  letter-spacing: 0.1em;
+}
+
+.kb-holiday-desc {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.h-toggle-btn.active {
+  color: #ef4444 !important;
+  opacity: 1 !important;
+}

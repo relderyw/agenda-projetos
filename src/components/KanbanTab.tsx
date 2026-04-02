@@ -3,13 +3,16 @@ import {
   ChevronLeft, ChevronRight, Calendar, User2,
   CheckCircle2, Clock, AlertCircle, Minus, Play, Pause, FastForward
 } from 'lucide-react'
-import type { Activity, Theme, User } from '../types'
+import type { Activity, Theme, User, Holiday } from '../types'
+import { dbService } from '../services/db'
 
 interface Props {
   currentUser: User | null;
   activities: Activity[];
   themes: Theme[];
   users: User[];
+  holidays: Holiday[];
+  onRefresh: () => void;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -188,7 +191,32 @@ function ActivityCard({
   )
 }
 
-export default function KanbanTab({ activities, themes, users }: Props) {
+export default function KanbanTab({ activities, themes, users, holidays, currentUser, onRefresh }: Props) {
+  const isAdmin = currentUser?.role === 'Administrador';
+
+  const holidayMap = useMemo(() => {
+    const map: Record<string, Holiday> = {};
+    holidays.forEach(h => {
+      map[h.date] = h;
+    });
+    return map;
+  }, [holidays]);
+
+  const handleToggleHoliday = async (date: string) => {
+    if (!isAdmin) return;
+    const existing = holidayMap[date];
+    if (existing) {
+      if (existing.type === 'Feriado') {
+        await dbService.saveHoliday({ date, type: 'S/ Expediente', description: 'Sem Expediente' });
+      } else {
+        await dbService.deleteHoliday(date);
+      }
+    } else {
+      await dbService.saveHoliday({ date, type: 'Feriado', description: 'Feriado' });
+    }
+    onRefresh();
+  };
+
   const today = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
@@ -350,6 +378,16 @@ export default function KanbanTab({ activities, themes, users }: Props) {
                 {formatDayLabel(day.date)}
               </span>
               {day.isToday && <span className="kb-today-pill">Hoje</span>}
+              {isAdmin && (
+                <button 
+                  className={`action-btn edit h-toggle-btn ${holidayMap[formatDate(day.date)] ? 'active' : ''}`}
+                  onClick={() => handleToggleHoliday(formatDate(day.date))}
+                  title="Alternar Feriado / S/ Expediente"
+                  style={{ position: 'absolute', top: '8px', right: '8px', opacity: 0.5 }}
+                >
+                  <Calendar size={12} />
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -380,9 +418,15 @@ export default function KanbanTab({ activities, themes, users }: Props) {
 
               {byDay.map(({ date, acts }) => {
                 const dayDef = days.find(d => formatDate(d.date) === date)
+                const holiday = holidayMap[date];
                 return (
-                  <div key={date} className={`kb-cell ${dayDef?.isToday ? 'kb-cell-today' : ''}`}>
-                    {acts.length === 0 ? (
+                  <div key={date} className={`kb-cell ${dayDef?.isToday ? 'kb-cell-today' : ''} ${holiday ? 'kb-cell-holiday' : ''}`}>
+                    {holiday ? (
+                      <div className="kb-holiday-placeholder">
+                        <span className="kb-holiday-label">{holiday.type.toUpperCase()}</span>
+                        {holiday.description && <span className="kb-holiday-desc">{holiday.description}</span>}
+                      </div>
+                    ) : acts.length === 0 ? (
                       <div className="kb-empty-cell" />
                     ) : (
                       acts.map(act => (

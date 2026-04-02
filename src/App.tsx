@@ -1,13 +1,14 @@
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2 } from 'lucide-react'
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from './data'
-import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry } from './types'
+import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday } from './types'
 import AtividadesTab from './components/AtividadesTab'
 import DashboardTab from './components/DashboardTab'
 import CadastrosTab from './components/CadastrosTab'
 import KanbanTab from './components/KanbanTab'
 import HenkatensTab from './components/HenkatensTab'
 import LogsTab from './components/LogsTab'
+import KnowledgeTab from './components/KnowledgeTab'
 import Login from './components/Login'
 import { dbService } from './services/db'
 import { supabase } from './lib/supabase'
@@ -34,6 +35,8 @@ export default function App() {
   const [users, setUsers] = useState<User[]>([])
   const [henkatens, setHenkatens] = useState<HenkatenEvent[]>([])
   const [logs, setLogs] = useState<LogEntry[]>([])
+  const [knowledgeBase, setKnowledgeBase] = useState<{ categories: KnowledgeCategory[], activities: KnowledgeActivity[], progress: KnowledgeProgress[] }>({ categories: [], activities: [], progress: [] })
+  const [holidays, setHolidays] = useState<Holiday[]>([])
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
@@ -73,18 +76,22 @@ export default function App() {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const [a, t, u, h, l] = await Promise.all([
+      const [a, t, u, h, l, k, hol] = await Promise.all([
         dbService.getActivities(),
         dbService.getThemes(),
         dbService.getUsers(),
         dbService.getHenkatens(),
-        dbService.getTodayLogs()
+        dbService.getTodayLogs(),
+        dbService.getKnowledgeBase(),
+        dbService.getHolidays()
       ])
       setActivities(a)
       setThemes(t)
       setUsers(u)
       setHenkatens(h)
       setLogs(l)
+      setKnowledgeBase(k)
+      setHolidays(hol)
     } finally {
       setLoading(false)
     }
@@ -352,7 +359,8 @@ export default function App() {
     { key: 'atividades', label: 'Atividades',  icon: <ListTodo size={20} /> },
     { key: 'dashboard',  label: 'Dashboard',   icon: <LayoutDashboard size={20} /> },
     { key: 'henkatens',  label: 'Henkatens',   icon: <Calendar size={20} /> },
-    { key: 'cadastros',  label: 'Cadastros',   icon: <BookOpen size={20} /> },
+    { key: 'conhecimento', label: 'Conhecimento', icon: <BookOpen size={20} /> },
+    { key: 'cadastros',  label: 'Cadastros',   icon: <ShieldAlert size={20} /> },
     { key: 'logs',       label: 'Logs',        icon: <ShieldAlert size={20} /> },
   ]
 
@@ -362,6 +370,9 @@ export default function App() {
       return currentUser.permissions.cadastros.view || currentUser.permissions.usuarios.view;
     }
     if (item.key === 'logs' && currentUser?.role !== 'Administrador') {
+      return false;
+    }
+    if (item.key === 'conhecimento' && (currentUser?.role !== 'Administrador' && currentUser?.role !== 'Gestão')) {
       return false;
     }
     return true;
@@ -512,6 +523,8 @@ export default function App() {
             activities={activities}
             themes={themes}
             users={users}
+            holidays={holidays}
+            onRefresh={loadData}
           />
         )}
         {activeTab === 'dashboard' && (
@@ -542,6 +555,16 @@ export default function App() {
             onAddUser={addUser}
             onUpdateUser={updateUser}
             onDeleteUser={deleteUser}
+          />
+        )}
+        {activeTab === 'conhecimento' && (
+          <KnowledgeTab
+            currentUser={currentUser}
+            users={users}
+            categories={knowledgeBase.categories}
+            activities={knowledgeBase.activities}
+            progress={knowledgeBase.progress}
+            onRefresh={loadData}
           />
         )}
         {activeTab === 'logs' && (

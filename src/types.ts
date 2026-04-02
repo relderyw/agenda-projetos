@@ -5,6 +5,35 @@ export interface Theme {
   color: string;
 }
 
+export interface KnowledgeCategory {
+  id: string;
+  name: string;
+  order: number;
+}
+
+export interface KnowledgeActivity {
+  id: string;
+  categoryId: string;
+  name: string;
+  order: number;
+}
+
+export type KnowledgeStatus = 'checked' | 'x' | 'empty';
+
+export interface KnowledgeProgress {
+  userId: string;
+  activityId: string;
+  status: KnowledgeStatus;
+}
+
+export type HolidayType = 'Feriado' | 'S/ Expediente';
+
+export interface Holiday {
+  date: string; // YYYY-MM-DD
+  description?: string;
+  type: HolidayType;
+}
+
 export interface AppPermissions {
   view: boolean;
   edit: boolean;
@@ -54,7 +83,7 @@ export interface Activity {
 }
 
 // ─── App State ────────────────────────────────────────────
-export type Tab = 'atividades' | 'dashboard' | 'cadastros' | 'kanban' | 'henkatens' | 'logs';
+export type Tab = 'atividades' | 'dashboard' | 'cadastros' | 'kanban' | 'henkatens' | 'logs' | 'conhecimento';
 
 // ─── Henkatens ──────────────────────────────────────────
 export type HenkatenType =
