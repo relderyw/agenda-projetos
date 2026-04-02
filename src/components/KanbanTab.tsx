@@ -192,7 +192,7 @@ function ActivityCard({
 }
 
 export default function KanbanTab({ activities, themes, users, holidays, currentUser, onRefresh }: Props) {
-  const isAdmin = currentUser?.role === 'Administrador';
+  const canManageHolidays = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão';
 
   const holidayMap = useMemo(() => {
     const map: Record<string, Holiday> = {};
@@ -203,7 +203,7 @@ export default function KanbanTab({ activities, themes, users, holidays, current
   }, [holidays]);
 
   const handleToggleHoliday = async (date: string) => {
-    if (!isAdmin) return;
+    if (!canManageHolidays) return;
     const existing = holidayMap[date];
     if (existing) {
       if (existing.type === 'Feriado') {
@@ -378,7 +378,7 @@ export default function KanbanTab({ activities, themes, users, holidays, current
                 {formatDayLabel(day.date)}
               </span>
               {day.isToday && <span className="kb-today-pill">Hoje</span>}
-              {isAdmin && (
+              {canManageHolidays && (
                 <button 
                   className={`action-btn edit h-toggle-btn ${holidayMap[formatDate(day.date)] ? 'active' : ''}`}
                   onClick={() => handleToggleHoliday(formatDate(day.date))}

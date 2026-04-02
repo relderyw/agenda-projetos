@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Check, X, Plus, Edit2, Save, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import type { User, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, KnowledgeStatus } from '../types';
 import { dbService } from '../services/db';
+import React from 'react';
 
 interface Props {
   currentUser: User | null;
@@ -17,7 +18,10 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
   const [tempName, setTempName] = useState('');
 
   const isAdmin = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão';
-  const analysts = useMemo(() => users.filter(u => u.role === 'Analista'), [users]);
+  
+  const tpAnalysts = useMemo(() => users.filter(u => u.role === 'Analista' && u.area === 'T&P'), [users]);
+  const projectAnalysts = useMemo(() => users.filter(u => u.role === 'Analista' && u.area === 'Projetos'), [users]);
+  const allAnalysts = [...tpAnalysts, ...projectAnalysts];
 
   const progressMap = useMemo(() => {
     const map: Record<string, KnowledgeStatus> = {};
@@ -52,21 +56,24 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
     onRefresh();
   };
 
-  const analystProgress = useMemo(() => {
-    return analysts.map(user => {
+  const getProgressForGroup = (group: User[]) => {
+    return group.map(user => {
       const checked = activities.filter(act => progressMap[`${user.id}-${act.id}`] === 'checked').length;
       const total = activities.length;
       const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
       return { user, pct };
     });
-  }, [analysts, activities, progressMap]);
+  };
+
+  const tpProgress = useMemo(() => getProgressForGroup(tpAnalysts), [tpAnalysts, activities, progressMap]);
+  const projProgress = useMemo(() => getProgressForGroup(projectAnalysts), [projectAnalysts, activities, progressMap]);
 
   return (
     <div className="tab-content kn-root">
       <div className="tab-header">
         <div>
           <h1 className="tab-title">Matriz de Competência</h1>
-          <p className="tab-subtitle">Controle de aprendizagem e assimilação</p>
+          <p className="tab-subtitle">Controle de aprendizagem e assimilação por Área</p>
         </div>
       </div>
 
@@ -74,10 +81,19 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
         <div className="kn-table-wrapper">
           <table className="kn-table">
             <thead>
+              <tr className="kn-group-header-row">
+                <th colSpan={2}></th>
+                {tpAnalysts.length > 0 && (
+                  <th colSpan={tpAnalysts.length} className="kn-group-th tp-group">T&P</th>
+                )}
+                {projectAnalysts.length > 0 && (
+                  <th colSpan={projectAnalysts.length} className="kn-group-th proj-group">PROJETOS</th>
+                )}
+              </tr>
               <tr>
-                <th>IT</th>
-                <th>COLABORADOR</th>
-                {analysts.map(u => (
+                <th style={{ width: '40px' }}>IT</th>
+                <th style={{ width: '300px' }}>DESCRIÇÃO DA ATIVIDADE</th>
+                {allAnalysts.map(u => (
                   <th key={u.id} className="kn-analyst-head">
                     <div className="kn-analyst-name-vertical">{u.name}</div>
                   </th>
@@ -89,13 +105,13 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
                 <React.Fragment key={cat.id}>
                   <tr className="kn-cat-row">
                     <td>{cat.order}</td>
-                    <td colSpan={analysts.length + 1} className="kn-cat-name">{cat.name.toUpperCase()}</td>
+                    <td colSpan={allAnalysts.length + 1} className="kn-cat-name">{cat.name.toUpperCase()}</td>
                   </tr>
                   {activities
                     .filter(act => act.categoryId === cat.id)
                     .map(act => (
                       <tr key={act.id}>
-                        <td>{act.order}</td>
+                        <td className="kn-act-order">{act.order}</td>
                         <td className="kn-act-name">
                           {editingId === act.id ? (
                             <div style={{ display: 'flex', gap: '8px' }}>
@@ -118,7 +134,7 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
                             </div>
                           )}
                         </td>
-                        {analysts.map(u => {
+                        {allAnalysts.map(u => {
                           const status = progressMap[`${u.id}-${act.id}`] || 'empty';
                           return (
                             <td 
@@ -142,24 +158,36 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
           </table>
         </div>
 
-        <div className="kn-progress-section">
-          <h3 style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-            Gráfico de Evolução por Analista
-          </h3>
-          {analystProgress.map(({ user, pct }) => (
-            <div key={user.id} className="kn-progress-row">
-              <span className="kn-progress-label">{user.name}</span>
-              <div className="kn-progress-bar-bg">
-                <div className="kn-progress-bar-fill" style={{ width: `${pct}%` }} />
-              </div>
-              <span className="kn-progress-pct">{pct}%</span>
-              <span style={{ fontSize: '0.7rem', color: 'var(--accent-primary)', fontWeight: 'bold' }}>100%</span>
-            </div>
-          ))}
+        <div className="kn-charts-container">
+          <div className="kn-chart-block">
+            <h3 className="kn-chart-title">Evolução T&P</h3>
+            {tpProgress.length === 0 ? <p className="kn-no-data">Nenhum analista T&P</p> : 
+              tpProgress.map(({ user, pct }) => (
+                <div key={user.id} className="kn-progress-row">
+                  <span className="kn-progress-label">{user.name}</span>
+                  <div className="kn-progress-bar-bg">
+                    <div className="kn-progress-bar-fill" style={{ width: `${pct}%`, background: 'var(--accent-primary)' }} />
+                  </div>
+                  <span className="kn-progress-pct">{pct}%</span>
+                </div>
+              ))}
+          </div>
+
+          <div className="kn-chart-block">
+            <h3 className="kn-chart-title">Evolução PROJETOS</h3>
+            {projProgress.length === 0 ? <p className="kn-no-data">Nenhum analista Projetos</p> : 
+              projProgress.map(({ user, pct }) => (
+                <div key={user.id} className="kn-progress-row">
+                  <span className="kn-progress-label">{user.name}</span>
+                  <div className="kn-progress-bar-bg">
+                    <div className="kn-progress-bar-fill" style={{ width: `${pct}%`, background: '#10b981' }} />
+                  </div>
+                  <span className="kn-progress-pct">{pct}%</span>
+                </div>
+              ))}
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
-import React from 'react'; // Final import for React.Fragment

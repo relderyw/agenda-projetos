@@ -56,6 +56,7 @@ export interface User {
   username?: string;
   email: string;
   color: string;
+  area?: 'T&P' | 'Projetos'; // Novo campo para agrupamento
   password?: string;
   permissions?: UserPermissions;
 }

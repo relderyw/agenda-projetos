@@ -53,7 +53,7 @@ export default function CadastrosTab({
   // User modal
   const [uModal, setUModal] = useState<{ open: boolean; editing: User | null }>({ open: false, editing: null });
   const [uForm, setUForm] = useState<Omit<User, 'id'>>({
-    name: '', role: 'Analista', username: '', password: '', email: '', color: COLORS[0],
+    name: '', role: 'Analista', area: 'Projetos', username: '', password: '', email: '', color: COLORS[0],
     permissions: JSON.parse(JSON.stringify(MOCK_PERMS))
   });
 
@@ -72,12 +72,12 @@ export default function CadastrosTab({
 
   // ── User handlers ───────────────────────────────────────
   const openNewUser = () => {
-    setUForm({ name: '', role: 'Analista', username: '', password: '', email: '', color: COLORS[0], permissions: JSON.parse(JSON.stringify(MOCK_PERMS)) });
+    setUForm({ name: '', role: 'Analista', area: 'Projetos', username: '', password: '', email: '', color: COLORS[0], permissions: JSON.parse(JSON.stringify(MOCK_PERMS)) });
     setUModal({ open: true, editing: null });
   };
   const openEditUser = (u: User) => {
     setUForm({
-      name: u.name, role: u.role, username: u.username || '', password: u.password || '', email: u.email || '', color: u.color,
+      name: u.name, role: u.role, area: u.area || 'Projetos', username: u.username || '', password: u.password || '', email: u.email || '', color: u.color,
       permissions: u.permissions ? JSON.parse(JSON.stringify(u.permissions)) : JSON.parse(JSON.stringify(MOCK_PERMS))
     });
     setUModal({ open: true, editing: u });
@@ -224,7 +224,7 @@ export default function CadastrosTab({
                   <span className="user-avatar lg" style={{ background: u.color }}>{u.name[0]}</span>
                   <div className="cad-card-info">
                     <span className="cad-name">{u.name}</span>
-                    <span className="cad-meta">{u.role}</span>
+                    <span className="cad-meta">{u.role} {u.area ? `· ${u.area}` : ''}</span>
                     {u.email && <span className="cad-email">{u.email}</span>}
                   </div>
                 </div>
@@ -305,6 +305,16 @@ export default function CadastrosTab({
                       <option value="Administrador">Administrador</option>
                       <option value="Gestão">Gestão</option>
                       <option value="Analista">Analista</option>
+                    </select>
+                    <ChevronDown size={14} className="sel-icon" />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Área Atuação</label>
+                  <div className="select-wrap full-w">
+                    <select value={uForm.area} onChange={e => setUForm(f => ({ ...f, area: e.target.value as any }))}>
+                      <option value="T&P">T&P</option>
+                      <option value="Projetos">Projetos</option>
                     </select>
                     <ChevronDown size={14} className="sel-icon" />
                   </div>
