@@ -525,6 +525,7 @@ export default function App() {
             users={users}
             holidays={holidays}
             onRefresh={loadData}
+            showToast={showToast}
           />
         )}
         {activeTab === 'dashboard' && (

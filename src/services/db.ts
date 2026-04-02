@@ -10,6 +10,25 @@ import type {
 
 const isCloudEnabled = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
 
+// --- HELPERS ---
+const mapUser = (row: any): User => ({
+  ...row,
+  area: row.area || undefined // Ensure it is optional, not null
+});
+
+const mapKnowledgeActivity = (row: any): KnowledgeActivity => ({
+  id: row.id,
+  categoryId: row.category_id || row.categoryId,
+  name: row.name,
+  order: row.order
+});
+
+const mapKnowledgeProgress = (row: any): KnowledgeProgress => ({
+  userId: row.user_id || row.userId,
+  activityId: row.activity_id || row.activityId,
+  status: row.status as any
+});
+
 export const dbService = {
   // --- TEMAS ---
   async getThemes(): Promise<Theme[]> {
@@ -42,7 +61,7 @@ export const dbService = {
     if (!isCloudEnabled) return []
     const { data, error } = await supabase.from('users').select('*').order('name', { ascending: true })
     if (error) { console.error('GetUsers Error:', error); return [] }
-    return data || []
+    return (data || []).map(mapUser)
   },
   async saveUser(user: Omit<User, 'id'> | User, adminUser?: User) {
     if (!isCloudEnabled) return { data: null, error: null }
@@ -78,6 +97,7 @@ export const dbService = {
       if (act.esforco_realizado !== undefined) act.esforcoRealizado = act.esforco_realizado;
       if (act.dias_esperados_conclusao !== undefined) act.diasEsperadosConclusao = act.dias_esperados_conclusao;
       if (act.data_comentario !== undefined) act.dataComentario = act.data_comentario;
+      if (act.week === null) act.week = "Indefinida";
 
       delete act.data_prevista_finalizacao;
       delete act.percentual_andamento;
@@ -114,7 +134,7 @@ export const dbService = {
     delete dbPayload.percentualAndamento;
     delete dbPayload.dataFinalizada;
     delete dbPayload.esforcoRealizado;
-    delete dbPayload.diasEsperadosConclusao;
+    delete dbPayload.dias_esperados_conclusao;
     delete dbPayload.dataComentario;
 
     const { data, error } = await supabase.from('activities').upsert(dbPayload).select();
@@ -193,7 +213,7 @@ export const dbService = {
       timestamp: new Date().toISOString()
     }
     const { error } = await supabase.from('app_logs').insert(dbPayload)
-    await supabase.channel('lsl_presence_tracker').send({
+    await (supabase as any).channel('lsl_presence_tracker').send({
       type: 'broadcast',
       event: 'new_log',
       payload: dbPayload
@@ -209,8 +229,8 @@ export const dbService = {
     const { data: progress } = await supabase.from('knowledge_progress').select('*')
     return { 
       categories: categories || [], 
-      activities: activities || [], 
-      progress: progress || [] 
+      activities: (activities || []).map(mapKnowledgeActivity), 
+      progress: (progress || []).map(mapKnowledgeProgress) 
     }
   },
 

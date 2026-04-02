@@ -21,7 +21,8 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
   
   const tpAnalysts = useMemo(() => users.filter(u => u.role === 'Analista' && u.area === 'T&P'), [users]);
   const projectAnalysts = useMemo(() => users.filter(u => u.role === 'Analista' && u.area === 'Projetos'), [users]);
-  const allAnalysts = [...tpAnalysts, ...projectAnalysts];
+  const otherAnalysts = useMemo(() => users.filter(u => u.role === 'Analista' && !u.area), [users]);
+  const allAnalysts = [...tpAnalysts, ...projectAnalysts, ...otherAnalysts];
 
   const progressMap = useMemo(() => {
     const map: Record<string, KnowledgeStatus> = {};
@@ -67,6 +68,7 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
 
   const tpProgress = useMemo(() => getProgressForGroup(tpAnalysts), [tpAnalysts, activities, progressMap]);
   const projProgress = useMemo(() => getProgressForGroup(projectAnalysts), [projectAnalysts, activities, progressMap]);
+  const otherProgress = useMemo(() => getProgressForGroup(otherAnalysts), [otherAnalysts, activities, progressMap]);
 
   return (
     <div className="tab-content kn-root">
@@ -88,6 +90,9 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
                 )}
                 {projectAnalysts.length > 0 && (
                   <th colSpan={projectAnalysts.length} className="kn-group-th proj-group">PROJETOS</th>
+                )}
+                {otherAnalysts.length > 0 && (
+                  <th colSpan={otherAnalysts.length} className="kn-group-th">SEM ÁREA</th>
                 )}
               </tr>
               <tr>
@@ -186,6 +191,21 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
                 </div>
               ))}
           </div>
+
+          {otherProgress.length > 0 && (
+            <div className="kn-chart-block">
+              <h3 className="kn-chart-title">Evolução Outros / Sem Área</h3>
+              {otherProgress.map(({ user, pct }) => (
+                <div key={user.id} className="kn-progress-row">
+                  <span className="kn-progress-label">{user.name}</span>
+                  <div className="kn-progress-bar-bg">
+                    <div className="kn-progress-bar-fill" style={{ width: `${pct}%`, background: '#94a3b8' }} />
+                  </div>
+                  <span className="kn-progress-pct">{pct}%</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

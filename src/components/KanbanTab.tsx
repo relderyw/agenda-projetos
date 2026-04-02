@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from 'react'
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import {
   ChevronLeft, ChevronRight, Calendar, User2,
   CheckCircle2, Clock, AlertCircle, Minus, Play, Pause, FastForward
@@ -13,6 +13,7 @@ interface Props {
   users: User[];
   holidays: Holiday[];
   onRefresh: () => void;
+  showToast?: (type: 'success' | 'error' | 'info', title: string, msg: string) => void;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -107,12 +108,10 @@ function ActivityCard({
   if (dayIndex <= Math.floor(completedDays)) {
     pct = 100;
   } else if (dayIndex === Math.ceil(completedDays)) {
-    // Se completedDays é 1.5, o dia 2 (ceil de 1.5) pega os 0.5 (50%)
     pct = Math.round((completedDays - Math.floor(completedDays)) * 100);
-    if (pct === 0 && completedDays > 0) pct = 0; // Caso de borda
+    if (pct === 0 && completedDays > 0) pct = 0;
   }
   
-  // Forçar 100% se o status global for FINALIZADA
   if (act.status === 'FINALIZADA') pct = 100;
 
   const isDone = pct === 100;
@@ -191,30 +190,35 @@ function ActivityCard({
   )
 }
 
-export default function KanbanTab({ activities, themes, users, holidays, currentUser, onRefresh }: Props) {
+export default function KanbanTab({ activities, themes, users, holidays, currentUser, onRefresh, showToast }: Props) {
   const canManageHolidays = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão';
 
   const holidayMap = useMemo(() => {
     const map: Record<string, Holiday> = {};
-    holidays.forEach(h => {
-      map[h.date] = h;
-    });
+    holidays.forEach(h => { map[h.date] = h; });
     return map;
   }, [holidays]);
 
   const handleToggleHoliday = async (date: string) => {
     if (!canManageHolidays) return;
-    const existing = holidayMap[date];
-    if (existing) {
-      if (existing.type === 'Feriado') {
-        await dbService.saveHoliday({ date, type: 'S/ Expediente', description: 'Sem Expediente' });
+    try {
+      const existing = holidayMap[date];
+      if (existing) {
+        if (existing.type === 'Feriado') {
+          await dbService.saveHoliday({ date, type: 'S/ Expediente', description: 'Sem Expediente' });
+          if (showToast) showToast('info', 'Status Alterado', `${date}: Agora é Sem Expediente`);
+        } else {
+          await dbService.deleteHoliday(date);
+          if (showToast) showToast('success', 'Dia Normal', `${date}: Feriado removido`);
+        }
       } else {
-        await dbService.deleteHoliday(date);
+        await dbService.saveHoliday({ date, type: 'Feriado', description: 'Feriado' });
+        if (showToast) showToast('success', 'Feriado Marcado', `${date}: Agora é Feriado`);
       }
-    } else {
-      await dbService.saveHoliday({ date, type: 'Feriado', description: 'Feriado' });
+      onRefresh();
+    } catch (err) {
+      if (showToast) showToast('error', 'Erro', 'Não foi possível alterar o status do dia.');
     }
-    onRefresh();
   };
 
   const today = useMemo(() => {
@@ -240,18 +244,13 @@ export default function KanbanTab({ activities, themes, users, holidays, current
 
   const themeMap = useMemo(() => Object.fromEntries(themes.map(t => [t.id, t])), [themes])
   
-  // Regra LSL: Apenas analistas aparecem no quadro
-  const onlyAnalysts = useMemo(() => {
-    return users.filter(u => u.role === 'Analista');
-  }, [users]);
+  const onlyAnalysts = useMemo(() => users.filter(u => u.role === 'Analista'), [users]);
 
   const weekActs = useMemo(() => {
     const startStr = formatDate(weekStart)
     const endStr   = formatDate(addDays(weekStart, 5))
     return activities.filter(a => {
-      // Filtrar apenas se responsavel for analista
       if (!onlyAnalysts.some(u => u.id === a.responsavel)) return false;
-      
       if (!a.planejamento) return false
       const actStart = a.planejamento
       const actEnd = a.dataPrevistaFinalizacao && a.dataPrevistaFinalizacao.length === 10 ? a.dataPrevistaFinalizacao : actStart
@@ -259,29 +258,35 @@ export default function KanbanTab({ activities, themes, users, holidays, current
     })
   }, [activities, weekStart, onlyAnalysts])
 
-  const byUser = useMemo(() => {
-    return onlyAnalysts.map(user => {
-      const userActs = weekActs.filter(a => a.responsavel === user.id)
-      const byDay = days.map(day => {
-        const dStr = formatDate(day.date)
-        return {
-          date: dStr,
-          acts: userActs.filter(a => {
-            const start = a.planejamento
-            const end = a.dataPrevistaFinalizacao && a.dataPrevistaFinalizacao.length === 10 ? a.dataPrevistaFinalizacao : start
-            return dStr >= start && dStr <= end
-          }),
-        }
-      })
-      const total = userActs.length
-      const done  = userActs.filter(a => a.status === 'FINALIZADA').length
-      return { user, byDay, total, done }
-    })
-  }, [onlyAnalysts, weekActs, days])
+  // Agrupamento de Swimlanes por Área
+  const groupedSwimlanes = useMemo(() => {
+    const areas = ['T&P', 'Projetos', 'Sem Área'];
+    return areas.map(area => {
+      const groupUsers = onlyAnalysts.filter(u => {
+        if (area === 'Sem Área') return !u.area;
+        return u.area === area;
+      });
+      
+      const userLanes = groupUsers.map(user => {
+        const userActs = weekActs.filter(a => a.responsavel === user.id)
+        const byDay = days.map(day => {
+          const dStr = formatDate(day.date)
+          return {
+            date: dStr,
+            acts: userActs.filter(a => {
+              const start = a.planejamento
+              const end = a.dataPrevistaFinalizacao && a.dataPrevistaFinalizacao.length === 10 ? a.dataPrevistaFinalizacao : start
+              return dStr >= start && dStr <= end
+            }),
+          }
+        })
+        return { user, byDay, total: userActs.length, done: userActs.filter(a => a.status === 'FINALIZADA').length }
+      });
 
-  const isCurrentWeek = weekOffset === 0
+      return { area, userLanes };
+    }).filter(g => g.userLanes.length > 0);
+  }, [onlyAnalysts, weekActs, days]);
 
-  // Scroll Automático Compartilhado
   const [autoScroll, setAutoScroll] = useState(false)
   const [speed, setSpeed] = useState(1)
 
@@ -289,26 +294,17 @@ export default function KanbanTab({ activities, themes, users, holidays, current
     if (!autoScroll) return
     const el = document.querySelector('.main-content')
     if (!el) return
-
     let animationId: number
     let direction = 1
     let pos = el.scrollTop
-    
     const tick = () => {
       const scrollEl = document.querySelector('.main-content')
       if (!scrollEl) return
       const maxScroll = scrollEl.scrollHeight - scrollEl.clientHeight
       if (maxScroll <= 0) return
-      
       pos += direction * 0.75 * speed
-      
-      if (pos >= maxScroll) {
-        pos = maxScroll
-        direction = -1
-      } else if (pos <= 0) {
-        pos = 0
-        direction = 1
-      }
+      if (pos >= maxScroll) { pos = maxScroll; direction = -1; }
+      else if (pos <= 0) { pos = 0; direction = 1; }
       scrollEl.scrollTop = pos
       animationId = requestAnimationFrame(tick)
     }
@@ -316,76 +312,46 @@ export default function KanbanTab({ activities, themes, users, holidays, current
     return () => cancelAnimationFrame(animationId)
   }, [autoScroll, speed])
 
-  const scrollRef = useRef<HTMLDivElement>(null)
-
   return (
     <div className="tab-content kb-root">
       <div className="tab-header">
         <div>
           <h1 className="tab-title">Programação Semanal</h1>
-          <p className="tab-subtitle">
-            Semana {isCurrentWeek ? 'vigente' : (weekOffset < 0 ? 'anterior' : 'seguinte')}
-            {' · '}
-            {weekRangeLabel(weekStart)}
-          </p>
+          <p className="tab-subtitle">Semana {weekRangeLabel(weekStart)}</p>
         </div>
-
         <div className="kb-week-nav">
-          <div style={{ width: '1px', height: '20px', background: 'var(--border-color)', margin: '0 0.5rem' }}></div>
-          <button className="kb-nav-btn" onClick={() => setWeekOffset(o => o - 1)} title="Semana anterior">
-            <ChevronLeft size={18} />
+          <button className="kb-nav-btn" onClick={() => setWeekOffset(o => o - 1)}><ChevronLeft size={18} /></button>
+          <button className={`kb-nav-btn kb-nav-today ${weekOffset === 0 ? 'kb-nav-today-active' : ''}`} onClick={() => setWeekOffset(0)}>
+            <Calendar size={15} /> Hoje
           </button>
-          <button
-            className={`kb-nav-btn kb-nav-today ${isCurrentWeek ? 'kb-nav-today-active' : ''}`}
-            onClick={() => setWeekOffset(0)}
-            title="Voltar para semana atual"
-          >
-            <Calendar size={15} />
-            Hoje
-          </button>
-          <button className="kb-nav-btn" onClick={() => setWeekOffset(o => o + 1)} title="Próxima semana">
-            <ChevronRight size={18} />
-          </button>
+          <button className="kb-nav-btn" onClick={() => setWeekOffset(o => o + 1)}><ChevronRight size={18} /></button>
         </div>
       </div>
 
-      {/* Barra de Comando Flutuante Unificada */}
       <div className="presentation-floating-bar">
         <div className="pres-bar-content">
-          <div className="pres-speed-info">
-            <span className="speed-tag">{speed}x</span>
-          </div>
-          <button 
-            className={`pres-btn ${autoScroll ? 'active' : ''}`}
-            onClick={() => setAutoScroll(!autoScroll)}
-            title={autoScroll ? 'Pausar' : 'Play'}
-          >
+          <span className="speed-tag">{speed}x</span>
+          <button className={`pres-btn ${autoScroll ? 'active' : ''}`} onClick={() => setAutoScroll(!autoScroll)}>
             {autoScroll ? <Pause size={20} /> : <Play size={20} />}
           </button>
-          <button className="pres-btn" onClick={() => setSpeed(s => s >= 3 ? 1 : s + 1)} title="Mudar Velocidade">
-            <FastForward size={20} />
-          </button>
+          <button className="pres-btn" onClick={() => setSpeed(s => s >= 3 ? 1 : s + 1)}><FastForward size={20} /></button>
         </div>
       </div>
 
-      <div className="kb-board" ref={scrollRef}>
+      <div className="kb-board">
         <div className="kb-col-headers">
           <div className="kb-swimlane-lbl-head" />
           {days.map(day => (
             <div key={day.short} className={`kb-col-header ${day.isToday ? 'kb-col-today' : ''}`}>
               <span className="kb-col-day">{day.label}</span>
-              <span className={`kb-col-date ${day.isToday ? 'kb-col-date-today' : ''}`}>
-                {formatDayLabel(day.date)}
-              </span>
-              {day.isToday && <span className="kb-today-pill">Hoje</span>}
+              <span className={`kb-col-date ${day.isToday ? 'kb-col-date-today' : ''}`}>{formatDayLabel(day.date)}</span>
               {canManageHolidays && (
                 <button 
-                  className={`action-btn edit h-toggle-btn ${holidayMap[formatDate(day.date)] ? 'active' : ''}`}
+                  className={`action-btn h-toggle-btn ${holidayMap[formatDate(day.date)] ? 'active' : ''}`}
                   onClick={() => handleToggleHoliday(formatDate(day.date))}
-                  title="Alternar Feriado / S/ Expediente"
-                  style={{ position: 'absolute', top: '8px', right: '8px', opacity: 0.5 }}
+                  title="Feriado / S/ Expediente"
                 >
-                  <Calendar size={12} />
+                  <Calendar size={14} />
                 </button>
               )}
             </div>
@@ -393,62 +359,49 @@ export default function KanbanTab({ activities, themes, users, holidays, current
         </div>
 
         <div className="kb-swimlanes">
-          {byUser.map(({ user, byDay, total, done }) => (
-            <div key={user.id} className="kb-swimlane">
-              <div className="kb-swimlane-lbl">
-                <div className="kb-analyst-avatar" style={{ background: user.color }}>
-                  {user.name.charAt(0)}
-                </div>
-                <div className="kb-analyst-info">
-                  <span className="kb-analyst-name">{user.name}</span>
-                  <span className="kb-analyst-role">{user.role}</span>
-                  <div className="kb-analyst-stats">
-                    <span className="kb-stat">
-                      <CheckCircle2 size={11} style={{ color: '#10b981' }} />
-                      {done}
-                    </span>
-                    <span className="kb-stat-div">/</span>
-                    <span className="kb-stat">
-                      <User2 size={11} />
-                      {total}
-                    </span>
-                  </div>
-                </div>
+          {groupedSwimlanes.map(group => (
+            <div key={group.area} className="kb-group-section">
+              <div className="kb-group-row-header">
+                <span className={`kb-group-pill ${group.area.toLowerCase().replace('&','').replace(' ','-')}`}>
+                  {group.area.toUpperCase()}
+                </span>
               </div>
-
-              {byDay.map(({ date, acts }) => {
-                const dayDef = days.find(d => formatDate(d.date) === date)
-                const holiday = holidayMap[date];
-                return (
-                  <div key={date} className={`kb-cell ${dayDef?.isToday ? 'kb-cell-today' : ''} ${holiday ? 'kb-cell-holiday' : ''}`}>
-                    {holiday ? (
-                      <div className="kb-holiday-placeholder">
-                        <span className="kb-holiday-label">{holiday.type.toUpperCase()}</span>
-                        {holiday.description && <span className="kb-holiday-desc">{holiday.description}</span>}
+              {group.userLanes.map(({ user, byDay, total, done }) => (
+                <div key={user.id} className="kb-swimlane">
+                  <div className="kb-swimlane-lbl">
+                    <div className="kb-analyst-avatar" style={{ background: user.color }}>{user.name.charAt(0)}</div>
+                    <div className="kb-analyst-info">
+                      <span className="kb-analyst-name">{user.name}</span>
+                      <div className="kb-analyst-stats">
+                        <span className="kb-stat"><CheckCircle2 size={11} style={{ color: '#10b981' }} /> {done}</span>
+                        <span className="kb-stat-div">/</span>
+                        <span className="kb-stat"><User2 size={11} /> {total}</span>
                       </div>
-                    ) : acts.length === 0 ? (
-                      <div className="kb-empty-cell" />
-                    ) : (
-                      acts.map(act => (
-                        <ActivityCard
-                          key={act.id}
-                          act={act}
-                          theme={themeMap[act.tema]}
-                          isToday={dayDef?.isToday ?? false}
-                          cardDate={date}
-                        />
-                      ))
-                    )}
+                    </div>
                   </div>
-                )
-              })}
+                  {byDay.map(({ date, acts }) => {
+                    const dayDef = days.find(d => formatDate(d.date) === date)
+                    const holiday = holidayMap[date];
+                    return (
+                      <div key={date} className={`kb-cell ${dayDef?.isToday ? 'kb-cell-today' : ''} ${holiday ? 'kb-cell-holiday' : ''}`}>
+                        {holiday ? (
+                          <div className="kb-holiday-placeholder">
+                            <span className="kb-holiday-label">{holiday.type.toUpperCase()}</span>
+                          </div>
+                        ) : acts.length === 0 ? <div className="kb-empty-cell" /> : 
+                          acts.map(act => <ActivityCard key={act.id} act={act} theme={themeMap[act.tema]} isToday={dayDef?.isToday ?? false} cardDate={date} />)
+                        }
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
             </div>
           ))}
-
-          {byUser.every(u => u.total === 0) && (
+          {groupedSwimlanes.length === 0 && (
             <div className="kb-no-acts">
               <Calendar size={36} style={{ opacity: 0.25 }} />
-              <p>Nenhuma atividade planejada para esta semana</p>
+              <p>Nenhuma atividade planejada</p>
             </div>
           )}
         </div>

@@ -3521,8 +3521,48 @@ Not strictly needed if th stretches, td stretches automatically in standard tabl
 
 .kn-progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #10b981, #34d399);
+  border-radius: 4px;
   transition: width 0.5s ease-out;
+}
+
+/* ─── KANBAN GROUPING ──────────────────────────────── */
+.kb-group-section {
+  border-left: 4px solid var(--border);
+  margin-bottom: 2rem;
+  background: var(--bg-card);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.kb-group-section:has(.tp) { border-left-color: var(--accent-primary); }
+.kb-group-section:has(.projetos) { border-left-color: #10b981; }
+.kb-group-section:has(.sem-area) { border-left-color: #94a3b8; }
+
+.kb-group-row-header {
+  background: var(--bg-app);
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+}
+
+.kb-group-pill {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+  color: white;
+  text-transform: uppercase;
+}
+
+.kb-group-pill.tp { background: var(--accent-primary); }
+.kb-group-pill.projetos { background: #10b981; }
+.kb-group-pill.sem-area { background: #94a3b8; }
+
+.kb-group-section .kb-swimlane:last-child {
+  border-bottom: none;
 }
 
 /* ─── KNOWLEDGE MATRIX GROUPING ──────────────────────────────── */
