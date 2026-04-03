@@ -3500,220 +3500,289 @@ Not strictly needed if th stretches, td stretches automatically in standard tabl
   font-size: 0.9rem;
 }
 
-.kn-act-name {
-  padding-left: 1.5rem !important;
-  color: var(--text-desc);
-  font-weight: 500;
+/* ─── KNOWLEDGE MATRIX REDESIGN ──────────────────────────────── */
+.kn-area-toggle {
+  display: flex;
+  background: var(--bg-card);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  gap: 4px;
 }
 
-.kn-cell-center {
-  text-align: center !important;
+.kn-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.1s;
-  width: 80px;
+  border-radius: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.kn-cell-center:hover {
-  background: var(--row-hover);
+.kn-toggle-btn:hover {
+  background: var(--nav-hover-bg);
+  color: var(--text-primary);
 }
 
-.kn-status-icon {
+.kn-toggle-btn.active.tp {
+  background: var(--accent-primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.kn-toggle-btn.active.projets {
+  background: #10b981;
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.kn-main-container {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.kn-table-outer {
+  overflow: auto;
+  max-height: calc(100vh - 240px);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.kn-table.premium {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+.kn-table.premium thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-card);
+  z-index: 10;
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.kn-table.premium .sticky-col {
+  position: sticky;
+  left: 0;
+  background: var(--bg-card);
+  z-index: 20;
+  border-right: 1px solid var(--border);
+}
+
+.kn-table.premium .sticky-col-2 {
+  position: sticky;
+  left: 50px;
+  background: var(--bg-card);
+  z-index: 20;
+  border-right: 1px solid var(--border-strong);
+}
+
+.kn-head-row th {
+  padding: 1rem 0.5rem;
+}
+
+.kn-analyst-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.kn-analyst-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
-}
-
-.kn-check { color: #10b981; }
-.kn-x { color: #ef4444; }
-.kn-empty { color: var(--text-faint); opacity: 0.3; }
-
-.kn-analyst-head {
-  text-align: center !important;
-  min-width: 90px;
+  color: white;
+  font-weight: 800;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 .kn-analyst-name-vertical {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  height: 120px;
   text-transform: uppercase;
+}
+
+.kn-category-divider {
+  background: var(--bg-table-hd);
+}
+
+.kn-cat-idx, .kn-act-idx {
+  text-align: center;
+  font-weight: 800;
+  color: var(--text-muted);
   font-size: 0.75rem;
+  width: 50px;
+}
+
+.kn-cat-label {
+  padding: 0.75rem 1.5rem !important;
+  color: var(--text-primary);
+  font-weight: 900;
+  font-size: 0.85rem;
   letter-spacing: 0.05em;
-  height: 100px;
-  margin: 0 auto;
+  text-align: left !important;
 }
 
-.kn-progress-section {
+.kn-activity-row:hover td {
+  background: color-mix(in srgb, var(--nav-hover-bg) 50%, transparent);
+}
+
+.kn-act-info {
+  padding: 0.75rem 1.5rem !important;
+  min-width: 300px;
+  text-align: left !important;
+}
+
+.kn-label-box {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-  padding: 1.5rem;
-  background: var(--nav-hover-bg);
-  border-top: 1px solid var(--border);
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
 }
 
-.kn-progress-row {
+.kn-label-text {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-desc);
+}
+
+.kn-edit-trigger {
+  opacity: 0;
+  transition: opacity 0.2s;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.kn-activity-row:hover .kn-edit-trigger {
+  opacity: 1;
+}
+
+.kn-cell-interactive {
+  width: 90px;
+  min-width: 90px;
+  cursor: pointer;
+  text-align: center;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.kn-status-wrap {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: center;
 }
 
-.kn-progress-label {
-  min-width: 120px;
-  font-weight: 600;
-  font-size: 0.8rem;
-  color: var(--text-primary);
+.status-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
 }
 
-.kn-progress-bar-bg {
-  flex: 1;
-  height: 8px;
-  background: var(--prog-track);
-  border-radius: 4px;
-  overflow: hidden;
+.dot-green { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.dot-amber { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.dot-empty { background: rgba(0,0,0,0.05); }
+
+[data-theme="dark"] .dot-empty { background: rgba(255,255,255,0.05); }
+
+.kn-cell-interactive:hover .status-dot {
+  transform: scale(1.1);
 }
 
-.kn-progress-bar-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.5s ease-out;
-}
-
-/* ─── KANBAN GROUPING ──────────────────────────────── */
-.kb-group-section {
-  border-left: 4px solid var(--border);
-  margin-bottom: 2rem;
+/* Side Stats Panel */
+.kn-panel {
   background: var(--bg-card);
-  border-radius: 8px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  position: sticky;
+  top: 1.5rem;
 }
 
-.kb-group-section:has(.tp) { border-left-color: var(--accent-primary); }
-.kb-group-section:has(.projetos) { border-left-color: #10b981; }
-.kb-group-section:has(.sem-area) { border-left-color: #94a3b8; }
-
-.kb-group-row-header {
-  background: var(--bg-app);
-  padding: 12px 20px;
+.kn-panel-header {
+  padding: 1.25rem;
+  background: var(--nav-hover-bg);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
+  gap: 12px;
 }
 
-.kb-group-pill {
-  font-size: 0.7rem;
-  font-weight: 800;
-  padding: 4px 12px;
-  border-radius: 20px;
-  letter-spacing: 0.05em;
-  color: white;
-  text-transform: uppercase;
-}
-
-.kb-group-pill.tp { background: var(--accent-primary); }
-.kb-group-pill.projetos { background: #10b981; }
-.kb-group-pill.sem-area { background: #94a3b8; }
-
-.kb-group-section .kb-swimlane:last-child {
-  border-bottom: none;
-}
-
-/* ─── KNOWLEDGE MATRIX GROUPING ──────────────────────────────── */
-.kn-group-header-row {
-  background: var(--bg-table-hd);
-}
-
-.kn-group-th {
-  text-align: center !important;
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  padding: 4px !important;
-  border-bottom: 2px solid var(--border-strong) !important;
-}
-
-.tp-group { color: var(--accent-primary); border-bottom-color: var(--accent-primary) !important; }
-.proj-group { color: #10b981; border-bottom-color: #10b981 !important; }
-
-.kn-charts-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  padding: 1.5rem;
-  background: var(--nav-hover-bg);
-  border-top: 1px solid var(--border);
-}
-
-.kn-chart-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.kn-chart-title {
-  font-size: 0.85rem;
+.kn-panel-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
   font-weight: 700;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 0 0 0.5rem;
-  padding-bottom: 8px;
-  border-bottom: 1px dashed var(--border);
+  color: var(--text-primary);
 }
 
-.pop-date {
-  display: block;
-  font-size: 0.65rem;
-  color: var(--text-faint);
-  margin-top: 0.75rem;
-  border-top: 1px solid var(--border);
-  padding-top: 0.5rem;
+.kn-panel-body {
+  padding: 1.25rem;
+  max-height: calc(100vh - 350px);
+  overflow-y: auto;
 }
 
-/* ── Cadastros Holiday Styles ── */
-.cad-holiday-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+.kn-prog-card {
+  margin-bottom: 1.25rem;
+}
+
+.kn-prog-info {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-table-hd);
-  color: var(--text-muted);
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
 }
 
-.cad-holiday-icon.festive {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-}
-
-.cad-holiday-icon.off {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
-}
-
-.empty-state {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-  color: var(--text-faint);
-  border: 2px dashed var(--border);
-  border-radius: 16px;
-  text-align: center;
-  gap: 1rem;
-}
-
-.kn-act-order {
-  text-align: center;
-  width: 40px;
+.kn-prog-name {
+  font-size: 0.8rem;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--text-secondary);
+}
+
+.kn-prog-val {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.kn-prog-track {
+  height: 6px;
+  background: var(--prog-track);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.kn-prog-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.premium-shadow {
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
 }
 .kb-cell-holiday {
   background: var(--nav-hover-bg) !important;

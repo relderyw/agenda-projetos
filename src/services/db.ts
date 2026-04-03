@@ -255,6 +255,12 @@ export const dbService = {
     return { error }
   },
 
+  async saveKnowledgeCategory(cat: KnowledgeCategory) {
+    if (!isCloudEnabled) return { error: null }
+    const { error } = await supabase.from('knowledge_categories').upsert(cat)
+    return { error }
+  },
+
   // --- FERIADOS ---
   async getHolidays(): Promise<Holiday[]> {
     if (!isCloudEnabled) return []

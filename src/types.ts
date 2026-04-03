@@ -9,6 +9,7 @@ export interface KnowledgeCategory {
   id: string;
   name: string;
   order: number;
+  area?: 'T&P' | 'Projetos';
 }
 
 export interface KnowledgeActivity {
