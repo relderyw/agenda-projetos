@@ -3199,10 +3199,12 @@
   background: var(--bg-card);
   border-radius: 20px;
   border: 1px solid var(--border);
-  overflow: auto; /* Handle both axis if needed */
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-lg);
+  /* One horizontal scroll wrapper containing both header and swimlanes */
+  overflow-x: auto;
 }
 
 .kb-col-headers {
@@ -3210,11 +3212,10 @@
   grid-template-columns: 220px repeat(6, 1fr);
   background: var(--bg-table-hd);
   border-bottom: 2px solid var(--border-strong);
-  position: sticky;
-  top: 0;
+  /* REMOVED position:sticky - not compatible with overflow:auto ancestor */
   z-index: 100;
-  min-width: 1200px; /* Force minimum width to prevent shift */
-  scrollbar-gutter: stable; /* Compensation for scrollbar */
+  min-width: 1200px;
+  flex-shrink: 0; /* Don't let header compress */
 }
 
 .kb-swimlane-lbl-head {
@@ -3256,9 +3257,8 @@
 
 .kb-swimlanes {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: auto; /* Only vertical scroll here */
   min-width: 1200px;
-  scrollbar-gutter: stable;
 }
 
 /* Swimlane Groups (Areas) */
