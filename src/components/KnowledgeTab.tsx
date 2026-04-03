@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Check, X, Edit2, Save, ChevronRight, BarChart2, Globe, Layout } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Check, X, Edit2, Save, ChevronRight, BarChart2, Layout, Globe, Plus, Trash2 } from 'lucide-react';
 import type { User, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, KnowledgeStatus } from '../types';
 import { dbService } from '../services/db';
 import React from 'react';
@@ -19,15 +20,19 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
   const [activeArea, setActiveArea] = useState<MatrixArea>('T&P');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempName, setTempName] = useState('');
+  
+  // Modals
+  const [catModal, setCatModal] = useState<{ open: boolean; editing: KnowledgeCategory | null }>({ open: false, editing: null });
+  const [actModal, setActModal] = useState<{ open: boolean; editing: KnowledgeActivity | null; categoryId?: string }>({ open: false, editing: null });
 
   const isAdmin = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão';
   
-  // Filter analysts based on active area
+  // Analysts: show current area analysts OR those with no area
   const areaAnalysts = useMemo(() => 
     users.filter(u => u.role === 'Analista' && (u.area === activeArea || !u.area)), 
   [users, activeArea]);
 
-  // Filter categories based on active area
+  // Categories: show current area categories OR those with no area
   const areaCategories = useMemo(() => 
     categories.filter(cat => cat.area === activeArea || !cat.area), 
   [categories, activeArea]);
@@ -42,37 +47,61 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
 
   const handleCycleStatus = async (userId: string, activityId: string) => {
     if (!isAdmin) return;
-    
     const currentStatus = progressMap[`${userId}-${activityId}`] || 'empty';
     let nextStatus: KnowledgeStatus = 'empty';
-    
     if (currentStatus === 'empty') nextStatus = 'checked';
     else if (currentStatus === 'checked') nextStatus = 'x';
     else if (currentStatus === 'x') nextStatus = 'empty';
-
     await dbService.saveKnowledgeProgress({ userId, activityId, status: nextStatus });
     onRefresh();
   };
 
-  const handleEditActivity = (act: KnowledgeActivity) => {
-    setEditingId(act.id);
-    setTempName(act.name);
+  // --- Category CRUD ---
+  const openCatModal = (cat?: KnowledgeCategory) => {
+    setCatModal({ open: true, editing: cat || null });
+  };
+  const handleSaveCategory = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const catData: KnowledgeCategory = {
+      id: catModal.editing?.id || crypto.randomUUID(),
+      name: fd.get('name') as string,
+      order: Number(fd.get('order')),
+      area: fd.get('area') as MatrixArea || activeArea
+    };
+    await dbService.saveKnowledgeCategory(catData);
+    setCatModal({ open: false, editing: null });
+    onRefresh();
   };
 
-  const handleSaveActivity = async (act: KnowledgeActivity) => {
-    await dbService.saveKnowledgeActivity({ ...act, name: tempName });
-    setEditingId(null);
+  // --- Activity CRUD ---
+  const openActModal = (act?: KnowledgeActivity, categoryId?: string) => {
+    setActModal({ open: true, editing: act || null, categoryId });
+  };
+  const handleSaveActivity = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const actData: KnowledgeActivity = {
+      id: actModal.editing?.id || crypto.randomUUID(),
+      categoryId: actModal.categoryId || (fd.get('categoryId') as string),
+      name: fd.get('name') as string,
+      order: Number(fd.get('order'))
+    };
+    await dbService.saveKnowledgeActivity(actData);
+    setActModal({ open: false, editing: null });
     onRefresh();
   };
 
   const areaProgress = useMemo(() => {
-    const areaActivities = activities.filter(act => 
+    const areaActivitiesIds = activities.filter(act => 
       areaCategories.some(cat => cat.id === act.categoryId)
-    );
+    ).map(act => act.id);
     
     return areaAnalysts.map(user => {
-      const checked = areaActivities.filter(act => progressMap[`${user.id}-${act.id}`] === 'checked').length;
-      const total = areaActivities.length;
+      const checked = activities.filter(act => 
+        areaActivitiesIds.includes(act.id) && progressMap[`${user.id}-${act.id}`] === 'checked'
+      ).length;
+      const total = areaActivitiesIds.length;
       const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
       return { user, pct };
     });
@@ -83,148 +112,186 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
       <div className="tab-header">
         <div>
           <h1 className="tab-title">Matriz de Competência</h1>
-          <p className="tab-subtitle">Controle de aprendizagem e assimilação • {activeArea}</p>
+          <p className="tab-subtitle">Controle de aprendizagem e assimilação por Área</p>
         </div>
 
-        <div className="kn-area-toggle">
-          <button 
-            className={`kn-toggle-btn ${activeArea === 'T&P' ? 'active tp' : ''}`}
-            onClick={() => setActiveArea('T&P')}
-          >
-            <Layout size={16} /> T&P
-          </button>
-          <button 
-            className={`kn-toggle-btn ${activeArea === 'Projetos' ? 'active projets' : ''}`}
-            onClick={() => setActiveArea('Projetos')}
-          >
-            <Globe size={16} /> PROJETOS
-          </button>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          {isAdmin && (
+            <button className="btn-ghost btn-sm" onClick={() => openCatModal()}>
+              <Plus size={16} /> Nova Categoria
+            </button>
+          )}
+          <div className="kn-area-toggle-compact">
+            <button 
+              className={`kn-toggle-pill ${activeArea === 'T&P' ? 'active-tp' : ''}`}
+              onClick={() => setActiveArea('T&P')}
+            >
+              T&P
+            </button>
+            <button 
+              className={`kn-toggle-pill ${activeArea === 'Projetos' ? 'active-proj' : ''}`}
+              onClick={() => setActiveArea('Projetos')}
+            >
+              PROJETOS
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="kn-main-container">
-        <div className="kn-card premium-shadow">
-          <div className="kn-table-outer">
-            <div className="kn-table-wrapper">
-              <table className="kn-table premium">
-                <thead>
-                  <tr className="kn-head-row">
-                    <th className="kn-th-id sticky-col">IT</th>
-                    <th className="kn-th-desc sticky-col-2">DESCRIÇÃO DA ATIVIDADE</th>
-                    {areaAnalysts.map(u => (
-                      <th key={u.id} className="kn-analyst-head">
-                        <div className="kn-analyst-wrapper">
-                          <span className="kn-analyst-badge" style={{ background: u.color }}>{u.name.charAt(0)}</span>
-                          <div className="kn-analyst-name-vertical">{u.name}</div>
+      <div className="kn-grid-layout">
+        <div className="kn-matrix-card">
+          <div className="kn-table-scroll-container">
+            <table className="kn-grid-table">
+              <thead>
+                <tr className="kn-grid-head">
+                  <th className="kn-grid-th-id sticky-col">IT</th>
+                  <th className="kn-grid-th-desc sticky-col-2">COLABORADOR</th>
+                  {areaAnalysts.map(u => (
+                    <th key={u.id} className="kn-grid-th-user">
+                      <div className="kn-user-vertical">
+                        <span>{u.name}</span>
+                      </div>
+                    </th>
+                  ))}
+                  <th className="kn-grid-th-user kn-th-pend">PENDENTE</th>
+                </tr>
+              </thead>
+              <tbody>
+                {areaCategories.map(cat => (
+                  <React.Fragment key={cat.id}>
+                    <tr className="kn-grid-category-row">
+                      <td className="sticky-col">{cat.order}</td>
+                      <td colSpan={areaAnalysts.length + 2} className="kn-grid-category-name">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>{cat.name.toUpperCase()}</span>
+                          {isAdmin && (
+                            <div className="kn-cat-actions">
+                              <button onClick={() => openActModal(undefined, cat.id)} className="cat-action-btn" title="Add Atividade"><Plus size={12}/></button>
+                              <button onClick={() => openCatModal(cat)} className="cat-action-btn" title="Editar"><Edit2 size={12}/></button>
+                            </div>
+                          )}
                         </div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {areaCategories.map(cat => (
-                    <React.Fragment key={cat.id}>
-                      <tr className="kn-category-divider">
-                        <td className="kn-cat-idx sticky-col">{cat.order}</td>
-                        <td colSpan={areaAnalysts.length + 1} className="kn-cat-label">
-                          <ChevronRight size={14} /> {cat.name.toUpperCase()}
-                        </td>
-                      </tr>
-                      {activities
-                        .filter(act => act.categoryId === cat.id)
-                        .map(act => (
-                          <tr key={act.id} className="kn-activity-row">
-                            <td className="kn-act-idx sticky-col">{act.order}</td>
-                            <td className="kn-act-info sticky-col-2">
-                              {editingId === act.id ? (
-                                <div className="kn-edit-box">
-                                  <input 
-                                    className="kn-input-premium"
-                                    value={tempName}
-                                    onChange={e => setTempName(e.target.value)}
-                                    autoFocus
-                                  />
-                                  <button onClick={() => handleSaveActivity(act)} className="btn-save-mini"><Save size={12}/></button>
-                                </div>
-                              ) : (
-                                <div className="kn-label-box">
-                                  <span className="kn-label-text">{act.name}</span>
-                                  {isAdmin && (
-                                    <button onClick={() => handleEditActivity(act)} className="kn-edit-trigger">
-                                      <Edit2 size={10}/>
-                                    </button>
-                                  )}
-                                </div>
-                              )}
+                      </td>
+                    </tr>
+                    {activities
+                      .filter(act => act.categoryId === cat.id)
+                      .map(act => {
+                        const pendCount = areaAnalysts.filter(u => progressMap[`${u.id}-${act.id}`] !== 'checked').length;
+                        return (
+                          <tr key={act.id} className="kn-grid-activity-row">
+                            <td className="kn-grid-cell-id sticky-col">{act.order}</td>
+                            <td className="kn-grid-cell-name sticky-col-2">
+                              <div className="act-name-wrapper">
+                                <span>{act.name}</span>
+                                {isAdmin && (
+                                  <button onClick={() => openActModal(act, cat.id)} className="act-edit-btn"><Edit2 size={10}/></button>
+                                )}
+                              </div>
                             </td>
                             {areaAnalysts.map(u => {
                               const status = progressMap[`${u.id}-${act.id}`] || 'empty';
                               return (
                                 <td 
                                   key={u.id} 
-                                  className={`kn-cell-interactive st-${status}`}
+                                  className={`kn-grid-cell-status st-${status}`}
                                   onClick={() => handleCycleStatus(u.id, act.id)}
                                 >
-                                  <div className="kn-status-wrap">
-                                    {status === 'checked' && <div className="status-dot dot-green"><Check size={14} /></div>}
-                                    {status === 'x' && <div className="status-dot dot-amber"><X size={14} /></div>}
-                                    {status === 'empty' && <div className="status-dot dot-empty"></div>}
-                                  </div>
+                                  {status === 'checked' && <div className="kn-mark"><Check size={18} /></div>}
+                                  {status === 'x' && <div className="kn-mark kn-mark-x"><X size={18} /></div>}
                                 </td>
                               );
                             })}
+                            <td className="kn-grid-cell-pend">{pendCount}</td>
                           </tr>
-                        ))}
-                    </React.Fragment>
-                  ))}
-                  {areaCategories.length === 0 && (
-                    <tr>
-                      <td colSpan={areaAnalysts.length + 2} className="kn-no-data">
-                        Nenhuma categoria cadastrada para esta área.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                        );
+                      })}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <div className="kn-side-stats">
-          <div className="kn-panel premium-shadow">
-            <div className="kn-panel-header">
-              <BarChart2 size={18} />
-              <h3>Evolução de Aprendizado</h3>
-            </div>
-            <div className="kn-panel-body">
-              {areaProgress.length === 0 ? (
-                <div className="kn-empty-state">Nenhum analista cadastrado</div>
-              ) : (
-                <div className="kn-progress-list">
-                  {areaProgress.map(({ user, pct }) => (
-                    <div key={user.id} className="kn-prog-card">
-                      <div className="kn-prog-info">
-                        <span className="kn-prog-name">{user.name}</span>
-                        <span className="kn-prog-val">{pct}%</span>
-                      </div>
-                      <div className="kn-prog-track">
-                        <div 
-                          className="kn-prog-fill" 
-                          style={{ 
-                            width: `${pct}%`, 
-                            background: activeArea === 'T&P' ? 'var(--accent-primary)' : '#10b981',
-                            boxShadow: `0 0 10px ${activeArea === 'T&P' ? 'var(--accent-primary)' : '#10b981'}4D`
-                          }} 
-                        />
-                      </div>
-                    </div>
-                  ))}
+        <div className="kn-stats-side">
+          <div className="kn-stats-header">Evolução por Analista</div>
+          <div className="kn-stats-list">
+            {areaProgress.map(({ user, pct }) => (
+              <div key={user.id} className="kn-stats-item">
+                <div className="kn-stats-info">
+                  <span className="kn-stats-name">{user.name}</span>
+                  <span className="kn-stats-pct">{pct}%</span>
                 </div>
-              )}
-            </div>
+                <div className="kn-stats-bar-bg">
+                  <div className="kn-stats-bar-fill" style={{ width: `${pct}%`, background: activeArea === 'T&P' ? 'var(--accent-primary)' : '#10b981' }} />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
+
+      {/* --- Category Modal --- */}
+      {catModal.open && createPortal(
+        <div className="modal-overlay" onClick={() => setCatModal({ open: false, editing: null })}>
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{catModal.editing ? 'Editar Categoria' : 'Nova Categoria'}</h2>
+            </div>
+            <form onSubmit={handleSaveCategory}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Nome da Categoria</label>
+                  <input name="name" defaultValue={catModal.editing?.name} required />
+                </div>
+                <div className="form-group">
+                  <label>Ordem (ex: 1, 2, 3)</label>
+                  <input name="order" type="number" defaultValue={catModal.editing?.order} required />
+                </div>
+                <div className="form-group">
+                  <label>Área</label>
+                  <select name="area" defaultValue={catModal.editing?.area || activeArea}>
+                    <option value="T&P">T&P</option>
+                    <option value="Projetos">Projetos</option>
+                  </select>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn-ghost" onClick={() => setCatModal({ open: false, editing: null })}>Cancelar</button>
+                <button type="submit" className="btn-primary">Salvar</button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* --- Activity Modal --- */}
+      {actModal.open && createPortal(
+        <div className="modal-overlay" onClick={() => setActModal({ open: false, editing: null })}>
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{actModal.editing ? 'Editar Atividade' : 'Nova Atividade'}</h2>
+            </div>
+            <form onSubmit={handleSaveActivity}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Nome da Atividade</label>
+                  <input name="name" defaultValue={actModal.editing?.name} required />
+                </div>
+                <div className="form-group">
+                  <label>Ordem (ex: 1.1, 2.3)</label>
+                  <input name="order" defaultValue={actModal.editing?.order} required />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn-ghost" onClick={() => setActModal({ open: false, editing: null })}>Cancelar</button>
+                <button type="submit" className="btn-primary">Salvar</button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
