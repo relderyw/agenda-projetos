@@ -112,7 +112,7 @@ export default function HenkatensTab({ currentUser, events, onAddEvent, onUpdate
   const canDelete = currentUser?.permissions?.henkatens.delete ?? false;
 
   const [currentDate, setCurrentDate] = useState(() => {
-    return new Date(2026, 2, 1); 
+    return new Date(); 
   });
   
   const [modal, setModal] = useState<{ open: boolean; editing: HenkatenEvent | null }>({ open: false, editing: null });
