@@ -97,9 +97,9 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Apenas analistas e outros papéis operacionais aparecem nos dropdowns
+  // Apenas analistas aparecem nos dropdowns
   const filteredUsers = useMemo(() => {
-    return users.filter(u => u.role !== 'Administrador');
+    return users.filter(u => u.role === 'Analista');
   }, [users]);
 
 
@@ -177,20 +177,24 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
       
       // Se era edição e mudou para POSTERGADA, vamos disparar a duplicata para a nova data
       if (modal.editing && form.status === 'POSTERGADA' && modal.editing.status !== 'POSTERGADA') {
+        const newDate = act.dataFinalizada || act.planejamento;
         const duplicate: Activity = {
            ...act, 
            id: crypto.randomUUID(),
-           planejamento: act.dataFinalizada || act.planejamento,
+           planejamento: newDate,
+           dataPrevistaFinalizacao: newDate,
            status: 'PENDENTE',
            percentualAndamento: 0,
            dataFinalizada: undefined
         };
         await onAdd(duplicate);
       } else if (!modal.editing && form.status === 'POSTERGADA') {
+        const newDate = act.dataFinalizada || act.planejamento;
         const duplicate: Activity = {
            ...act, 
            id: crypto.randomUUID(),
-           planejamento: act.dataFinalizada || act.planejamento,
+           planejamento: newDate,
+           dataPrevistaFinalizacao: newDate,
            status: 'PENDENTE',
            percentualAndamento: 0,
            dataFinalizada: undefined
