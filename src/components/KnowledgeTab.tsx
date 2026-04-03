@@ -102,6 +102,21 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
   const tpEvolution = useMemo(() => getAreaEvolution('T&P'), [categories, activities, users, progressMap]);
   const projEvolution = useMemo(() => getAreaEvolution('Projetos'), [categories, activities, users, progressMap]);
 
+  // Individual Analyst Progress
+  const analystStats = useMemo(() => {
+    const areaCats = categories.filter(cat => cat.area === activeArea || (!cat.area && activeArea === 'T&P'));
+    const areaActs = activities.filter(act => areaCats.some(cat => cat.id === act.categoryId));
+    
+    return areaAnalysts.map(u => {
+      let checked = 0;
+      areaActs.forEach(act => {
+        if (progressMap[`${u.id}-${act.id}`] === 'checked') checked++;
+      });
+      const pct = areaActs.length > 0 ? Math.round((checked / areaActs.length) * 100) : 0;
+      return { ...u, pct };
+    }).sort((a,b) => b.pct - a.pct); // Sort by highest progress
+  }, [areaAnalysts, activities, categories, progressMap, activeArea]);
+
   return (
     <div className="tab-content kn-full-root">
       {/* ── Header ── */}
@@ -144,6 +159,27 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
             <button className={`kn-picker-btn ${activeArea === 'Projetos' ? 'active-proj' : ''}`} onClick={() => setActiveArea('Projetos')}>PROJETOS</button>
           </div>
         </div>
+      </div>
+
+      {/* ── Analysts Evolution Strip ── */}
+      <div className="kn-analysts-strip">
+        {analystStats.map(stat => (
+          <div key={stat.id} className="kn-analyst-card">
+            <div className="kn-analyst-info">
+              <span className="kn-an-name">{stat.name}</span>
+              <span className="kn-an-pct">{stat.pct}%</span>
+            </div>
+            <div className="kn-an-bar-bg">
+              <div 
+                className="kn-an-bar-fill" 
+                style={{ 
+                  width: `${stat.pct}%`,
+                  background: stat.pct > 70 ? '#10b981' : stat.pct > 30 ? '#f59e0b' : '#ef4444' 
+                }} 
+              />
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* ── Table Container ── */}
