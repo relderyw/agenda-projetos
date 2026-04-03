@@ -390,9 +390,8 @@ export default function App() {
   ]
 
   const navItems = navItemsRaw.filter(item => {
-    if (item.key === 'cadastros' && currentUser?.permissions) {
-      // Show cadastros if user can view either themes or users
-      return currentUser.permissions.cadastros.view || currentUser.permissions.usuarios.view;
+    if (item.key === 'cadastros' && currentUser?.role !== 'Administrador') {
+      return false;
     }
     if (item.key === 'logs' && currentUser?.role !== 'Administrador') {
       return false;
