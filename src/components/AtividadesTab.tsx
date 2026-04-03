@@ -174,62 +174,51 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
     setIsSaving(true);
     try {
       const act = { ...form };
-      
-      // Se era edição e mudou para POSTERGADA, vamos disparar a duplicata para a nova data
-      if (modal.editing && form.status === 'POSTERGADA' && modal.editing.status !== 'POSTERGADA') {
-        const newDate = act.dataFinalizada || act.planejamento;
-        const duplicate: Activity = {
-           ...act, 
-           id: crypto.randomUUID(),
-           planejamento: newDate,
-           dataPrevistaFinalizacao: newDate,
-           status: 'PENDENTE',
-           percentualAndamento: 0,
-           dataFinalizada: undefined
-        };
-        await onAdd(duplicate);
-      } else if (!modal.editing && form.status === 'POSTERGADA') {
-        const newDate = act.dataFinalizada || act.planejamento;
-        const duplicate: Activity = {
-           ...act, 
-           id: crypto.randomUUID(),
-           planejamento: newDate,
-           dataPrevistaFinalizacao: newDate,
-           status: 'PENDENTE',
-           percentualAndamento: 0,
-           dataFinalizada: undefined
-        };
-        await onAdd(duplicate);
-      }
 
-      // Cálculos...
-      if (act.planejamento) {
-        const [y, m, d] = act.planejamento.split('-').map(Number);
-        const planDate = new Date(y, m - 1, d);
-        if (!isNaN(planDate.getTime())) {
-          const dayOfMonth = planDate.getDate();
-          const weekNum = Math.ceil(dayOfMonth / 7);
-          const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-          const monthStr = months[planDate.getMonth()];
-          act.week = `W${weekNum > 5 ? 5 : weekNum} - ${monthStr}`;
+      const calcFields = (a: Activity | Omit<Activity, 'id'>) => {
+        if (a.planejamento) {
+          const [y, m, d] = a.planejamento.split('-').map(Number);
+          const planDate = new Date(y, m - 1, d);
+          if (!isNaN(planDate.getTime())) {
+            const dayOfMonth = planDate.getDate();
+            const weekNum = Math.ceil(dayOfMonth / 7);
+            const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+            a.week = `W${weekNum > 5 ? 5 : weekNum} - ${months[planDate.getMonth()]}`;
+          }
         }
-      }
+        if (a.planejamento && a.dataPrevistaFinalizacao) {
+          const [y1, m1, d1] = a.planejamento.split('-').map(Number);
+          const [y2, m2, d2] = a.dataPrevistaFinalizacao.split('-').map(Number);
+          const date1 = new Date(y1, m1 - 1, d1);
+          const date2 = new Date(y2, m2 - 1, d2);
+          a.diasEsperadosConclusao = Math.ceil((date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24));
+        }
+        if (a.planejamento && a.dataFinalizada) {
+          const [y1, m1, d1] = a.planejamento.split('-').map(Number);
+          const [y2, m2, d2] = a.dataFinalizada.split('-').map(Number);
+          const date1 = new Date(y1, m1 - 1, d1);
+          const date2 = new Date(y2, m2 - 1, d2);
+          a.esforcoRealizado = Math.ceil((date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24));
+        }
+      };
 
-      // Cálculos de prazos...
-      if (act.planejamento && act.dataPrevistaFinalizacao) {
-        const [y1, m1, d1] = act.planejamento.split('-').map(Number);
-        const [y2, m2, d2] = act.dataPrevistaFinalizacao.split('-').map(Number);
-        const date1 = new Date(y1, m1 - 1, d1);
-        const date2 = new Date(y2, m2 - 1, d2);
-        act.diasEsperadosConclusao = Math.ceil((date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24));
-      }
+      calcFields(act);
 
-      if (act.planejamento && act.dataFinalizada) {
-        const [y1, m1, d1] = act.planejamento.split('-').map(Number);
-        const [y2, m2, d2] = act.dataFinalizada.split('-').map(Number);
-        const date1 = new Date(y1, m1 - 1, d1);
-        const date2 = new Date(y2, m2 - 1, d2);
-        act.esforcoRealizado = Math.ceil((date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24));
+      // Se era edição e mudou para POSTERGADA (ou nova atividade criada já como POSTERGADA)
+      const wasPostponed = modal.editing && modal.editing.status === 'POSTERGADA';
+      if (form.status === 'POSTERGADA' && !wasPostponed) {
+        const newDate = act.dataFinalizada || act.planejamento;
+        const duplicate: Activity = {
+           ...act, 
+           id: crypto.randomUUID(),
+           planejamento: newDate,
+           dataPrevistaFinalizacao: newDate,
+           status: 'PENDENTE',
+           percentualAndamento: 0,
+           dataFinalizada: ''
+        };
+        calcFields(duplicate);
+        await onAdd(duplicate);
       }
 
       if (modal.editing) await onUpdate({ ...act, id: modal.editing.id });
