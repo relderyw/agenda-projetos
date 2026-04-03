@@ -8,7 +8,7 @@ export interface Theme {
 export interface KnowledgeCategory {
   id: string;
   name: string;
-  order: number;
+  order: string | number;
   area?: 'T&P' | 'Projetos';
 }
 
@@ -16,7 +16,7 @@ export interface KnowledgeActivity {
   id: string;
   categoryId: string;
   name: string;
-  order: number;
+  order: string | number;
 }
 
 export type KnowledgeStatus = 'checked' | 'x' | 'empty';

@@ -21,7 +21,8 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
   
   // Modals
   const [catModal, setCatModal] = useState<{ open: boolean; editing: KnowledgeCategory | null }>({ open: false, editing: null });
-  const [actModal, setActModal] = useState<{ open: boolean; editing: KnowledgeActivity | null; categoryId?: string }>({ open: false, editing: null });
+  const [actModal, setActModal] = useState<{ open: boolean; editing: KnowledgeActivity | null; categoryId?: string; suggestedOrder?: string }>({ open: false, editing: null });
+  const [userModal, setUserModal] = useState<{ open: boolean }>({ open: false });
 
   const isAdmin = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão';
   
@@ -59,7 +60,7 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
     const catData: KnowledgeCategory = {
       id: catModal.editing?.id || crypto.randomUUID(),
       name: fd.get('name') as string,
-      order: Number(fd.get('order')),
+      order: fd.get('order') as string,
       area: fd.get('area') as MatrixArea || activeArea
     };
     await dbService.saveKnowledgeCategory(catData);
@@ -67,7 +68,29 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
     onRefresh();
   };
 
-  const openActModal = (act?: KnowledgeActivity, categoryId?: string) => setActModal({ open: true, editing: act || null, categoryId });
+  const getNextOrder = (catId: string) => {
+    const catActs = activities.filter(a => a.categoryId === catId);
+    if (catActs.length === 0) {
+      const cat = categories.find(c => c.id === catId);
+      return cat ? `${cat.order}.1` : '1.1';
+    }
+    const sorted = [...catActs].sort((a, b) => String(a.order).localeCompare(String(b.order), undefined, { numeric: true }));
+    const lastOrder = String(sorted[sorted.length - 1].order);
+    const parts = lastOrder.split('.');
+    const lastPart = parts[parts.length - 1];
+    const nextVal = parseInt(lastPart, 10);
+    if (!isNaN(nextVal)) {
+      parts[parts.length - 1] = (nextVal + 1).toString();
+      return parts.join('.');
+    }
+    return lastOrder + '.1';
+  };
+
+  const openActModal = (act?: KnowledgeActivity, categoryId?: string) => {
+    const suggested = (!act && categoryId) ? getNextOrder(categoryId) : undefined;
+    setActModal({ open: true, editing: act || null, categoryId, suggestedOrder: suggested });
+  };
+
   const handleSaveActivity = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -75,10 +98,24 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
       id: actModal.editing?.id || crypto.randomUUID(),
       categoryId: actModal.categoryId || (fd.get('categoryId') as string),
       name: fd.get('name') as string,
-      order: Number(fd.get('order'))
+      order: fd.get('order') as string
     };
     await dbService.saveKnowledgeActivity(actData);
     setActModal({ open: false, editing: null });
+    onRefresh();
+  };
+
+  const handleSaveUser = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const newUser: Partial<User> = {
+      name: fd.get('name') as string,
+      role: 'Analista',
+      area: fd.get('area') as MatrixArea,
+      id: crypto.randomUUID()
+    };
+    await dbService.saveUser(newUser as User, currentUser || undefined);
+    setUserModal({ open: false });
     onRefresh();
   };
 
@@ -150,9 +187,14 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
             <div className="kn-leg-item"><div className="kn-leg-box st-empty"></div> <span>Pendente</span></div>
           </div>
           {isAdmin && (
-            <button className="btn-primary btn-sm" onClick={() => openCatModal()}>
-              <Plus size={16} /> Nova Categoria
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn-primary btn-sm" onClick={() => setUserModal({ open: true })}>
+                <Plus size={16} /> Novo Analista
+              </button>
+              <button className="btn-primary btn-sm" onClick={() => openCatModal()}>
+                <Plus size={16} /> Nova Categoria
+              </button>
+            </div>
           )}
           <div className="kn-picker">
             <button className={`kn-picker-btn ${activeArea === 'T&P' ? 'active-tp' : ''}`} onClick={() => setActiveArea('T&P')}>T&P</button>
@@ -294,11 +336,34 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
             <form onSubmit={handleSaveActivity}>
               <div className="modal-body">
                 <div className="form-group"><label>Nome da Atividade</label><input name="name" defaultValue={actModal.editing?.name} required /></div>
-                <div className="form-group"><label>Ordem (ex: 1.1, 2.3)</label><input name="order" defaultValue={actModal.editing?.order} required /></div>
+                <div className="form-group"><label>Ordem (ex: 1.1, 2.3)</label><input name="order" defaultValue={actModal.editing?.order || actModal.suggestedOrder} required /></div>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn-ghost" onClick={() => setActModal({ open: false, editing: null })}>Cancelar</button>
                 <button type="submit" className="btn-primary">Salvar</button>
+              </div>
+            </form>
+          </div>
+        </div>, document.body
+      )}
+
+      {userModal.open && createPortal(
+        <div className="modal-overlay" onClick={() => setUserModal({ open: false })}>
+          <div className="modal-box" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header"><h2>Novo Analista</h2></div>
+            <form onSubmit={handleSaveUser}>
+              <div className="modal-body">
+                <div className="form-group"><label>Nome Completo</label><input name="name" required placeholder="Ex: João Silva" /></div>
+                <div className="form-group"><label>Área</label>
+                  <select name="area" defaultValue={activeArea}>
+                    <option value="T&P">T&P</option>
+                    <option value="Projetos">Projetos</option>
+                  </select>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn-ghost" onClick={() => setUserModal({ open: false })}>Cancelar</button>
+                <button type="submit" className="btn-primary">Criar Analista</button>
               </div>
             </form>
           </div>
