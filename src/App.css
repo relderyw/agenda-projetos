@@ -3265,36 +3265,62 @@
 .kb-group-section {
   display: flex;
   flex-direction: column;
-  border-bottom: 4px solid var(--border-faint);
 }
 
 .kb-group-row-header {
-  padding: 10px 1.5rem;
-  background: var(--nav-hover-bg);
-  border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 3px solid transparent;
   position: sticky;
   left: 0;
   z-index: 50;
-  display: flex;
-  align-items: center;
-  width: 100%; /* Ensure it spans the grid width */
-  box-sizing: border-box;
+}
+
+/* Colored bar per area */
+.kb-group-section:has(.kb-group-pill.tp) .kb-group-row-header {
+  background: #eff6ff;
+  border-bottom-color: #bfdbfe;
+}
+[data-theme='dark'] .kb-group-section:has(.kb-group-pill.tp) .kb-group-row-header {
+  background: #1e3a5f;
+  border-bottom-color: #3b82f6;
+}
+.kb-group-section:has(.kb-group-pill.projetos) .kb-group-row-header {
+  background: #f0fdf4;
+  border-bottom-color: #bbf7d0;
+}
+[data-theme='dark'] .kb-group-section:has(.kb-group-pill.projetos) .kb-group-row-header {
+  background: #052e16;
+  border-bottom-color: #10b981;
+}
+
+.kb-group-area-label {
+  font-size: 0.7rem;
+  font-weight: 900;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .kb-group-pill {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 900;
-  padding: 4px 12px;
+  padding: 5px 14px;
   border-radius: 20px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   min-width: 80px;
   text-align: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
 
 .kb-group-pill.tp { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
 .kb-group-pill.projetos { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
 .kb-group-pill.sem-area { background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border); }
+[data-theme='dark'] .kb-group-pill.tp { background: #1e3a8a; color: #dbeafe; border-color: #3b82f6; }
+[data-theme='dark'] .kb-group-pill.projetos { background: #064e3b; color: #dcfce7; border-color: #10b981; }
 
 .kb-analyst-stats {
   display: flex;
@@ -3312,29 +3338,29 @@
 }
 
 .kb-swimlane-lbl {
-  position: sticky;
-  left: 0;
+  width: 220px;
+  min-width: 220px;
+  flex-shrink: 0;
   background: var(--bg-card);
-  padding: 1.25rem;
+  padding: 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   border-right: 1px solid var(--border);
   z-index: 40;
-  box-shadow: 4px 0 12px rgba(0,0,0,0.02);
 }
 
 .kb-analyst-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 800;
-  font-size: 1.1rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  font-size: 1rem;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
   flex-shrink: 0;
 }
 
@@ -3523,75 +3549,6 @@
 .pop-content { font-size: 0.7rem; color: var(--text-secondary); line-height: 1.4; }
 .pop-date { font-size: 0.6rem; color: var(--text-faint); margin-top: 6px; display: block; }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   KANBAN SWIMLANES & GROUP HEADERS
-   ───────────────────────────────────────────────────────────────────────────── */
-.kb-group-section {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 1rem;
-  background: rgba(var(--accent-primary-rgb), 0.02);
-  border-radius: 16px;
-  padding-bottom: 0.5rem;
-}
-
-.kb-group-row-header {
-  grid-column: 1 / -1;
-  padding: 12px 1.5rem;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  left: 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-}
-
-.kb-group-pill {
-  font-size: 0.7rem;
-  font-weight: 900;
-  padding: 6px 14px;
-  border-radius: 20px;
-  letter-spacing: 0.1em;
-  box-shadow: var(--shadow-sm);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 100px;
-  text-transform: uppercase;
-}
-
-/* Specific Area Colors for Kanban */
-.kb-group-pill.tp {
-  background: #dbeafe;
-  color: #1e40af;
-  border: 1px solid #bfdbfe;
-}
-[data-theme='dark'] .kb-group-pill.tp { background: #1e3a8a; color: #dbeafe; border-color: #3b82f6; }
-
-.kb-group-pill.projetos {
-  background: #dcfce7;
-  color: #166534;
-  border: 1px solid #bbf7d0;
-}
-[data-theme='dark'] .kb-group-pill.projetos { background: #064e3b; color: #dcfce7; border-color: #10b981; }
-
-.kb-group-pill.sem-area {
-  background: var(--nav-hover-bg);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-}
-
-.kb-swimlane {
-  display: flex;
-  min-height: 100px;
-  border-bottom: 1px solid var(--border-faint);
-  transition: background 0.2s;
-}
-
-.kb-swimlane:hover {
-  background: rgba(var(--accent-primary-rgb), 0.01);
-}
 
 /* ── Ajustes para telas muito pequenas (360px) ── */
 @media (max-width: 400px) {
