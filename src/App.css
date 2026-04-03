@@ -3754,3 +3754,37 @@
   color: #ef4444 !important;
   opacity: 1 !important;
 }
+
+/* Legend */
+.kn-legend {
+  display: flex;
+  gap: 1.25rem;
+  margin-right: 1.5rem;
+  background: var(--nav-hover-bg);
+  padding: 6px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.kn-leg-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.kn-leg-box {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+}
+
+.kn-leg-box.st-checked { background: #dcfce7; color: #15803d; }
+.kn-leg-box.st-x { background: #fee2e2; color: #b91c1c; }
+.kn-leg-box.st-empty { background: var(--bg-card); }

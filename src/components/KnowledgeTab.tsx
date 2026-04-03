@@ -92,6 +92,11 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
         </div>
 
         <div className="kn-nav-actions">
+          <div className="kn-legend">
+            <div className="kn-leg-item"><div className="kn-leg-box st-checked"><Check size={12}/></div> <span>Aprendido</span></div>
+            <div className="kn-leg-item"><div className="kn-leg-box st-x"><X size={12}/></div> <span>Treinar</span></div>
+            <div className="kn-leg-item"><div className="kn-leg-box st-empty"></div> <span>Pendente</span></div>
+          </div>
           {isAdmin && (
             <button className="btn-primary btn-sm" onClick={() => openCatModal()}>
               <Plus size={16} /> Nova Categoria
