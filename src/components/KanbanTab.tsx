@@ -270,13 +270,13 @@ export default function KanbanTab({ activities, themes, users, holidays, current
 
   useEffect(() => {
     if (!autoScroll) return
-    const el = document.querySelector('.main-content')
+    const el = document.querySelector('.kb-swimlanes')
     if (!el) return
     let animationId: number
     let direction = 1
     let pos = el.scrollTop
     const tick = () => {
-      const scrollEl = document.querySelector('.main-content')
+      const scrollEl = document.querySelector('.kb-swimlanes')
       if (!scrollEl) return
       const maxScroll = scrollEl.scrollHeight - scrollEl.clientHeight
       if (maxScroll <= 0) return
