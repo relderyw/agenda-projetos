@@ -3399,6 +3399,8 @@
   gap: 0.75rem;
   min-width: 140px;
   transition: background 0.2s;
+  overflow: visible; /* Allow popovers to escape cell bounds */
+  position: relative;
 }
 
 .kb-cell-today {
@@ -3440,7 +3442,8 @@
   box-shadow: var(--shadow-sm);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: default;
-  overflow: hidden;
+  /* overflow: visible allows absolutely positioned popovers to show */
+  overflow: visible;
 }
 
 .kb-card:hover {
@@ -3524,29 +3527,51 @@
   color: var(--text-muted);
 }
 
+.kb-comment-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.12);
+  animation: pulse-amber 2s infinite;
+}
+
+@keyframes pulse-amber {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(245,158,11,0); }
+}
+
 .kb-card-popover {
   position: absolute;
-  bottom: 100%;
+  top: calc(100% + 6px); /* Below the card, not clipped */
   left: 0;
-  width: 200px;
-  background: white;
+  width: 220px;
+  background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 10px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
   display: none;
-  z-index: 500;
-  margin-bottom: 8px;
+  z-index: 9999;
 }
-[data-theme='dark'] .kb-card-popover { background: #1e293b; }
+
+[data-theme='dark'] .kb-card-popover { background: #1e293b; border-color: rgba(255,255,255,0.1); }
 
 .kb-card:hover .kb-card-popover {
   display: block;
+  animation: fadeInDown 0.15s ease;
 }
 
-.pop-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--border-faint); padding-bottom: 4px; }
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pop-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--border-faint); padding-bottom: 6px; }
 .pop-title { font-size: 0.65rem; font-weight: 800; color: #f59e0b; }
-.pop-content { font-size: 0.7rem; color: var(--text-secondary); line-height: 1.4; }
+.pop-content { font-size: 0.72rem; color: var(--text-secondary); line-height: 1.5; }
 .pop-date { font-size: 0.6rem; color: var(--text-faint); margin-top: 6px; display: block; }
 
 

@@ -177,7 +177,7 @@ function ActivityCard({
       </div>
 
       {act.comentario && (
-        <div className="kb-card-popover" style={{ display: 'block' }}>
+        <div className="kb-card-popover">
           <div className="pop-header">
             <AlertCircle size={14} style={{ color: '#f59e0b' }} />
             <span className="pop-title">Justificativa / Comentário</span>
