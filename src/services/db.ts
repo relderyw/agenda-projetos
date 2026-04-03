@@ -134,7 +134,7 @@ export const dbService = {
     delete dbPayload.percentualAndamento;
     delete dbPayload.dataFinalizada;
     delete dbPayload.esforcoRealizado;
-    delete dbPayload.dias_esperados_conclusao;
+    delete dbPayload.diasEsperadosConclusao;
     delete dbPayload.dataComentario;
 
     const { data, error } = await supabase.from('activities').upsert(dbPayload).select();
