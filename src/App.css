@@ -3788,3 +3788,60 @@
 .kn-leg-box.st-checked { background: #dcfce7; color: #15803d; }
 .kn-leg-box.st-x { background: #fee2e2; color: #b91c1c; }
 .kn-leg-box.st-empty { background: var(--bg-card); }
+
+/* Evolution Stats */
+.kn-summary-stats {
+  display: flex;
+  gap: 1rem;
+}
+
+.kn-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 16px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s;
+}
+
+.kn-stat-card:hover { transform: translateY(-2px); border-color: var(--accent-primary); }
+
+.kn-stat-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.kn-stat-value-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kn-stat-number {
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--text-primary);
+}
+
+.kn-stat-mini-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--prog-track);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.kn-stat-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.kn-stat-card.tp .kn-stat-fill { background: var(--accent-primary); }
+.kn-stat-card.proj .kn-stat-fill { background: #10b981; }

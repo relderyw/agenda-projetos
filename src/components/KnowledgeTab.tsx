@@ -82,6 +82,26 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
     onRefresh();
   };
 
+  const getAreaEvolution = (area: MatrixArea) => {
+    const areaCats = categories.filter(cat => cat.area === area || (!cat.area && area === 'T&P'));
+    const areaActs = activities.filter(act => areaCats.some(cat => cat.id === act.categoryId));
+    const areaAnalysts = users.filter(u => u.role === 'Analista' && (u.area === area || !u.area));
+    
+    if (areaActs.length === 0 || areaAnalysts.length === 0) return 0;
+    
+    let checkedCount = 0;
+    areaAnalysts.forEach(u => {
+      areaActs.forEach(act => {
+        if (progressMap[`${u.id}-${act.id}`] === 'checked') checkedCount++;
+      });
+    });
+    
+    return Math.round((checkedCount / (areaActs.length * areaAnalysts.length)) * 100);
+  };
+
+  const tpEvolution = useMemo(() => getAreaEvolution('T&P'), [categories, activities, users, progressMap]);
+  const projEvolution = useMemo(() => getAreaEvolution('Projetos'), [categories, activities, users, progressMap]);
+
   return (
     <div className="tab-content kn-full-root">
       {/* ── Header ── */}
@@ -89,6 +109,23 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
         <div>
           <h1 className="tab-title">Matriz de Competência</h1>
           <p className="tab-subtitle">Controle de aprendizagem e assimilação • {activeArea}</p>
+        </div>
+
+        <div className="kn-summary-stats">
+          <div className="kn-stat-card tp">
+            <span className="kn-stat-label">EVOLUÇÃO T&P</span>
+            <div className="kn-stat-value-row">
+              <span className="kn-stat-number">{tpEvolution}%</span>
+              <div className="kn-stat-mini-bar"><div className="kn-stat-fill" style={{ width: `${tpEvolution}%` }} /></div>
+            </div>
+          </div>
+          <div className="kn-stat-card proj">
+            <span className="kn-stat-label">EVOLUÇÃO PROJETOS</span>
+            <div className="kn-stat-value-row">
+              <span className="kn-stat-number">{projEvolution}%</span>
+              <div className="kn-stat-mini-bar"><div className="kn-stat-fill" style={{ width: `${projEvolution}%` }} /></div>
+            </div>
+          </div>
         </div>
 
         <div className="kn-nav-actions">
