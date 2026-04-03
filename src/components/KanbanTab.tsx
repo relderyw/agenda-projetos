@@ -199,28 +199,6 @@ export default function KanbanTab({ activities, themes, users, holidays, current
     return map;
   }, [holidays]);
 
-  const handleToggleHoliday = async (date: string) => {
-    if (!canManageHolidays) return;
-    try {
-      const existing = holidayMap[date];
-      if (existing) {
-        if (existing.type === 'Feriado') {
-          await dbService.saveHoliday({ date, type: 'S/ Expediente', description: 'Sem Expediente' });
-          if (showToast) showToast('info', 'Status Alterado', `${date}: Agora é Sem Expediente`);
-        } else {
-          await dbService.deleteHoliday(date);
-          if (showToast) showToast('success', 'Dia Normal', `${date}: Feriado removido`);
-        }
-      } else {
-        await dbService.saveHoliday({ date, type: 'Feriado', description: 'Feriado' });
-        if (showToast) showToast('success', 'Feriado Marcado', `${date}: Agora é Feriado`);
-      }
-      onRefresh();
-    } catch (err) {
-      if (showToast) showToast('error', 'Erro', 'Não foi possível alterar o status do dia.');
-    }
-  };
-
   const today = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
@@ -345,15 +323,6 @@ export default function KanbanTab({ activities, themes, users, holidays, current
             <div key={day.short} className={`kb-col-header ${day.isToday ? 'kb-col-today' : ''}`}>
               <span className="kb-col-day">{day.label}</span>
               <span className={`kb-col-date ${day.isToday ? 'kb-col-date-today' : ''}`}>{formatDayLabel(day.date)}</span>
-              {canManageHolidays && (
-                <button 
-                  className={`action-btn h-toggle-btn ${holidayMap[formatDate(day.date)] ? 'active' : ''}`}
-                  onClick={() => handleToggleHoliday(formatDate(day.date))}
-                  title="Feriado / S/ Expediente"
-                >
-                  <Calendar size={14} />
-                </button>
-              )}
             </div>
           ))}
         </div>
@@ -386,7 +355,9 @@ export default function KanbanTab({ activities, themes, users, holidays, current
                       <div key={date} className={`kb-cell ${dayDef?.isToday ? 'kb-cell-today' : ''} ${holiday ? 'kb-cell-holiday' : ''}`}>
                         {holiday ? (
                           <div className="kb-holiday-placeholder">
+                            <Calendar size={20} className="kb-holiday-icon-cell" />
                             <span className="kb-holiday-label">{holiday.type.toUpperCase()}</span>
+                            {holiday.description && <span className="kb-holiday-desc">{holiday.description}</span>}
                           </div>
                         ) : acts.length === 0 ? <div className="kb-empty-cell" /> : 
                           acts.map(act => <ActivityCard key={act.id} act={act} theme={themeMap[act.tema]} isToday={dayDef?.isToday ?? false} cardDate={date} />)

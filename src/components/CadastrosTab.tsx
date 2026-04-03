@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, X, Save, Tag, Users, ChevronDown, CloudUpload, RefreshCw } from 'lucide-react';
-import type { Theme, User, UserPermissions, Activity, HenkatenEvent } from '../types';
+import { Plus, Edit2, Trash2, X, Save, Tag, Users, ChevronDown, CloudUpload, RefreshCw, Calendar, MinusCircle } from 'lucide-react';
+import type { Theme, User, UserPermissions, Activity, HenkatenEvent, Holiday } from '../types';
 import { dbService } from '../services/db';
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from '../data';
 
@@ -8,12 +8,15 @@ interface Props {
   currentUser: User | null;
   themes: Theme[];
   users: User[];
+  holidays: Holiday[];
   onAddTheme: (t: Theme) => void;
   onUpdateTheme: (t: Theme) => void;
   onDeleteTheme: (id: string) => void;
   onAddUser: (u: User) => void;
   onUpdateUser: (u: User) => void;
   onDeleteUser: (id: string) => void;
+  onAddHoliday: (h: Holiday) => void;
+  onDeleteHoliday: (date: string) => void;
 }
 
 const COLORS = [
@@ -32,9 +35,10 @@ const MOCK_PERMS: UserPermissions = {
 };
 
 export default function CadastrosTab({
-  currentUser, themes, users,
+  currentUser, themes, users, holidays,
   onAddTheme, onUpdateTheme, onDeleteTheme,
-  onAddUser, onUpdateUser, onDeleteUser
+  onAddUser, onUpdateUser, onDeleteUser,
+  onAddHoliday, onDeleteHoliday
 }: Props) {
   const canViewThemes = currentUser?.permissions?.cadastros.view ?? false;
   const canEditThemes = currentUser?.permissions?.cadastros.edit ?? false;
@@ -44,7 +48,7 @@ export default function CadastrosTab({
   const canEditUsers = currentUser?.permissions?.usuarios.edit ?? false;
   const canDeleteUsers = currentUser?.permissions?.usuarios.delete ?? false;
 
-  const [section, setSection] = useState<'temas' | 'usuarios'>(() => canViewThemes ? 'temas' : 'usuarios');
+  const [section, setSection] = useState<'temas' | 'usuarios' | 'holidays'>(() => canViewThemes ? 'temas' : 'usuarios');
 
   // Theme modal
   const [tModal, setTModal] = useState<{ open: boolean; editing: Theme | null }>({ open: false, editing: null });
@@ -57,7 +61,11 @@ export default function CadastrosTab({
     permissions: JSON.parse(JSON.stringify(MOCK_PERMS))
   });
 
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'tema' | 'usuario'; id: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'tema' | 'usuario' | 'holiday'; id: string } | null>(null);
+
+  // Holiday modal
+  const [hModal, setHModal] = useState(false);
+  const [hForm, setHForm] = useState<Holiday>({ date: '', type: 'Feriado', description: '' });
 
   // ── Theme handlers ──────────────────────────────────────
   const openNewTheme = () => { setTForm({ name: '', color: COLORS[0] }); setTModal({ open: true, editing: null }); };
@@ -143,8 +151,16 @@ export default function CadastrosTab({
   const handleDelete = () => {
     if (!deleteConfirm) return;
     if (deleteConfirm.type === 'tema') onDeleteTheme(deleteConfirm.id);
-    else onDeleteUser(deleteConfirm.id);
+    else if (deleteConfirm.type === 'usuario') onDeleteUser(deleteConfirm.id);
+    else if (deleteConfirm.type === 'holiday') onDeleteHoliday(deleteConfirm.id);
     setDeleteConfirm(null);
+  };
+
+  const saveHoliday = () => {
+    if (!hForm.date) return;
+    onAddHoliday(hForm);
+    setHModal(false);
+    setHForm({ date: '', type: 'Feriado', description: '' });
   };
 
   return (
@@ -179,6 +195,11 @@ export default function CadastrosTab({
         {canViewUsers && (
           <button className={`sec-tab ${section === 'usuarios' ? 'sec-active' : ''}`} onClick={() => setSection('usuarios')}>
             <Users size={16} /> Usuários
+          </button>
+        )}
+        {currentUser?.role === 'Administrador' && (
+          <button className={`sec-tab ${section === 'holidays' ? 'sec-active' : ''}`} onClick={() => setSection('holidays')}>
+            <Calendar size={16} /> Dias sem Expediente
           </button>
         )}
       </div>
@@ -238,7 +259,77 @@ export default function CadastrosTab({
         </div>
       )}
 
-      {/* Modal Tema */}
+      {/* ── FERIADOS ── */}
+      {section === 'holidays' && (
+        <div>
+          <div className="cad-section-header">
+            <span className="cad-count">{holidays.length} datas cadastradas</span>
+            <button className="btn-primary" onClick={() => setHModal(true)}><Plus size={16} /> Nova Data</button>
+          </div>
+          <div className="cad-grid">
+            {holidays.map(h => (
+              <div key={h.date} className="cad-card">
+                <div className="cad-card-left">
+                  <div className={`cad-holiday-icon ${h.type === 'Feriado' ? 'festive' : 'off'}`}>
+                    <Calendar size={18} />
+                  </div>
+                  <div className="cad-card-info">
+                    <span className="cad-name">{new Date(h.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                    <span className="cad-meta">{h.type} {h.description ? `· ${h.description}` : ''}</span>
+                  </div>
+                </div>
+                <div className="cad-card-actions">
+                  <button className="action-btn del" onClick={() => setDeleteConfirm({ type: 'holiday', id: h.date })}><Trash2 size={14} /></button>
+                </div>
+              </div>
+            ))}
+            {holidays.length === 0 && (
+              <div className="empty-state">
+                <MinusCircle size={32} />
+                <p>Nenhuma data especial cadastrada.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Holiday */}
+      {hModal && (
+        <div className="modal-overlay" onClick={() => setHModal(false)}>
+          <div className="modal-box sm" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Novo Dia sem Expediente</h2>
+              <button className="modal-close" onClick={() => setHModal(false)}><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group full">
+                <label>Data *</label>
+                <input type="date" value={hForm.date}
+                  onChange={e => setHForm(f => ({ ...f, date: e.target.value }))} />
+              </div>
+              <div className="form-group full">
+                <label>Tipo</label>
+                <div className="select-wrap full-w">
+                  <select value={hForm.type} onChange={e => setHForm(f => ({ ...f, type: e.target.value as any }))}>
+                    <option value="Feriado">Feriado</option>
+                    <option value="S/ Expediente">Sem Expediente / Emenda</option>
+                  </select>
+                  <ChevronDown size={14} className="sel-icon" />
+                </div>
+              </div>
+              <div className="form-group full">
+                <label>Descrição (Opcional)</label>
+                <input type="text" placeholder="ex: Sexta-feira Santa" value={hForm.description || ''}
+                  onChange={e => setHForm(f => ({ ...f, description: e.target.value }))} />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-ghost" onClick={() => setHModal(false)}>Cancelar</button>
+              <button className="btn-primary" onClick={saveHoliday} disabled={!hForm.date}><Save size={16} /> Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
       {tModal.open && (
         <div className="modal-overlay" onClick={closeTheme}>
           <div className="modal-box sm" onClick={e => e.stopPropagation()}>

@@ -1256,6 +1256,48 @@
   background: color-mix(in srgb, var(--accent-primary) 4%, transparent);
 }
 
+.kb-cell-holiday {
+  background: color-mix(in srgb, var(--text-muted) 5%, transparent);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    var(--border) 10px,
+    var(--border) 11px
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.kb-holiday-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.kb-holiday-icon-cell {
+  opacity: 0.5;
+}
+
+.kb-holiday-label {
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.kb-holiday-desc {
+  font-size: 0.6rem;
+  font-weight: 500;
+  max-width: 80px;
+}
+
 .kb-empty-cell {
   flex: 1;
 }
@@ -3380,6 +3422,20 @@ Not strictly needed if th stretches, td stretches automatically in standard tabl
   line-height: 1.2;
 }
 
+.empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: var(--text-faint);
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  text-align: center;
+  gap: 1rem;
+}
+
 .pop-content {
   font-size: 0.85rem;
   line-height: 1.5;
@@ -3608,12 +3664,49 @@ Not strictly needed if th stretches, td stretches automatically in standard tabl
   border-bottom: 1px dashed var(--border);
 }
 
-.kn-no-data {
-  font-size: 0.75rem;
+.pop-date {
+  display: block;
+  font-size: 0.65rem;
   color: var(--text-faint);
-  font-style: italic;
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+}
+
+/* ── Cadastros Holiday Styles ── */
+.cad-holiday-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-table-hd);
+  color: var(--text-muted);
+}
+
+.cad-holiday-icon.festive {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.cad-holiday-icon.off {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: var(--text-faint);
+  border: 2px dashed var(--border);
+  border-radius: 16px;
   text-align: center;
-  padding: 1rem;
+  gap: 1rem;
 }
 
 .kn-act-order {

@@ -274,6 +274,31 @@ export default function App() {
     }
   }
 
+  // ── Holidays CRUD ─────────────────────────────────────────
+  const addHoliday = async (h: Holiday) => {
+    if (!currentUser) return;
+    setHolidays(prev => [...prev, h])
+    const { error } = await dbService.saveHoliday(h)
+    if (error) {
+      setHolidays(prev => prev.filter(item => item.date !== h.date))
+      showToast('error', 'Erro ao salvar feriado', 'Falha na conexão com a nuvem.')
+    } else {
+      showToast('success', 'Dia Registrado', `${h.date}: ${h.type} salvo.`)
+    }
+  }
+  const deleteHoliday = async (date: string) => {
+    if (!currentUser) return;
+    const oldHolidays = [...holidays];
+    setHolidays(prev => prev.filter(h => h.date !== date))
+    const { error } = await dbService.deleteHoliday(date)
+    if (error) {
+      setHolidays(oldHolidays)
+      showToast('error', 'Erro ao excluir', 'Não foi possível remover a data.')
+    } else {
+      showToast('info', 'Dia Removido', 'A data voltou ao normal.')
+    }
+  }
+
   // ── Users CRUD ───────────────────────────────────────────
   const addUser = async (u: User) => {
     if (!currentUser) return;
@@ -546,16 +571,19 @@ export default function App() {
           />
         )}
         {activeTab === 'cadastros' && (
-          <CadastrosTab
+          <CadastrosTab 
             currentUser={currentUser}
             themes={themes}
             users={users}
+            holidays={holidays}
             onAddTheme={addTheme}
             onUpdateTheme={updateTheme}
             onDeleteTheme={deleteTheme}
             onAddUser={addUser}
             onUpdateUser={updateUser}
             onDeleteUser={deleteUser}
+            onAddHoliday={addHoliday}
+            onDeleteHoliday={deleteHoliday}
           />
         )}
         {activeTab === 'conhecimento' && (
