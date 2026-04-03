@@ -3199,7 +3199,7 @@
   background: var(--bg-card);
   border-radius: 20px;
   border: 1px solid var(--border);
-  overflow: hidden;
+  overflow: auto; /* Handle both axis if needed */
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-lg);
@@ -3213,6 +3213,8 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  min-width: 1200px; /* Force minimum width to prevent shift */
+  scrollbar-gutter: stable; /* Compensation for scrollbar */
 }
 
 .kb-swimlane-lbl-head {
@@ -3255,6 +3257,8 @@
 .kb-swimlanes {
   flex: 1;
   overflow-y: auto;
+  min-width: 1200px;
+  scrollbar-gutter: stable;
 }
 
 /* Swimlane Groups (Areas) */
@@ -3265,7 +3269,7 @@
 }
 
 .kb-group-row-header {
-  padding: 12px 1.5rem;
+  padding: 10px 1.5rem;
   background: var(--nav-hover-bg);
   border-bottom: 1px solid var(--border);
   position: sticky;
@@ -3273,6 +3277,8 @@
   z-index: 50;
   display: flex;
   align-items: center;
+  width: 100%; /* Ensure it spans the grid width */
+  box-sizing: border-box;
 }
 
 .kb-group-pill {
@@ -3290,12 +3296,19 @@
 .kb-group-pill.projetos { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
 .kb-group-pill.sem-area { background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border); }
 
+.kb-analyst-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* Individual Swimlane */
 .kb-swimlane {
   display: grid;
   grid-template-columns: 220px repeat(6, 1fr);
   min-height: 120px;
   border-bottom: 1px solid var(--border-faint);
+  width: 100%;
 }
 
 .kb-swimlane-lbl {
