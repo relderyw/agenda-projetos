@@ -3635,14 +3635,21 @@
 }
 
 .kn-header {
-  padding: 1.25rem 2rem;
+  padding: 1.5rem 2rem;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 1.5rem;
   box-shadow: var(--shadow-sm);
   z-index: 10;
+}
+
+.kn-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
 }
 
 .kn-nav-actions {
@@ -3706,7 +3713,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: #f8fafc;
+  background: #f8fafc !important; /* Solid background */
   padding: 12px 10px;
   border-bottom: 2px solid var(--border-strong);
   border-right: 1px solid var(--border);
@@ -3714,9 +3721,13 @@
   font-weight: 800;
   color: var(--text-primary);
   text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Added shadow for separation */
 }
 
-[data-theme="dark"] .kn-photo-table thead th { background: #1e293b; }
+[data-theme="dark"] .kn-photo-table thead th { 
+  background: #1e293b !important; 
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
 
 .kn-th-it { width: 60px; min-width: 60px; }
 .kn-th-colab { width: 380px; min-width: 380px; text-align: left !important; }
@@ -4202,12 +4213,12 @@
 /* Analysts Strip */
 .kn-analysts-strip {
   display: flex;
-  gap: 1rem;
-  padding: 0 2rem 1.25rem 2rem;
+  gap: 0.75rem;
+  padding: 0;
   overflow-x: auto;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
-  scrollbar-width: none; /* Hide scrollbar for clean look */
+  background: transparent;
+  scrollbar-width: none;
+  width: 100%;
 }
 
 .kn-analysts-strip::-webkit-scrollbar { display: none; }

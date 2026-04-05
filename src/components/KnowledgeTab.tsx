@@ -18,6 +18,8 @@ type MatrixArea = 'T&P' | 'Projetos';
 
 export default function KnowledgeTab({ currentUser, users, categories, activities, progress, onRefresh }: Props) {
   const [activeArea, setActiveArea] = useState<MatrixArea>('T&P');
+  const [optimisticProgress, setOptimisticProgress] = useState<Record<string, KnowledgeStatus>>({});
+  const [isUpdating, setIsUpdating] = useState(false);
   
   // Modals
   const [catModal, setCatModal] = useState<{ open: boolean; editing: KnowledgeCategory | null }>({ open: false, editing: null });
@@ -39,18 +41,42 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
     progress.forEach(p => {
       map[`${p.userId}-${p.activityId}`] = p.status;
     });
+    // Overlay optimistic updates
+    Object.entries(optimisticProgress).forEach(([key, status]) => {
+      map[key] = status;
+    });
     return map;
-  }, [progress]);
+  }, [progress, optimisticProgress]);
 
   const handleCycleStatus = async (userId: string, activityId: string) => {
-    if (!isAdmin) return;
-    const currentStatus = progressMap[`${userId}-${activityId}`] || 'empty';
+    if (!isAdmin || isUpdating) return;
+    
+    const key = `${userId}-${activityId}`;
+    const currentStatus = progressMap[key] || 'empty';
     let nextStatus: KnowledgeStatus = 'empty';
+    
     if (currentStatus === 'empty') nextStatus = 'checked';
     else if (currentStatus === 'checked') nextStatus = 'x';
     else if (currentStatus === 'x') nextStatus = 'empty';
-    await dbService.saveKnowledgeProgress({ userId, activityId, status: nextStatus });
-    onRefresh();
+
+    // Update UI immediately (Optimistic)
+    setOptimisticProgress(prev => ({ ...prev, [key]: nextStatus }));
+    
+    try {
+      setIsUpdating(true);
+      await dbService.saveKnowledgeProgress({ userId, activityId, status: nextStatus });
+      onRefresh();
+    } catch (err) {
+      console.error("Failed to update status:", err);
+      // Rollback on error
+      setOptimisticProgress(prev => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const openCatModal = (cat?: KnowledgeCategory) => setCatModal({ open: true, editing: cat || null });
@@ -156,72 +182,73 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
 
   return (
     <div className="tab-content kn-full-root">
-      {/* ── Header ── */}
       <div className="tab-header kn-header">
-        <div>
-          <h1 className="tab-title">Matriz de Competência</h1>
-          <p className="tab-subtitle">Controle de aprendizagem e assimilação • {activeArea}</p>
+        <div className="kn-header-top">
+          <div>
+            <h1 className="tab-title">Matriz de Competência</h1>
+            <p className="tab-subtitle">Controle de aprendizagem e assimilação • {activeArea}</p>
+          </div>
+
+          <div className="kn-summary-stats">
+            <div className="kn-stat-card tp" onClick={() => setActiveArea('T&P')} style={{ cursor: 'pointer' }}>
+              <span className="kn-stat-label">EVOLUÇÃO T&P</span>
+              <div className="kn-stat-value-row">
+                <span className="kn-stat-number">{tpEvolution}%</span>
+                <div className="kn-stat-mini-bar"><div className="kn-stat-fill" style={{ width: `${tpEvolution}%` }} /></div>
+              </div>
+            </div>
+            <div className="kn-stat-card proj" onClick={() => setActiveArea('Projetos')} style={{ cursor: 'pointer' }}>
+              <span className="kn-stat-label">EVOLUÇÃO PROJETOS</span>
+              <div className="kn-stat-value-row">
+                <span className="kn-stat-number">{projEvolution}%</span>
+                <div className="kn-stat-mini-bar"><div className="kn-stat-fill" style={{ width: `${projEvolution}%` }} /></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="kn-nav-actions">
+            <div className="kn-legend">
+              <div className="kn-leg-item"><div className="kn-leg-box st-checked"><Check size={12}/></div> <span>Aprendido</span></div>
+              <div className="kn-leg-item"><div className="kn-leg-box st-x"><X size={12}/></div> <span>Treinar</span></div>
+              <div className="kn-leg-item"><div className="kn-leg-box st-empty"></div> <span>Pendente</span></div>
+            </div>
+            {isAdmin && (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="btn-primary btn-sm" onClick={() => setUserModal({ open: true })}>
+                  <Plus size={16} /> Novo Analista
+                </button>
+                <button className="btn-primary btn-sm" onClick={() => openCatModal()}>
+                  <Plus size={16} /> Nova Categoria
+                </button>
+              </div>
+            )}
+            <div className="kn-picker">
+              <button className={`kn-picker-btn ${activeArea === 'T&P' ? 'active-tp' : ''}`} onClick={() => setActiveArea('T&P')}>T&P</button>
+              <button className={`kn-picker-btn ${activeArea === 'Projetos' ? 'active-proj' : ''}`} onClick={() => setActiveArea('Projetos')}>PROJETOS</button>
+            </div>
+          </div>
         </div>
 
-        <div className="kn-summary-stats">
-          <div className="kn-stat-card tp">
-            <span className="kn-stat-label">EVOLUÇÃO T&P</span>
-            <div className="kn-stat-value-row">
-              <span className="kn-stat-number">{tpEvolution}%</span>
-              <div className="kn-stat-mini-bar"><div className="kn-stat-fill" style={{ width: `${tpEvolution}%` }} /></div>
+        {/* ── Analysts Evolution Strip Integrated ── */}
+        <div className="kn-analysts-strip">
+          {analystStats.map(stat => (
+            <div key={stat.id} className="kn-analyst-card">
+              <div className="kn-analyst-info">
+                <span className="kn-an-name" title={stat.name}>{stat.name}</span>
+                <span className="kn-an-pct">{stat.pct}%</span>
+              </div>
+              <div className="kn-an-bar-bg">
+                <div 
+                  className="kn-an-bar-fill" 
+                  style={{ 
+                    width: `${stat.pct}%`,
+                    background: stat.pct > 70 ? '#10b981' : stat.pct > 30 ? '#f59e0b' : '#ef4444' 
+                  }} 
+                />
+              </div>
             </div>
-          </div>
-          <div className="kn-stat-card proj">
-            <span className="kn-stat-label">EVOLUÇÃO PROJETOS</span>
-            <div className="kn-stat-value-row">
-              <span className="kn-stat-number">{projEvolution}%</span>
-              <div className="kn-stat-mini-bar"><div className="kn-stat-fill" style={{ width: `${projEvolution}%` }} /></div>
-            </div>
-          </div>
+          ))}
         </div>
-
-        <div className="kn-nav-actions">
-          <div className="kn-legend">
-            <div className="kn-leg-item"><div className="kn-leg-box st-checked"><Check size={12}/></div> <span>Aprendido</span></div>
-            <div className="kn-leg-item"><div className="kn-leg-box st-x"><X size={12}/></div> <span>Treinar</span></div>
-            <div className="kn-leg-item"><div className="kn-leg-box st-empty"></div> <span>Pendente</span></div>
-          </div>
-          {isAdmin && (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn-primary btn-sm" onClick={() => setUserModal({ open: true })}>
-                <Plus size={16} /> Novo Analista
-              </button>
-              <button className="btn-primary btn-sm" onClick={() => openCatModal()}>
-                <Plus size={16} /> Nova Categoria
-              </button>
-            </div>
-          )}
-          <div className="kn-picker">
-            <button className={`kn-picker-btn ${activeArea === 'T&P' ? 'active-tp' : ''}`} onClick={() => setActiveArea('T&P')}>T&P</button>
-            <button className={`kn-picker-btn ${activeArea === 'Projetos' ? 'active-proj' : ''}`} onClick={() => setActiveArea('Projetos')}>PROJETOS</button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Analysts Evolution Strip ── */}
-      <div className="kn-analysts-strip">
-        {analystStats.map(stat => (
-          <div key={stat.id} className="kn-analyst-card">
-            <div className="kn-analyst-info">
-              <span className="kn-an-name">{stat.name}</span>
-              <span className="kn-an-pct">{stat.pct}%</span>
-            </div>
-            <div className="kn-an-bar-bg">
-              <div 
-                className="kn-an-bar-fill" 
-                style={{ 
-                  width: `${stat.pct}%`,
-                  background: stat.pct > 70 ? '#10b981' : stat.pct > 30 ? '#f59e0b' : '#ef4444' 
-                }} 
-              />
-            </div>
-          </div>
-        ))}
       </div>
 
       {/* ── Table Container ── */}
