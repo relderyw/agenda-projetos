@@ -191,14 +191,25 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
       { label: 'Fev/27', start: '2027-02-01', end: '2027-02-28' },
       { label: 'Mar/27', start: '2027-03-01', end: '2027-03-31' }
     ];
-    const extraFlowTheme = themes.find(t => t.name.toLowerCase().includes('extra fluxo'))?.id;
+    
+    // Busca flexível pelo tema de Extra Fluxo
+    const extraFlowThemes = themes.filter(t => t.name.toLowerCase().includes('extra')).map(t => t.id);
+    
+    // Filtramos apenas pelo usuário selecionado, ignorando as datas de filtro globais para o gráfico anual
+    const yearlyActivities = activities.filter(a => {
+      const isAnalystAct = onlyAnalysts.some(u => u.id === a.responsavel);
+      if (!isAnalystAct) return false;
+      const matchUser = selectedUser === 'all' || a.responsavel === selectedUser;
+      return matchUser;
+    });
+
     return months.map(m => {
-      const plano = filteredActivities.filter(a => a.planejamento >= m.start && a.planejamento <= m.end).length;
-      const real = filteredActivities.filter(a => a.status === 'FINALIZADA' && a.dataFinalizada && a.dataFinalizada >= m.start && a.dataFinalizada <= m.end).length;
-      const extra = filteredActivities.filter(a => a.tema === extraFlowTheme && a.planejamento >= m.start && a.planejamento <= m.end).length;
+      const plano = yearlyActivities.filter(a => a.planejamento >= m.start && a.planejamento <= m.end).length;
+      const real = yearlyActivities.filter(a => a.status === 'FINALIZADA' && a.dataFinalizada && a.dataFinalizada >= m.start && a.dataFinalizada <= m.end).length;
+      const extra = yearlyActivities.filter(a => extraFlowThemes.includes(a.tema) && a.planejamento >= m.start && a.planejamento <= m.end).length;
       return { month: m.label, plano, real, extra };
     });
-  }, [filteredActivities, themes]);
+  }, [activities, themes, onlyAnalysts, selectedUser]);
 
   return (
     <div className="tab-content dashboard-revamp">
@@ -466,7 +477,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
               <div className="monthly-scroll-wrap" style={{ overflow: 'visible', position: 'relative' }}>
                 {/* Linhas de fundo para referência */}
                 <div style={{ position: 'absolute', inset: '0 0 25px 0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none', zIndex: 0 }}>
-                  {[1, 2, 3].map(i => (
+                  {[1, 2, 3, 4, 5, 6, 7].map(i => (
                     <div key={i} style={{ width: '100%', height: '1px', borderTop: '1px dashed rgba(255,255,255,0.05)' }} />
                   ))}
                 </div>
@@ -476,7 +487,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                     const maxVal = Math.max(...monthlyData.flatMap(d => [d.plano, d.real, d.extra]), 1);
                     return monthlyData.map(m => (
                       <div key={m.month} className="monthly-col-new" style={{ flex: 1, minWidth: '40px' }}>
-                        <div className="monthly-bars-new" style={{ height: '90px', gap: '3px', alignItems: 'flex-end', justifyContent: 'center' }}>
+                        <div className="monthly-bars-new" style={{ height: '240px', gap: '4px', alignItems: 'flex-end', justifyContent: 'center' }}>
                           {(m.plano > 0 || m.real > 0 || m.extra > 0) ? (
                             <>
                               {m.plano > 0 && (
