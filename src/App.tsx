@@ -39,6 +39,7 @@ export default function App() {
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     return (localStorage.getItem('theme') as ThemeMode) || 'light'
   });
@@ -74,7 +75,9 @@ export default function App() {
   const toggleTheme = () => setThemeMode(prev => prev === 'dark' ? 'light' : 'dark')
 
   const loadData = useCallback(async () => {
-    setLoading(true)
+    // Only show the central spinner on the very first app load
+    if (isFirstLoad) setLoading(true);
+    
     try {
       const [a, t, u, h, l, k, hol] = await Promise.all([
         dbService.getActivities(),
@@ -93,9 +96,10 @@ export default function App() {
       setKnowledgeBase(k)
       setHolidays(hol)
     } finally {
-      setLoading(false)
+      if (isFirstLoad) setLoading(false);
+      setIsFirstLoad(false);
     }
-  }, [])
+  }, [isFirstLoad])
 
 
   useEffect(() => {
