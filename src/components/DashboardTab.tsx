@@ -90,14 +90,20 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
   // Por responsável (Apenas analistas)
   const byUser = useMemo(() => onlyAnalysts.map(u => {
     const acts = filteredActivities.filter(a => a.responsavel === u.id);
-    const done = acts.filter(a => a.status === 'FINALIZADA').length;
+    const doneActs = acts.filter(a => a.status === 'FINALIZADA');
+    const done = doneActs.length;
     const total = acts.length;
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    
+    // Análise de prioridade alta:
+    const doneHighPrio = doneActs.filter(a => a.prioridade === 'Alta').length;
+    const pctHighPrio = done > 0 ? Math.round((doneHighPrio / done) * 100) : 0;
+
     const late = acts.filter(a => {
       const today = new Date().toISOString().slice(0, 10);
       return a.dataPrevistaFinalizacao && a.dataPrevistaFinalizacao < today && a.status !== 'FINALIZADA';
     }).length;
-    return { user: u, total, done, late, pct };
+    return { user: u, total, done, late, pct, doneHighPrio, pctHighPrio };
   }).sort((a,b) => b.total - a.total), [filteredActivities, onlyAnalysts]);
 
   // Por tema
@@ -260,7 +266,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
             <h3>Performance por Analista</h3>
           </div>
           <div className="analyst-bar-chart">
-            {byUser.map(({ user, total, done, pct }) => (
+            {byUser.map(({ user, total, done, pct, doneHighPrio, pctHighPrio }) => (
               <div key={user.id} className="analyst-bar-col">
                 <span className="analyst-bar-pct">{pct}%</span>
                 <div className="analyst-bar-track">
@@ -274,6 +280,9 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                 </div>
                 <span className="analyst-bar-name">{user.name.split(' ')[0]}</span>
                 <span className="analyst-bar-total">{done}/{total}</span>
+                <span style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 600, marginTop: '2px', textAlign: 'center', lineHeight: 1.1 }}>
+                  Alta: {doneHighPrio} ({pctHighPrio}%)
+                </span>
               </div>
             ))}
             {byUser.length === 0 && <p className="empty-state-msg">Nenhum analista no período.</p>}
@@ -317,18 +326,24 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                   return monthlyData.map(m => (
                     <div key={m.month} className="monthly-col-new">
                       <div className="monthly-bars-new">
-                        <div className="m-bar-wrap">
-                          <span className="m-bar-lbl">{m.plano > 0 ? m.plano : ''}</span>
-                          <div className="m-bar-new chart-plano" style={{ height: `${(m.plano / globalMax) * 100}%` }} />
-                        </div>
-                        <div className="m-bar-wrap">
-                          <span className="m-bar-lbl">{m.real > 0 ? m.real : ''}</span>
-                          <div className="m-bar-new chart-real" style={{ height: `${(m.real / globalMax) * 100}%` }} />
-                        </div>
-                        <div className="m-bar-wrap">
-                          <span className="m-bar-lbl">{m.extra > 0 ? m.extra : ''}</span>
-                          <div className="m-bar-new chart-extra" style={{ height: `${(m.extra / globalMax) * 100}%` }} />
-                        </div>
+                        {m.plano > 0 && (
+                          <div className="m-bar-wrap" title={`Plano: ${m.plano}`}>
+                            <span className="m-bar-lbl">{m.plano}</span>
+                            <div className="m-bar-new chart-plano" style={{ height: `${(m.plano / globalMax) * 100}%`, background: '#64748b' }} />
+                          </div>
+                        )}
+                        {m.real > 0 && (
+                          <div className="m-bar-wrap" title={`Real: ${m.real}`}>
+                            <span className="m-bar-lbl">{m.real}</span>
+                            <div className="m-bar-new chart-real" style={{ height: `${(m.real / globalMax) * 100}%`, background: '#3b82f6' }} />
+                          </div>
+                        )}
+                        {m.extra > 0 && (
+                          <div className="m-bar-wrap" title={`Extra Fluxo: ${m.extra}`}>
+                            <span className="m-bar-lbl">{m.extra}</span>
+                            <div className="m-bar-new chart-extra" style={{ height: `${(m.extra / globalMax) * 100}%`, background: '#f59e0b' }} />
+                          </div>
+                        )}
                       </div>
                       <span className="month-lbl-new">{m.month}</span>
                     </div>
@@ -337,9 +352,9 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
               </div>
             </div>
             <div className="chart-legend-new">
-              <span className="leg-item"><span className="leg-dot chart-plano" /> Plano</span>
-              <span className="leg-item"><span className="leg-dot chart-real" /> Real</span>
-              <span className="leg-item"><span className="leg-dot chart-extra" /> Extra Fluxo</span>
+              <span className="leg-item"><span className="leg-dot chart-plano" style={{ background: '#64748b' }} /> Plano</span>
+              <span className="leg-item"><span className="leg-dot chart-real" style={{ background: '#3b82f6' }} /> Real</span>
+              <span className="leg-item"><span className="leg-dot chart-extra" style={{ background: '#f59e0b' }} /> Extra Fluxo</span>
             </div>
           </div>
         </div>
