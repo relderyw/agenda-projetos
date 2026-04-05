@@ -264,17 +264,22 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
           <Users size={18} />
           <h3>Performance por Analista</h3>
         </div>
-        <div className="analyst-bar-chart" style={{ justifyContent: byUser.length <= 12 ? 'space-around' : 'flex-start', paddingLeft: '2rem', paddingRight: '2rem' }}>
+        <div className="analyst-bar-chart" style={{ 
+          justifyContent: byUser.length <= 8 ? 'center' : 'space-around', 
+          gap: byUser.length <= 8 ? '3rem' : '1.5rem',
+          paddingLeft: '1rem', 
+          paddingRight: '1rem' 
+        }}>
           {byUser.map(({ user, total, done, pct }) => (
             <div key={user.id} className="analyst-bar-col">
               <span className="analyst-bar-pct">{pct}%</span>
               <div className="analyst-bar-track">
                 <div
                   className="analyst-bar-fill"
-                  style={{ height: `${pct}%`, background: user.color }}
+                  style={{ height: `${pct}%`, backgroundColor: user.color }}
                 />
               </div>
-              <div className="analyst-bar-avatar" style={{ background: user.color }}>
+              <div className="analyst-bar-avatar" style={{ backgroundColor: user.color }}>
                 {user.name[0]}
               </div>
               <span className="analyst-bar-name">{user.name.split(' ')[0]}</span>
@@ -303,17 +308,40 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
               {byUser.length > 0 ? (
                 <>
                   <svg width="100%" height="100%" viewBox="0 0 1000 300" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+                    <defs>
+                      <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#ef4444" stopOpacity="0.0" />
+                      </linearGradient>
+                      <filter id="glow">
+                        <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                        <feMerge>
+                          <feMergeNode in="coloredBlur" />
+                          <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                      </filter>
+                    </defs>
+
                     {/* Linhas de grade horizontais */}
                     <line x1="0" y1="75" x2="1000" y2="75" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
                     <line x1="0" y1="150" x2="1000" y2="150" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
                     <line x1="0" y1="225" x2="1000" y2="225" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
                     
+                    {/* Área Preenchida */}
+                    <path
+                      d={`M ${(0.5) * (1000 / byUser.length)},300 ` + 
+                         byUser.map((u, i) => `L ${(i + 0.5) * (1000 / byUser.length)},${300 - (u.pctHighPrio / 100 * 250) - 25}`).join(' ') +
+                         ` L ${(byUser.length - 0.5) * (1000 / byUser.length)},300 Z`}
+                      fill="url(#areaGradient)"
+                    />
+
                     {/* Linha Principal do Gráfico */}
                     <polyline 
                       points={byUser.map((u, i) => `${(i + 0.5) * (1000 / byUser.length)},${300 - (u.pctHighPrio / 100 * 250) - 25}`).join(' ')} 
                       fill="none" 
                       stroke="#ef4444" 
                       strokeWidth="3" 
+                      filter="url(#glow)"
                       vectorEffect="non-scaling-stroke" 
                     />
                   </svg>
@@ -387,12 +415,15 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
               {byWeek.map(({ week, total, done, pct }) => (
                 <div key={week} className="week-row">
                   <span className="week-label">{week}</span>
-                  <div className="prog-bar week-prog">
+                  <div className="prog-bar week-prog" style={{ height: '12px', background: 'rgba(255,255,255,0.05)' }}>
                     <div
                       className="prog-fill"
                       style={{
                         width: `${pct}%`,
-                        background: pct === 100 ? '#10b981' : pct >= 50 ? '#3b82f6' : '#f59e0b'
+                        height: '100%',
+                        borderRadius: '6px',
+                        background: `linear-gradient(90deg, ${pct === 100 ? '#10b981' : pct >= 50 ? '#3b82f6' : '#f59e0b'}, rgba(255,255,255,0.2))`,
+                        boxShadow: '0 0 10px rgba(0,0,0,0.2)'
                       }}
                     />
                   </div>
@@ -416,19 +447,28 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                           {m.plano > 0 && (
                             <div className="m-bar-wrap" title={`Plano: ${m.plano}`}>
                               <span className="m-bar-lbl">{m.plano}</span>
-                              <div className="m-bar-new" style={{ height: `${(m.plano / globalMax) * 100}%`, backgroundColor: '#94a3b8' }} />
+                              <div className="m-bar-new" style={{ 
+                                height: `${(m.plano / globalMax) * 100}%`, 
+                                background: 'linear-gradient(to bottom, #94a3b8, #64748b)' 
+                              }} />
                             </div>
                           )}
                           {m.real > 0 && (
                             <div className="m-bar-wrap" title={`Real: ${m.real}`}>
                               <span className="m-bar-lbl">{m.real}</span>
-                              <div className="m-bar-new" style={{ height: `${(m.real / globalMax) * 100}%`, backgroundColor: '#3b82f6' }} />
+                              <div className="m-bar-new" style={{ 
+                                height: `${(m.real / globalMax) * 100}%`, 
+                                background: 'linear-gradient(to bottom, #3b82f6, #2563eb)' 
+                              }} />
                             </div>
                           )}
                           {m.extra > 0 && (
                             <div className="m-bar-wrap" title={`Extra Fluxo: ${m.extra}`}>
                               <span className="m-bar-lbl">{m.extra}</span>
-                              <div className="m-bar-new" style={{ height: `${(m.extra / globalMax) * 100}%`, backgroundColor: '#f59e0b' }} />
+                              <div className="m-bar-new" style={{ 
+                                height: `${(m.extra / globalMax) * 100}%`, 
+                                background: 'linear-gradient(to bottom, #f59e0b, #d97706)' 
+                              }} />
                             </div>
                           )}
                         </div>
