@@ -2632,10 +2632,11 @@
 
 .monthly-grid-new {
   display: flex;
-  gap: 1rem;
-  justify-content: flex-start;
+  gap: 1.25rem;
+  justify-content: center;
   align-items: flex-end;
   padding: 0.5rem 0 0 0;
+  width: 100%;
 }
 
 .m-bar-new {
@@ -2671,11 +2672,13 @@
 
 
 .month-lbl-new {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--text-secondary);
   text-align: center;
   white-space: nowrap;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
 }
 
 .chart-legend-new {

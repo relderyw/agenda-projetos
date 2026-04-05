@@ -474,7 +474,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                             </div>
                           )}
                         </div>
-                        <span className="month-lbl-new">{m.month}</span>
+                        <span className="month-lbl-new">{m.month.split('/')[0].toUpperCase()}</span>
                       </div>
                     ));
                   })()}
