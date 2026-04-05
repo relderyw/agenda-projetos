@@ -360,8 +360,8 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                 {/* Nomes Eixo X */}
                 <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', height: '30px', alignItems: 'center' }}>
                   {byUser.map((u) => (
-                    <div key={u.user.id} style={{ flex: 1, textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: '0 4px' }}>
-                      {u.user.name.split(' ')[0]}
+                    <div key={u.user.id} style={{ flex: 1, textAlign: 'center', fontSize: '9px', color: 'var(--text-muted)', whiteSpace: 'nowrap', padding: '0 2px' }}>
+                      <div style={{ transform: 'rotate(-20deg)', display: 'inline-block' }}>{u.user.name.split(' ')[0]}</div>
                     </div>
                   ))}
                 </div>
@@ -373,68 +373,72 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
         </div>
       </div>
 
-        <div className="dash-card">
-          <div className="dash-card-header">
-            <BarChart2 size={18} />
-            <h3>Progresso por Semana</h3>
-          </div>
-          <div className="week-bars">
-            {byWeek.map(({ week, total, done, pct }) => (
-              <div key={week} className="week-row">
-                <span className="week-label">{week}</span>
-                <div className="prog-bar week-prog">
-                  <div
-                    className="prog-fill"
-                    style={{
-                      width: `${pct}%`,
-                      background: pct === 100 ? '#10b981' : pct >= 50 ? '#3b82f6' : '#f59e0b'
-                    }}
-                  />
-                </div>
-                <span className="week-nums">{done}/{total}</span>
-                <span className="week-pct">{pct}%</span>
-              </div>
-            ))}
-          </div>
-          
-          <div className="monthly-chart-section">
-            <h4 className="chart-title-sm">Desempenho Anual (Fiscal Year 26/27)</h4>
-            <div className="monthly-scroll-wrap">
-              <div className="monthly-grid-new">
-                {(() => {
-                  const globalMax = Math.max(...monthlyData.flatMap(m => [m.plano, m.real, m.extra]), 1);
-                  return monthlyData.map(m => (
-                    <div key={m.month} className="monthly-col-new">
-                      <div className="monthly-bars-new">
-                        {m.plano > 0 && (
-                          <div className="m-bar-wrap" title={`Plano: ${m.plano}`}>
-                            <span className="m-bar-lbl">{m.plano}</span>
-                            <div className="m-bar-new" style={{ height: `${(m.plano / globalMax) * 100}%`, backgroundColor: '#94a3b8' }} />
-                          </div>
-                        )}
-                        {m.real > 0 && (
-                          <div className="m-bar-wrap" title={`Real: ${m.real}`}>
-                            <span className="m-bar-lbl">{m.real}</span>
-                            <div className="m-bar-new" style={{ height: `${(m.real / globalMax) * 100}%`, backgroundColor: '#3b82f6' }} />
-                          </div>
-                        )}
-                        {m.extra > 0 && (
-                          <div className="m-bar-wrap" title={`Extra Fluxo: ${m.extra}`}>
-                            <span className="m-bar-lbl">{m.extra}</span>
-                            <div className="m-bar-new" style={{ height: `${(m.extra / globalMax) * 100}%`, backgroundColor: '#f59e0b' }} />
-                          </div>
-                        )}
-                      </div>
-                      <span className="month-lbl-new">{m.month}</span>
-                    </div>
-                  ));
-                })()}
-              </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', overflow: 'hidden' }}>
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <BarChart2 size={18} />
+              <h3>Progresso por Semana</h3>
             </div>
-            <div className="chart-legend-new">
-              <span className="leg-item"><span className="leg-dot chart-plano" style={{ background: '#64748b' }} /> Plano</span>
-              <span className="leg-item"><span className="leg-dot chart-real" style={{ background: '#3b82f6' }} /> Real</span>
-              <span className="leg-item"><span className="leg-dot chart-extra" style={{ background: '#f59e0b' }} /> Extra Fluxo</span>
+            <div className="week-bars">
+              {byWeek.map(({ week, total, done, pct }) => (
+                <div key={week} className="week-row">
+                  <span className="week-label">{week}</span>
+                  <div className="prog-bar week-prog">
+                    <div
+                      className="prog-fill"
+                      style={{
+                        width: `${pct}%`,
+                        background: pct === 100 ? '#10b981' : pct >= 50 ? '#3b82f6' : '#f59e0b'
+                      }}
+                    />
+                  </div>
+                  <span className="week-nums">{done}/{total}</span>
+                  <span className="week-pct">{pct}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="dash-card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div className="monthly-chart-section" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <h4 className="chart-title-sm">Desempenho Anual (Fiscal Year 26/27)</h4>
+              <div className="monthly-scroll-wrap" style={{ flex: 1, display: 'flex', alignItems: 'flex-end', paddingTop: '1rem' }}>
+                <div className="monthly-grid-new" style={{ minHeight: '100%', width: '100%', display: 'flex', alignItems: 'flex-end', padding: 0 }}>
+                  {(() => {
+                    const globalMax = Math.max(...monthlyData.flatMap(m => [m.plano, m.real, m.extra]), 1);
+                    return monthlyData.map(m => (
+                      <div key={m.month} className="monthly-col-new" style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                        <div className="monthly-bars-new" style={{ flex: 1, minHeight: '120px' }}>
+                          {m.plano > 0 && (
+                            <div className="m-bar-wrap" title={`Plano: ${m.plano}`}>
+                              <span className="m-bar-lbl">{m.plano}</span>
+                              <div className="m-bar-new" style={{ height: `${(m.plano / globalMax) * 100}%`, backgroundColor: '#94a3b8' }} />
+                            </div>
+                          )}
+                          {m.real > 0 && (
+                            <div className="m-bar-wrap" title={`Real: ${m.real}`}>
+                              <span className="m-bar-lbl">{m.real}</span>
+                              <div className="m-bar-new" style={{ height: `${(m.real / globalMax) * 100}%`, backgroundColor: '#3b82f6' }} />
+                            </div>
+                          )}
+                          {m.extra > 0 && (
+                            <div className="m-bar-wrap" title={`Extra Fluxo: ${m.extra}`}>
+                              <span className="m-bar-lbl">{m.extra}</span>
+                              <div className="m-bar-new" style={{ height: `${(m.extra / globalMax) * 100}%`, backgroundColor: '#f59e0b' }} />
+                            </div>
+                          )}
+                        </div>
+                        <span className="month-lbl-new" style={{ marginTop: 'auto' }}>{m.month}</span>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+              <div className="chart-legend-new" style={{ marginTop: 'auto' }}>
+                <span className="leg-item"><span className="leg-dot" style={{ background: '#94a3b8' }} /> Plano</span>
+                <span className="leg-item"><span className="leg-dot" style={{ background: '#3b82f6' }} /> Real</span>
+                <span className="leg-item"><span className="leg-dot" style={{ background: '#f59e0b' }} /> Extra Fluxo</span>
+              </div>
             </div>
           </div>
         </div>
