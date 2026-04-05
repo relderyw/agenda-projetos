@@ -259,7 +259,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
         <KpiCard icon={<TrendingUp size={24} />} color="purple" label="Performance" value={`${stats.avgProgress}%`} />
       </div>
 
-      <div className="dash-card" style={{ marginBottom: '1.5rem' }}>
+      <div className="dash-card" style={{ marginBottom: '1rem' }}>
         <div className="dash-card-header">
           <Users size={18} />
           <h3>Performance por Analista</h3>
@@ -294,20 +294,20 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
         
         {/* Coluna Esquerda: Gráfico de Linhas (60% width) */}
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
-          <div className="dash-card" style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '1.5rem 1.25rem' }}>
-            <div className="dash-card-header" style={{ marginBottom: '0.5rem' }}>
+          <div className="dash-card" style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '1rem 1.25rem' }}>
+            <div className="dash-card-header" style={{ marginBottom: '0.25rem', paddingBottom: '0.5rem' }}>
               <TrendingUp size={18} />
               <h3>% de Atividades com Prioridade Alta</h3>
             </div>
-            <div style={{ flex: 1, minHeight: '300px', position: 'relative', marginTop: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, minHeight: '220px', position: 'relative', marginTop: '1rem', display: 'flex', flexDirection: 'column' }}>
               {byUser.length > 0 ? (
                 <>
-                  <div style={{ flex: 1, position: 'relative', minHeight: '220px', padding: '0 20px' }}>
+                  <div style={{ flex: 1, position: 'relative', minHeight: '160px', padding: '0 20px' }}>
                     <svg width="100%" height="100%" viewBox="0 0 1000 240" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
                       <defs>
                         <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
@@ -413,7 +413,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                   </div>
 
                   {/* Nomes Eixo X (Melhorado) */}
-                  <div style={{ display: 'flex', height: '60px', alignItems: 'flex-start', marginTop: '15px', padding: '0 20px' }}>
+                  <div style={{ display: 'flex', height: '45px', alignItems: 'flex-start', marginTop: '10px', padding: '0 20px' }}>
                     {byUser.map((u) => (
                       <div key={u.user.id} style={{ flex: 1, textAlign: 'center', fontSize: '10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                         <div style={{ transform: 'rotate(-40deg) translateX(-10px)', display: 'inline-block', fontWeight: '700', width: '100%', textAlign: 'right' }}>
@@ -431,50 +431,50 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
         </div>
 
         {/* Coluna Direita: Métricas Gerais (40% width) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', minWidth: 0 }}>
-          <div className="dash-card" style={{ padding: '1.5rem' }}>
-            <div className="dash-card-header" style={{ marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 0 }}>
+          <div className="dash-card" style={{ padding: '1rem' }}>
+            <div className="dash-card-header" style={{ marginBottom: '0.75rem', paddingBottom: '0.5rem' }}>
               <BarChart2 size={18} />
               <h3>Progresso por Semana</h3>
             </div>
-            <div className="week-bars" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div className="week-bars" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {byWeek.length > 0 ? byWeek.map(({ week, total, done, pct }) => (
-                <div key={week} className="week-row-prime" style={{ padding: '4px 0' }}>
-                  <span className="week-label-prime" style={{ minWidth: '75px', fontSize: '0.8rem' }}>{week}</span>
-                  <div className="week-prog-prime" style={{ height: '16px', borderRadius: '8px' }}>
+                <div key={week} className="week-row-prime" style={{ padding: '2px 0' }}>
+                  <span className="week-label-prime" style={{ minWidth: '70px', fontSize: '0.75rem' }}>{week}</span>
+                  <div className="week-prog-prime" style={{ height: '12px', borderRadius: '6px' }}>
                     <div
                       className="week-fill-prime"
                       style={{
                         width: `${pct}%`,
-                        borderRadius: '8px',
+                        borderRadius: '6px',
                         background: pct === 100 ? 'linear-gradient(90deg, #059669, #10b981)' : pct >= 50 ? 'linear-gradient(90deg, #2563eb, #3b82f6)' : 'linear-gradient(90deg, #d97706, #f59e0b)'
                       }}
                     />
                   </div>
-                  <div className="week-meta-prime" style={{ minWidth: '95px' }}>
-                    <span className="week-nums-prime" style={{ fontSize: '0.75rem' }}>{done}/{total}</span>
-                    <span className="week-pct-prime" style={{ fontSize: '0.85rem', minWidth: '38px', textAlign: 'right' }}>{pct}%</span>
+                  <div className="week-meta-prime" style={{ minWidth: '85px' }}>
+                    <span className="week-nums-prime" style={{ fontSize: '0.7rem' }}>{done}/{total}</span>
+                    <span className="week-pct-prime" style={{ fontSize: '0.8rem', minWidth: '34px', textAlign: 'right' }}>{pct}%</span>
                   </div>
                 </div>
               )) : <p className="empty-state-msg">Sem dados semanais.</p>}
             </div>
           </div>
 
-          <div className="dash-card" style={{ padding: '1.5rem' }}>
+          <div className="dash-card" style={{ padding: '1rem' }}>
             <div className="monthly-chart-section" style={{ marginTop: 0 }}>
-              <h4 className="chart-title-sm" style={{ marginBottom: '1.5rem', fontSize: '0.875rem', fontWeight: '700', color: 'var(--text-primary)' }}>Desempenho Anual (FY 26/27)</h4>
+              <h4 className="chart-title-sm" style={{ marginBottom: '1rem', fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-primary)' }}>Desempenho Anual (FY 26/27)</h4>
               <div className="monthly-scroll-wrap" style={{ overflow: 'visible' }}>
-                <div className="monthly-grid-new" style={{ gap: '0.75rem', justifyContent: 'space-between' }}>
+                <div className="monthly-grid-new" style={{ gap: '0.5rem', justifyContent: 'space-between' }}>
                   {monthlyData.map(m => (
                     <div key={m.month} className="monthly-col-new" style={{ flex: 1 }}>
-                      <div className="monthly-bars-new" style={{ height: '120px', gap: '2px' }}>
+                      <div className="monthly-bars-new" style={{ height: '80px', gap: '2px' }}>
                         {(m.plano > 0 || m.real > 0 || m.extra > 0) ? (
                           <>
                             {m.plano > 0 && (
                               <div className="m-bar-wrap">
-                                <span className="m-bar-lbl" style={{ fontSize: '0.55rem' }}>{m.plano}</span>
+                                <span className="m-bar-lbl" style={{ fontSize: '0.5rem' }}>{m.plano}</span>
                                 <div className="m-bar-new" style={{ 
-                                  width: '10px',
+                                  width: '8px',
                                   height: `${(m.plano / Math.max(...monthlyData.flatMap(d => [d.plano, d.real, d.extra]), 1)) * 100}%`, 
                                   background: 'linear-gradient(to bottom, #94a3b8, #64748b)' 
                                 }} />
@@ -482,9 +482,9 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                             )}
                             {m.real > 0 && (
                               <div className="m-bar-wrap">
-                                <span className="m-bar-lbl" style={{ fontSize: '0.55rem' }}>{m.real}</span>
+                                <span className="m-bar-lbl" style={{ fontSize: '0.5rem' }}>{m.real}</span>
                                 <div className="m-bar-new" style={{ 
-                                  width: '10px',
+                                  width: '8px',
                                   height: `${(m.real / Math.max(...monthlyData.flatMap(d => [d.plano, d.real, d.extra]), 1)) * 100}%`, 
                                   background: 'linear-gradient(to bottom, #3b82f6, #2563eb)' 
                                 }} />
@@ -492,9 +492,9 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                             )}
                             {m.extra > 0 && (
                               <div className="m-bar-wrap">
-                                <span className="m-bar-lbl" style={{ fontSize: '0.55rem' }}>{m.extra}</span>
+                                <span className="m-bar-lbl" style={{ fontSize: '0.5rem' }}>{m.extra}</span>
                                 <div className="m-bar-new" style={{ 
-                                  width: '10px',
+                                  width: '8px',
                                   height: `${(m.extra / Math.max(...monthlyData.flatMap(d => [d.plano, d.real, d.extra]), 1)) * 100}%`, 
                                   background: 'linear-gradient(to bottom, #f59e0b, #d97706)' 
                                 }} />
@@ -505,20 +505,21 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                            <div style={{ height: '1px', width: '100%', background: 'rgba(255,255,255,0.05)' }} />
                         )}
                       </div>
-                      <span className="month-lbl-new" style={{ fontSize: '0.6rem', marginTop: '8px' }}>{m.month.split('/')[0].toUpperCase()}</span>
+                      <span className="month-lbl-new" style={{ fontSize: '0.55rem', marginTop: '6px' }}>{m.month.split('/')[0].toUpperCase()}</span>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="chart-legend-new" style={{ marginTop: '1.5rem', paddingTop: '1rem', gap: '1rem' }}>
-                <span className="leg-item" style={{ fontSize: '0.7rem' }}><span className="leg-dot" style={{ width: '8px', height: '8px', background: '#94a3b8' }} /> Plano</span>
-                <span className="leg-item" style={{ fontSize: '0.7rem' }}><span className="leg-dot" style={{ width: '8px', height: '8px', background: '#3b82f6' }} /> Real</span>
-                <span className="leg-item" style={{ fontSize: '0.7rem' }}><span className="leg-dot" style={{ width: '8px', height: '8px', background: '#f59e0b' }} /> Extra</span>
+              <div className="chart-legend-new" style={{ marginTop: '1rem', paddingTop: '0.75rem', gap: '1rem' }}>
+                <span className="leg-item" style={{ fontSize: '0.65rem' }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#94a3b8' }} /> Plano</span>
+                <span className="leg-item" style={{ fontSize: '0.65rem' }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#3b82f6' }} /> Real</span>
+                <span className="leg-item" style={{ fontSize: '0.65rem' }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#f59e0b' }} /> Extra</span>
               </div>
             </div>
           </div>
         </div>
       </div>
+
 
 
       {isAdminOrGestao && (
