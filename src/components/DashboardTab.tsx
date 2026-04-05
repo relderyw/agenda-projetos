@@ -294,20 +294,20 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(0, 1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
         
-        {/* Coluna Esquerda: Gráfico de Linhas (65% width) */}
+        {/* Coluna Esquerda: Gráfico de Linhas (60% width) */}
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
-          <div className="dash-card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div className="dash-card-header">
+          <div className="dash-card" style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '1.5rem 1.25rem' }}>
+            <div className="dash-card-header" style={{ marginBottom: '0.5rem' }}>
               <TrendingUp size={18} />
               <h3>% de Atividades com Prioridade Alta</h3>
             </div>
-            <div style={{ flex: 1, minHeight: '280px', position: 'relative', marginTop: '1rem', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, minHeight: '300px', position: 'relative', marginTop: '1.5rem', display: 'flex', flexDirection: 'column' }}>
               {byUser.length > 0 ? (
                 <>
-                  <div style={{ flex: 1, position: 'relative', minHeight: '200px' }}>
+                  <div style={{ flex: 1, position: 'relative', minHeight: '220px', padding: '0 20px' }}>
                     <svg width="100%" height="100%" viewBox="0 0 1000 240" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
                       <defs>
                         <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
@@ -324,9 +324,29 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                       </defs>
 
                       {/* Linhas de grade horizontais */}
-                      <line x1="0" y1="60" x2="1000" y2="60" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
-                      <line x1="0" y1="120" x2="1000" y2="120" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
-                      <line x1="0" y1="180" x2="1000" y2="180" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
+                      {[0, 25, 50, 75, 100].map(v => (
+                        <g key={v}>
+                          <line 
+                            x1="-20" 
+                            y1={240 - (v / 100 * 180) - 30} 
+                            x2="1020" 
+                            y2={240 - (v / 100 * 180) - 30} 
+                            stroke="rgba(255,255,255,0.08)" 
+                            strokeDasharray="4 4"
+                            vectorEffect="non-scaling-stroke" 
+                          />
+                          <text 
+                            x="-25" 
+                            y={240 - (v / 100 * 180) - 30} 
+                            fill="rgba(255,255,255,0.3)" 
+                            fontSize="9" 
+                            textAnchor="end" 
+                            alignmentBaseline="middle"
+                          >
+                            {v}%
+                          </text>
+                        </g>
+                      ))}
                       
                       {/* Área Preenchida */}
                       <path
@@ -348,7 +368,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                     </svg>
 
                     {/* Pontos sobre a linha e Rótulos */}
-                    <div style={{ position: 'absolute', inset: 0 }}>
+                    <div style={{ position: 'absolute', inset: '0 20px' }}>
                       {byUser.map((u, i) => {
                         const xPct = ((i + 0.5) / byUser.length) * 100;
                         const yVal = 240 - (u.pctHighPrio / 100 * 180) - 30;
@@ -367,7 +387,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                                 background: '#1e293b',
                                 border: '2px solid #ef4444',
                                 zIndex: 2,
-                                boxShadow: '0 0 4px rgba(0,0,0,0.5)'
+                                boxShadow: '0 0 8px rgba(239, 68, 68, 0.4)'
                               }}
                             />
                             {/* Rótulo de Valor */}
@@ -378,9 +398,10 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                                 top: `calc(${yPct}% - 22px)`,
                                 transform: 'translateX(-50%)',
                                 color: '#ef4444', 
-                                fontWeight: 'bold', 
-                                fontSize: '0.75rem',
-                                textShadow: '0 2px 4px rgba(0,0,0,0.8)'
+                                fontWeight: '800', 
+                                fontSize: '0.8rem',
+                                textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+                                pointerEvents: 'none'
                               }}
                             >
                               {u.pctHighPrio}%
@@ -391,11 +412,13 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                     </div>
                   </div>
 
-                  {/* Nomes Eixo X (Compacto) */}
-                  <div style={{ display: 'flex', height: '40px', alignItems: 'center', marginTop: '5px' }}>
+                  {/* Nomes Eixo X (Melhorado) */}
+                  <div style={{ display: 'flex', height: '60px', alignItems: 'flex-start', marginTop: '15px', padding: '0 20px' }}>
                     {byUser.map((u) => (
-                      <div key={u.user.id} style={{ flex: 1, textAlign: 'center', fontSize: '9px', color: 'var(--text-muted)', whiteSpace: 'nowrap', padding: '0 2px' }}>
-                        <div style={{ transform: 'rotate(-25deg)', display: 'inline-block', fontWeight: '700' }}>{u.user.name.split(' ')[0]}</div>
+                      <div key={u.user.id} style={{ flex: 1, textAlign: 'center', fontSize: '10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                        <div style={{ transform: 'rotate(-40deg) translateX(-10px)', display: 'inline-block', fontWeight: '700', width: '100%', textAlign: 'right' }}>
+                          {u.user.name.split(' ')[0]}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -407,94 +430,96 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
           </div>
         </div>
 
-        {/* Coluna Direita: Métricas Gerais (35% width) */}
+        {/* Coluna Direita: Métricas Gerais (40% width) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', minWidth: 0 }}>
-          <div className="dash-card">
-            <div className="dash-card-header">
+          <div className="dash-card" style={{ padding: '1.5rem' }}>
+            <div className="dash-card-header" style={{ marginBottom: '1.25rem' }}>
               <BarChart2 size={18} />
               <h3>Progresso por Semana</h3>
             </div>
-            <div className="week-bars" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {byWeek.map(({ week, total, done, pct }) => (
-                <div key={week} className="week-row-prime">
-                  <span className="week-label-prime">{week}</span>
-                  <div className="week-prog-prime">
+            <div className="week-bars" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {byWeek.length > 0 ? byWeek.map(({ week, total, done, pct }) => (
+                <div key={week} className="week-row-prime" style={{ padding: '4px 0' }}>
+                  <span className="week-label-prime" style={{ minWidth: '75px', fontSize: '0.8rem' }}>{week}</span>
+                  <div className="week-prog-prime" style={{ height: '16px', borderRadius: '8px' }}>
                     <div
                       className="week-fill-prime"
                       style={{
                         width: `${pct}%`,
+                        borderRadius: '8px',
                         background: pct === 100 ? 'linear-gradient(90deg, #059669, #10b981)' : pct >= 50 ? 'linear-gradient(90deg, #2563eb, #3b82f6)' : 'linear-gradient(90deg, #d97706, #f59e0b)'
                       }}
                     />
                   </div>
-                  <div className="week-meta-prime">
-                    <span className="week-nums-prime">{done}/{total}</span>
-                    <span className="week-pct-prime">{pct}%</span>
+                  <div className="week-meta-prime" style={{ minWidth: '95px' }}>
+                    <span className="week-nums-prime" style={{ fontSize: '0.75rem' }}>{done}/{total}</span>
+                    <span className="week-pct-prime" style={{ fontSize: '0.85rem', minWidth: '38px', textAlign: 'right' }}>{pct}%</span>
                   </div>
                 </div>
-              ))}
+              )) : <p className="empty-state-msg">Sem dados semanais.</p>}
             </div>
           </div>
 
-          <div className="dash-card">
-            <div className="monthly-chart-section">
-              <h4 className="chart-title-sm">Desempenho Anual (Fiscal Year 26/27)</h4>
-              <div className="monthly-scroll-wrap">
-                <div className="monthly-grid-new">
-                  {(() => {
-                    const globalMax = Math.max(...monthlyData.flatMap(m => [m.plano, m.real, m.extra]), 1);
-                    return monthlyData.map(m => (
-                      <div key={m.month} className="monthly-col-new">
-                        <div className="monthly-bars-new">
-                          {(m.plano > 0 || m.real > 0 || m.extra > 0) ? (
-                            <>
-                              {m.plano > 0 && (
-                                <div className="m-bar-wrap">
-                                  <span className="m-bar-lbl">{m.plano}</span>
-                                  <div className="m-bar-new" style={{ 
-                                    height: `${(m.plano / globalMax) * 100}%`, 
-                                    background: 'linear-gradient(to bottom, #94a3b8, #64748b)' 
-                                  }} />
-                                </div>
-                              )}
-                              {m.real > 0 && (
-                                <div className="m-bar-wrap">
-                                  <span className="m-bar-lbl">{m.real}</span>
-                                  <div className="m-bar-new" style={{ 
-                                    height: `${(m.real / globalMax) * 100}%`, 
-                                    background: 'linear-gradient(to bottom, #3b82f6, #2563eb)' 
-                                  }} />
-                                </div>
-                              )}
-                              {m.extra > 0 && (
-                                <div className="m-bar-wrap">
-                                  <span className="m-bar-lbl">{m.extra}</span>
-                                  <div className="m-bar-new" style={{ 
-                                    height: `${(m.extra / globalMax) * 100}%`, 
-                                    background: 'linear-gradient(to bottom, #f59e0b, #d97706)' 
-                                  }} />
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                             <div style={{ height: '100px', width: '32px', borderBottom: '1px solid rgba(255,255,255,0.05)' }} />
-                          )}
-                        </div>
-                        <span className="month-lbl-new">{m.month.split('/')[0].toUpperCase()}</span>
+          <div className="dash-card" style={{ padding: '1.5rem' }}>
+            <div className="monthly-chart-section" style={{ marginTop: 0 }}>
+              <h4 className="chart-title-sm" style={{ marginBottom: '1.5rem', fontSize: '0.875rem', fontWeight: '700', color: 'var(--text-primary)' }}>Desempenho Anual (FY 26/27)</h4>
+              <div className="monthly-scroll-wrap" style={{ overflow: 'visible' }}>
+                <div className="monthly-grid-new" style={{ gap: '0.75rem', justifyContent: 'space-between' }}>
+                  {monthlyData.map(m => (
+                    <div key={m.month} className="monthly-col-new" style={{ flex: 1 }}>
+                      <div className="monthly-bars-new" style={{ height: '120px', gap: '2px' }}>
+                        {(m.plano > 0 || m.real > 0 || m.extra > 0) ? (
+                          <>
+                            {m.plano > 0 && (
+                              <div className="m-bar-wrap">
+                                <span className="m-bar-lbl" style={{ fontSize: '0.55rem' }}>{m.plano}</span>
+                                <div className="m-bar-new" style={{ 
+                                  width: '10px',
+                                  height: `${(m.plano / Math.max(...monthlyData.flatMap(d => [d.plano, d.real, d.extra]), 1)) * 100}%`, 
+                                  background: 'linear-gradient(to bottom, #94a3b8, #64748b)' 
+                                }} />
+                              </div>
+                            )}
+                            {m.real > 0 && (
+                              <div className="m-bar-wrap">
+                                <span className="m-bar-lbl" style={{ fontSize: '0.55rem' }}>{m.real}</span>
+                                <div className="m-bar-new" style={{ 
+                                  width: '10px',
+                                  height: `${(m.real / Math.max(...monthlyData.flatMap(d => [d.plano, d.real, d.extra]), 1)) * 100}%`, 
+                                  background: 'linear-gradient(to bottom, #3b82f6, #2563eb)' 
+                                }} />
+                              </div>
+                            )}
+                            {m.extra > 0 && (
+                              <div className="m-bar-wrap">
+                                <span className="m-bar-lbl" style={{ fontSize: '0.55rem' }}>{m.extra}</span>
+                                <div className="m-bar-new" style={{ 
+                                  width: '10px',
+                                  height: `${(m.extra / Math.max(...monthlyData.flatMap(d => [d.plano, d.real, d.extra]), 1)) * 100}%`, 
+                                  background: 'linear-gradient(to bottom, #f59e0b, #d97706)' 
+                                }} />
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                           <div style={{ height: '1px', width: '100%', background: 'rgba(255,255,255,0.05)' }} />
+                        )}
                       </div>
-                    ));
-                  })()}
+                      <span className="month-lbl-new" style={{ fontSize: '0.6rem', marginTop: '8px' }}>{m.month.split('/')[0].toUpperCase()}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="chart-legend-new">
-                <span className="leg-item"><span className="leg-dot" style={{ background: '#94a3b8' }} /> Plano</span>
-                <span className="leg-item"><span className="leg-dot" style={{ background: '#3b82f6' }} /> Real</span>
-                <span className="leg-item"><span className="leg-dot" style={{ background: '#f59e0b' }} /> Extra Fluxo</span>
+              <div className="chart-legend-new" style={{ marginTop: '1.5rem', paddingTop: '1rem', gap: '1rem' }}>
+                <span className="leg-item" style={{ fontSize: '0.7rem' }}><span className="leg-dot" style={{ width: '8px', height: '8px', background: '#94a3b8' }} /> Plano</span>
+                <span className="leg-item" style={{ fontSize: '0.7rem' }}><span className="leg-dot" style={{ width: '8px', height: '8px', background: '#3b82f6' }} /> Real</span>
+                <span className="leg-item" style={{ fontSize: '0.7rem' }}><span className="leg-dot" style={{ width: '8px', height: '8px', background: '#f59e0b' }} /> Extra</span>
               </div>
             </div>
           </div>
         </div>
       </div>
+
 
       {isAdminOrGestao && (
         <div className="management-insights">
