@@ -264,7 +264,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
           <Users size={18} />
           <h3>Performance por Analista</h3>
         </div>
-        <div className="analyst-bar-chart" style={{ justifyContent: byUser.length <= 10 ? 'center' : 'flex-start' }}>
+        <div className="analyst-bar-chart" style={{ justifyContent: byUser.length <= 12 ? 'space-around' : 'flex-start', paddingLeft: '2rem', paddingRight: '2rem' }}>
           {byUser.map(({ user, total, done, pct }) => (
             <div key={user.id} className="analyst-bar-col">
               <span className="analyst-bar-pct">{pct}%</span>
@@ -294,7 +294,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
         {/* Coluna Esquerda: Gráfico de Linhas (65% width) */}
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
-          <div className="dash-card">
+          <div className="dash-card" style={{ height: '100%' }}>
             <div className="dash-card-header">
               <TrendingUp size={18} />
               <h3>% de Atividades com Prioridade Alta</h3>
