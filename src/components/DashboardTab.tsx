@@ -193,7 +193,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
     ];
     
     // Busca flexível pelo tema de Extra Fluxo (considera qualquer tema com 'extra')
-    const extraFlowThemes = themes.filter(t => t.name.toLowerCase().includes('extra')).map(t => t.id);
+    const extraFlowThemes = themes.filter(t => t.name.toLowerCase().includes('extra fluxo')).map(t => t.id);
     
     // Gráfico de Analistas: Filtramos conforme solicitado pelo usuário
     const analystActivities = activities.filter(a => {
