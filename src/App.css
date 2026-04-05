@@ -2632,15 +2632,15 @@
 
 .monthly-grid-new {
   display: flex;
-  gap: 0.75rem;
-  min-width: 780px;
+  gap: 0.5rem;
+  justify-content: flex-start;
   align-items: flex-end;
-  padding: 2rem 0 0 0;
+  padding: 1.5rem 0 0 0;
 }
 
 .m-bar-new {
-  width: 22px;
-  border-radius: 6px 6px 0 0;
+  width: 16px;
+  border-radius: 4px 4px 0 0;
   min-height: 4px;
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -2876,12 +2876,11 @@
   gap: 12px;
 }
 
-.monthly-bars {
+.monthly-bars-new {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
+  gap: 3px;
   height: 180px;
-  width: 100%;
   justify-content: center;
 }
 
