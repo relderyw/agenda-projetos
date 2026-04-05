@@ -259,184 +259,189 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
         <KpiCard icon={<TrendingUp size={24} />} color="purple" label="Performance" value={`${stats.avgProgress}%`} />
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(0, 1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
+        
+        {/* Coluna Esquerda: Analistas (65% width) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', minWidth: 0 }}>
           <div className="dash-card">
             <div className="dash-card-header">
-            <Users size={18} />
-            <h3>Performance por Analista</h3>
-          </div>
-          <div className="analyst-bar-chart">
-            {byUser.map(({ user, total, done, pct, doneHighPrio, pctHighPrio }) => (
-              <div key={user.id} className="analyst-bar-col">
-                <span className="analyst-bar-pct">{pct}%</span>
-                <div className="analyst-bar-track">
-                  <div
-                    className="analyst-bar-fill"
-                    style={{ height: `${pct}%`, background: user.color }}
-                  />
-                </div>
-                <div className="analyst-bar-avatar" style={{ background: user.color }}>
-                  {user.name[0]}
-                </div>
-                <span className="analyst-bar-name">{user.name.split(' ')[0]}</span>
-                <span className="analyst-bar-total">{done}/{total}</span>
-              </div>
-            ))}
-            {byUser.length === 0 && <p className="empty-state-msg">Nenhum analista no período.</p>}
-          </div>
-          <div className="analyst-legend">
-            <span className="leg-item"><span className="leg-dot" style={{background:'#64748b'}} /> Total</span>
-            <span className="leg-item"><span className="leg-dot" style={{background:'var(--primary-color)'}} /> Concluído</span>
-          </div>
-        </div>
-
-        <div className="dash-card">
-          <div className="dash-card-header">
-            <TrendingUp size={18} />
-            <h3>% de Atividades com Prioridade Alta</h3>
-          </div>
-          <div style={{ width: '100%', height: '220px', position: 'relative', marginTop: '1rem', paddingBottom: '30px' }}>
-            {byUser.length > 0 ? (
-              <>
-                <svg width="100%" height="100%" viewBox="0 0 1000 200" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-                  {/* Linhas de grade horizontais */}
-                  <line x1="0" y1="50" x2="1000" y2="50" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
-                  <line x1="0" y1="100" x2="1000" y2="100" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
-                  <line x1="0" y1="150" x2="1000" y2="150" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
-                  
-                  {/* Linha Principal do Gráfico */}
-                  <polyline 
-                    points={byUser.map((u, i) => `${(i + 0.5) * (1000 / byUser.length)},${200 - (u.pctHighPrio / 100 * 160) - 20}`).join(' ')} 
-                    fill="none" 
-                    stroke="#ef4444" 
-                    strokeWidth="3" 
-                    vectorEffect="non-scaling-stroke" 
-                  />
-                </svg>
-
-                {/* Pontos sobre a linha e Rótulos */}
-                <div style={{ position: 'absolute', inset: 0, paddingBottom: '30px' }}>
-                  {byUser.map((u, i) => {
-                    const xPct = ((i + 0.5) / byUser.length) * 100;
-                    const yPct = ((200 - (u.pctHighPrio / 100 * 160) - 20) / 200) * 100;
-                    return (
-                      <div key={u.user.id}>
-                        {/* Círculo do ponto */}
-                        <div 
-                          style={{
-                            position: 'absolute',
-                            left: `${xPct}%`,
-                            top: `${yPct}%`,
-                            transform: 'translate(-50%, -50%)',
-                            width: '10px', height: '10px',
-                            borderRadius: '50%',
-                            background: '#1e293b',
-                            border: '2px solid #ef4444',
-                            zIndex: 2,
-                            boxShadow: '0 0 4px rgba(0,0,0,0.5)'
-                          }}
-                        />
-                        {/* Rótulo de Valor */}
-                        <span 
-                          style={{ 
-                            position: 'absolute', 
-                            left: `${xPct}%`, 
-                            top: `calc(${yPct}% - 22px)`,
-                            transform: 'translateX(-50%)',
-                            color: '#ef4444', 
-                            fontWeight: 'bold', 
-                            fontSize: '0.75rem',
-                            textShadow: '0 2px 4px rgba(0,0,0,0.8)'
-                          }}
-                        >
-                          {u.pctHighPrio}%
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Nomes Eixo X */}
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', height: '30px', alignItems: 'center' }}>
-                  {byUser.map((u) => (
-                    <div key={u.user.id} style={{ flex: 1, textAlign: 'center', fontSize: '9px', color: 'var(--text-muted)', whiteSpace: 'nowrap', padding: '0 2px' }}>
-                      <div style={{ transform: 'rotate(-20deg)', display: 'inline-block' }}>{u.user.name.split(' ')[0]}</div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <p className="empty-state-msg">Sem dados suficientes para o gráfico.</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="dash-two-col">
-        <div className="dash-card">
-          <div className="dash-card-header">
-            <BarChart2 size={18} />
-            <h3>Progresso por Semana</h3>
-          </div>
-          <div className="week-bars">
-            {byWeek.map(({ week, total, done, pct }) => (
-              <div key={week} className="week-row">
-                <span className="week-label">{week}</span>
-                <div className="prog-bar week-prog">
-                  <div
-                    className="prog-fill"
-                    style={{
-                      width: `${pct}%`,
-                      background: pct === 100 ? '#10b981' : pct >= 50 ? '#3b82f6' : '#f59e0b'
-                    }}
-                  />
-                </div>
-                <span className="week-nums">{done}/{total}</span>
-                <span className="week-pct">{pct}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="dash-card">
-          <div className="monthly-chart-section">
-            <h4 className="chart-title-sm">Desempenho Anual (Fiscal Year 26/27)</h4>
-            <div className="monthly-scroll-wrap">
-              <div className="monthly-grid-new">
-                {(() => {
-                  const globalMax = Math.max(...monthlyData.flatMap(m => [m.plano, m.real, m.extra]), 1);
-                  return monthlyData.map(m => (
-                    <div key={m.month} className="monthly-col-new">
-                      <div className="monthly-bars-new">
-                        {m.plano > 0 && (
-                          <div className="m-bar-wrap" title={`Plano: ${m.plano}`}>
-                            <span className="m-bar-lbl">{m.plano}</span>
-                            <div className="m-bar-new" style={{ height: `${(m.plano / globalMax) * 100}%`, backgroundColor: '#94a3b8' }} />
-                          </div>
-                        )}
-                        {m.real > 0 && (
-                          <div className="m-bar-wrap" title={`Real: ${m.real}`}>
-                            <span className="m-bar-lbl">{m.real}</span>
-                            <div className="m-bar-new" style={{ height: `${(m.real / globalMax) * 100}%`, backgroundColor: '#3b82f6' }} />
-                          </div>
-                        )}
-                        {m.extra > 0 && (
-                          <div className="m-bar-wrap" title={`Extra Fluxo: ${m.extra}`}>
-                            <span className="m-bar-lbl">{m.extra}</span>
-                            <div className="m-bar-new" style={{ height: `${(m.extra / globalMax) * 100}%`, backgroundColor: '#f59e0b' }} />
-                          </div>
-                        )}
-                      </div>
-                      <span className="month-lbl-new">{m.month}</span>
-                    </div>
-                  ));
-                })()}
-              </div>
+              <Users size={18} />
+              <h3>Performance por Analista</h3>
             </div>
-            <div className="chart-legend-new">
-              <span className="leg-item"><span className="leg-dot" style={{ background: '#94a3b8' }} /> Plano</span>
-              <span className="leg-item"><span className="leg-dot" style={{ background: '#3b82f6' }} /> Real</span>
-              <span className="leg-item"><span className="leg-dot" style={{ background: '#f59e0b' }} /> Extra Fluxo</span>
+            <div className="analyst-bar-chart" style={{ justifyContent: byUser.length <= 10 ? 'center' : 'flex-start' }}>
+              {byUser.map(({ user, total, done, pct }) => (
+                <div key={user.id} className="analyst-bar-col">
+                  <span className="analyst-bar-pct">{pct}%</span>
+                  <div className="analyst-bar-track">
+                    <div
+                      className="analyst-bar-fill"
+                      style={{ height: `${pct}%`, background: user.color }}
+                    />
+                  </div>
+                  <div className="analyst-bar-avatar" style={{ background: user.color }}>
+                    {user.name[0]}
+                  </div>
+                  <span className="analyst-bar-name">{user.name.split(' ')[0]}</span>
+                  <span className="analyst-bar-total">{done}/{total}</span>
+                </div>
+              ))}
+              {byUser.length === 0 && <p className="empty-state-msg">Nenhum analista no período.</p>}
+            </div>
+            <div className="analyst-legend">
+              <span className="leg-item"><span className="leg-dot" style={{background:'#64748b'}} /> Total</span>
+              <span className="leg-item"><span className="leg-dot" style={{background:'var(--primary-color)'}} /> Concluído</span>
+            </div>
+          </div>
+
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <TrendingUp size={18} />
+              <h3>% de Atividades com Prioridade Alta</h3>
+            </div>
+            <div style={{ width: '100%', height: '220px', position: 'relative', marginTop: '1rem', paddingBottom: '30px' }}>
+              {byUser.length > 0 ? (
+                <>
+                  <svg width="100%" height="100%" viewBox="0 0 1000 200" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+                    {/* Linhas de grade horizontais */}
+                    <line x1="0" y1="50" x2="1000" y2="50" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
+                    <line x1="0" y1="100" x2="1000" y2="100" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
+                    <line x1="0" y1="150" x2="1000" y2="150" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
+                    
+                    {/* Linha Principal do Gráfico */}
+                    <polyline 
+                      points={byUser.map((u, i) => `${(i + 0.5) * (1000 / byUser.length)},${200 - (u.pctHighPrio / 100 * 160) - 20}`).join(' ')} 
+                      fill="none" 
+                      stroke="#ef4444" 
+                      strokeWidth="3" 
+                      vectorEffect="non-scaling-stroke" 
+                    />
+                  </svg>
+
+                  {/* Pontos sobre a linha e Rótulos */}
+                  <div style={{ position: 'absolute', inset: 0, paddingBottom: '30px' }}>
+                    {byUser.map((u, i) => {
+                      const xPct = ((i + 0.5) / byUser.length) * 100;
+                      const yPct = ((200 - (u.pctHighPrio / 100 * 160) - 20) / 200) * 100;
+                      return (
+                        <div key={u.user.id}>
+                          {/* Círculo do ponto */}
+                          <div 
+                            style={{
+                              position: 'absolute',
+                              left: `${xPct}%`,
+                              top: `${yPct}%`,
+                              transform: 'translate(-50%, -50%)',
+                              width: '10px', height: '10px',
+                              borderRadius: '50%',
+                              background: '#1e293b',
+                              border: '2px solid #ef4444',
+                              zIndex: 2,
+                              boxShadow: '0 0 4px rgba(0,0,0,0.5)'
+                            }}
+                          />
+                          {/* Rótulo de Valor */}
+                          <span 
+                            style={{ 
+                              position: 'absolute', 
+                              left: `${xPct}%`, 
+                              top: `calc(${yPct}% - 22px)`,
+                              transform: 'translateX(-50%)',
+                              color: '#ef4444', 
+                              fontWeight: 'bold', 
+                              fontSize: '0.75rem',
+                              textShadow: '0 2px 4px rgba(0,0,0,0.8)'
+                            }}
+                          >
+                            {u.pctHighPrio}%
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Nomes Eixo X */}
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', height: '30px', alignItems: 'center' }}>
+                    {byUser.map((u) => (
+                      <div key={u.user.id} style={{ flex: 1, textAlign: 'center', fontSize: '9px', color: 'var(--text-muted)', whiteSpace: 'nowrap', padding: '0 2px' }}>
+                        <div style={{ transform: 'rotate(-20deg)', display: 'inline-block' }}>{u.user.name.split(' ')[0]}</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="empty-state-msg">Sem dados suficientes para o gráfico.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Coluna Direita: Métricas Gerais (35% width) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', minWidth: 0 }}>
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <BarChart2 size={18} />
+              <h3>Progresso por Semana</h3>
+            </div>
+            <div className="week-bars">
+              {byWeek.map(({ week, total, done, pct }) => (
+                <div key={week} className="week-row">
+                  <span className="week-label">{week}</span>
+                  <div className="prog-bar week-prog">
+                    <div
+                      className="prog-fill"
+                      style={{
+                        width: `${pct}%`,
+                        background: pct === 100 ? '#10b981' : pct >= 50 ? '#3b82f6' : '#f59e0b'
+                      }}
+                    />
+                  </div>
+                  <span className="week-nums">{done}/{total}</span>
+                  <span className="week-pct">{pct}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="dash-card">
+            <div className="monthly-chart-section">
+              <h4 className="chart-title-sm">Desempenho Anual (Fiscal Year 26/27)</h4>
+              <div className="monthly-scroll-wrap">
+                <div className="monthly-grid-new">
+                  {(() => {
+                    const globalMax = Math.max(...monthlyData.flatMap(m => [m.plano, m.real, m.extra]), 1);
+                    return monthlyData.map(m => (
+                      <div key={m.month} className="monthly-col-new">
+                        <div className="monthly-bars-new">
+                          {m.plano > 0 && (
+                            <div className="m-bar-wrap" title={`Plano: ${m.plano}`}>
+                              <span className="m-bar-lbl">{m.plano}</span>
+                              <div className="m-bar-new" style={{ height: `${(m.plano / globalMax) * 100}%`, backgroundColor: '#94a3b8' }} />
+                            </div>
+                          )}
+                          {m.real > 0 && (
+                            <div className="m-bar-wrap" title={`Real: ${m.real}`}>
+                              <span className="m-bar-lbl">{m.real}</span>
+                              <div className="m-bar-new" style={{ height: `${(m.real / globalMax) * 100}%`, backgroundColor: '#3b82f6' }} />
+                            </div>
+                          )}
+                          {m.extra > 0 && (
+                            <div className="m-bar-wrap" title={`Extra Fluxo: ${m.extra}`}>
+                              <span className="m-bar-lbl">{m.extra}</span>
+                              <div className="m-bar-new" style={{ height: `${(m.extra / globalMax) * 100}%`, backgroundColor: '#f59e0b' }} />
+                            </div>
+                          )}
+                        </div>
+                        <span className="month-lbl-new">{m.month}</span>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+              <div className="chart-legend-new">
+                <span className="leg-item"><span className="leg-dot" style={{ background: '#94a3b8' }} /> Plano</span>
+                <span className="leg-item"><span className="leg-dot" style={{ background: '#3b82f6' }} /> Real</span>
+                <span className="leg-item"><span className="leg-dot" style={{ background: '#f59e0b' }} /> Extra Fluxo</span>
+              </div>
             </div>
           </div>
         </div>
