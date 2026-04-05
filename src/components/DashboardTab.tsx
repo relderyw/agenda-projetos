@@ -446,32 +446,38 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                     return monthlyData.map(m => (
                       <div key={m.month} className="monthly-col-new">
                         <div className="monthly-bars-new">
-                          {m.plano > 0 && (
-                            <div className="m-bar-wrap" title={`Plano: ${m.plano}`}>
-                              <span className="m-bar-lbl">{m.plano}</span>
-                              <div className="m-bar-new" style={{ 
-                                height: `${(m.plano / globalMax) * 100}%`, 
-                                background: 'linear-gradient(to bottom, #94a3b8, #64748b)' 
-                              }} />
-                            </div>
-                          )}
-                          {m.real > 0 && (
-                            <div className="m-bar-wrap" title={`Real: ${m.real}`}>
-                              <span className="m-bar-lbl">{m.real}</span>
-                              <div className="m-bar-new" style={{ 
-                                height: `${(m.real / globalMax) * 100}%`, 
-                                background: 'linear-gradient(to bottom, #3b82f6, #2563eb)' 
-                              }} />
-                            </div>
-                          )}
-                          {m.extra > 0 && (
-                            <div className="m-bar-wrap" title={`Extra Fluxo: ${m.extra}`}>
-                              <span className="m-bar-lbl">{m.extra}</span>
-                              <div className="m-bar-new" style={{ 
-                                height: `${(m.extra / globalMax) * 100}%`, 
-                                background: 'linear-gradient(to bottom, #f59e0b, #d97706)' 
-                              }} />
-                            </div>
+                          {(m.plano > 0 || m.real > 0 || m.extra > 0) ? (
+                            <>
+                              {m.plano > 0 && (
+                                <div className="m-bar-wrap">
+                                  <span className="m-bar-lbl">{m.plano}</span>
+                                  <div className="m-bar-new" style={{ 
+                                    height: `${(m.plano / globalMax) * 100}%`, 
+                                    background: 'linear-gradient(to bottom, #94a3b8, #64748b)' 
+                                  }} />
+                                </div>
+                              )}
+                              {m.real > 0 && (
+                                <div className="m-bar-wrap">
+                                  <span className="m-bar-lbl">{m.real}</span>
+                                  <div className="m-bar-new" style={{ 
+                                    height: `${(m.real / globalMax) * 100}%`, 
+                                    background: 'linear-gradient(to bottom, #3b82f6, #2563eb)' 
+                                  }} />
+                                </div>
+                              )}
+                              {m.extra > 0 && (
+                                <div className="m-bar-wrap">
+                                  <span className="m-bar-lbl">{m.extra}</span>
+                                  <div className="m-bar-new" style={{ 
+                                    height: `${(m.extra / globalMax) * 100}%`, 
+                                    background: 'linear-gradient(to bottom, #f59e0b, #d97706)' 
+                                  }} />
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                             <div style={{ height: '100px', width: '32px', borderBottom: '1px solid rgba(255,255,255,0.05)' }} />
                           )}
                         </div>
                         <span className="month-lbl-new">{m.month.split('/')[0].toUpperCase()}</span>
