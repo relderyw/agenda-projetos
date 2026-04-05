@@ -299,100 +299,103 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
         {/* Coluna Esquerda: Gráfico de Linhas (65% width) */}
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
-          <div className="dash-card" style={{ height: '100%' }}>
+          <div className="dash-card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <div className="dash-card-header">
               <TrendingUp size={18} />
               <h3>% de Atividades com Prioridade Alta</h3>
             </div>
-            <div style={{ width: '100%', height: '300px', position: 'relative', marginTop: '1rem', paddingBottom: '30px' }}>
+            <div style={{ flex: 1, minHeight: '420px', position: 'relative', marginTop: '1.5rem', display: 'flex', flexDirection: 'column' }}>
               {byUser.length > 0 ? (
                 <>
-                  <svg width="100%" height="100%" viewBox="0 0 1000 300" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-                    <defs>
-                      <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="#ef4444" stopOpacity="0.0" />
-                      </linearGradient>
-                      <filter id="glow">
-                        <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                        <feMerge>
-                          <feMergeNode in="coloredBlur" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                    </defs>
+                  <div style={{ flex: 1, position: 'relative', minHeight: '340px' }}>
+                    <svg width="100%" height="100%" viewBox="0 0 1000 400" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+                      <defs>
+                        <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" />
+                          <stop offset="100%" stopColor="#ef4444" stopOpacity="0.0" />
+                        </linearGradient>
+                        <filter id="glow">
+                          <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                          <feMerge>
+                            <feMergeNode in="coloredBlur" />
+                            <feMergeNode in="SourceGraphic" />
+                          </feMerge>
+                        </filter>
+                      </defs>
 
-                    {/* Linhas de grade horizontais */}
-                    <line x1="0" y1="75" x2="1000" y2="75" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
-                    <line x1="0" y1="150" x2="1000" y2="150" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
-                    <line x1="0" y1="225" x2="1000" y2="225" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
-                    
-                    {/* Área Preenchida */}
-                    <path
-                      d={`M ${(0.5) * (1000 / byUser.length)},300 ` + 
-                         byUser.map((u, i) => `L ${(i + 0.5) * (1000 / byUser.length)},${300 - (u.pctHighPrio / 100 * 250) - 25}`).join(' ') +
-                         ` L ${(byUser.length - 0.5) * (1000 / byUser.length)},300 Z`}
-                      fill="url(#areaGradient)"
-                    />
+                      {/* Linhas de grade horizontais */}
+                      <line x1="0" y1="100" x2="1000" y2="100" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
+                      <line x1="0" y1="200" x2="1000" y2="200" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
+                      <line x1="0" y1="300" x2="1000" y2="300" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
+                      
+                      {/* Área Preenchida */}
+                      <path
+                        d={`M ${(0.5) * (1000 / byUser.length)},400 ` + 
+                           byUser.map((u, i) => `L ${(i + 0.5) * (1000 / byUser.length)},${400 - (u.pctHighPrio / 100 * 320) - 40}`).join(' ') +
+                           ` L ${(byUser.length - 0.5) * (1000 / byUser.length)},400 Z`}
+                        fill="url(#areaGradient)"
+                      />
 
-                    {/* Linha Principal do Gráfico */}
-                    <polyline 
-                      points={byUser.map((u, i) => `${(i + 0.5) * (1000 / byUser.length)},${300 - (u.pctHighPrio / 100 * 250) - 25}`).join(' ')} 
-                      fill="none" 
-                      stroke="#ef4444" 
-                      strokeWidth="3" 
-                      filter="url(#glow)"
-                      vectorEffect="non-scaling-stroke" 
-                    />
-                  </svg>
+                      {/* Linha Principal do Gráfico */}
+                      <polyline 
+                        points={byUser.map((u, i) => `${(i + 0.5) * (1000 / byUser.length)},${400 - (u.pctHighPrio / 100 * 320) - 40}`).join(' ')} 
+                        fill="none" 
+                        stroke="#ef4444" 
+                        strokeWidth="3" 
+                        filter="url(#glow)"
+                        vectorEffect="non-scaling-stroke" 
+                      />
+                    </svg>
 
-                  {/* Pontos sobre a linha e Rótulos */}
-                  <div style={{ position: 'absolute', inset: 0, paddingBottom: '30px' }}>
-                    {byUser.map((u, i) => {
-                      const xPct = ((i + 0.5) / byUser.length) * 100;
-                      const yPct = ((300 - (u.pctHighPrio / 100 * 250) - 25) / 300) * 100;
-                      return (
-                        <div key={u.user.id}>
-                          {/* Círculo do ponto */}
-                          <div 
-                            style={{
-                              position: 'absolute',
-                              left: `${xPct}%`,
-                              top: `${yPct}%`,
-                              transform: 'translate(-50%, -50%)',
-                              width: '10px', height: '10px',
-                              borderRadius: '50%',
-                              background: '#1e293b',
-                              border: '2px solid #ef4444',
-                              zIndex: 2,
-                              boxShadow: '0 0 4px rgba(0,0,0,0.5)'
-                            }}
-                          />
-                          {/* Rótulo de Valor */}
-                          <span 
-                            style={{ 
-                              position: 'absolute', 
-                              left: `${xPct}%`, 
-                              top: `calc(${yPct}% - 22px)`,
-                              transform: 'translateX(-50%)',
-                              color: '#ef4444', 
-                              fontWeight: 'bold', 
-                              fontSize: '0.75rem',
-                              textShadow: '0 2px 4px rgba(0,0,0,0.8)'
-                            }}
-                          >
-                            {u.pctHighPrio}%
-                          </span>
-                        </div>
-                      );
-                    })}
+                    {/* Pontos sobre a linha e Rótulos */}
+                    <div style={{ position: 'absolute', inset: 0 }}>
+                      {byUser.map((u, i) => {
+                        const xPct = ((i + 0.5) / byUser.length) * 100;
+                        const yVal = 400 - (u.pctHighPrio / 100 * 320) - 40;
+                        const yPct = (yVal / 400) * 100;
+                        return (
+                          <div key={u.user.id}>
+                            {/* Círculo do ponto */}
+                            <div 
+                              style={{
+                                position: 'absolute',
+                                left: `${xPct}%`,
+                                top: `${yPct}%`,
+                                transform: 'translate(-50%, -50%)',
+                                width: '10px', height: '10px',
+                                borderRadius: '50%',
+                                background: '#1e293b',
+                                border: '2px solid #ef4444',
+                                zIndex: 2,
+                                boxShadow: '0 0 4px rgba(0,0,0,0.5)'
+                              }}
+                            />
+                            {/* Rótulo de Valor */}
+                            <span 
+                              style={{ 
+                                position: 'absolute', 
+                                left: `${xPct}%`, 
+                                top: `calc(${yPct}% - 22px)`,
+                                transform: 'translateX(-50%)',
+                                color: '#ef4444', 
+                                fontWeight: 'bold', 
+                                fontSize: '0.75rem',
+                                textShadow: '0 2px 4px rgba(0,0,0,0.8)'
+                              }}
+                            >
+                              {u.pctHighPrio}%
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  {/* Nomes Eixo X */}
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', height: '30px', alignItems: 'center' }}>
+                  {/* Nomes Eixo X (Aproximado) */}
+                  <div style={{ display: 'flex', height: '50px', alignItems: 'center', marginTop: '10px' }}>
                     {byUser.map((u) => (
-                      <div key={u.user.id} style={{ flex: 1, textAlign: 'center', fontSize: '9px', color: 'var(--text-muted)', whiteSpace: 'nowrap', padding: '0 2px' }}>
-                        <div style={{ transform: 'rotate(-20deg)', display: 'inline-block' }}>{u.user.name.split(' ')[0]}</div>
+                      <div key={u.user.id} style={{ flex: 1, textAlign: 'center', fontSize: '10px', color: 'var(--text-muted)', whiteSpace: 'nowrap', padding: '0 2px' }}>
+                        <div style={{ transform: 'rotate(-25deg)', display: 'inline-block', fontWeight: '700' }}>{u.user.name.split(' ')[0]}</div>
                       </div>
                     ))}
                   </div>
