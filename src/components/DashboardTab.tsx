@@ -259,39 +259,40 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
         <KpiCard icon={<TrendingUp size={24} />} color="purple" label="Performance" value={`${stats.avgProgress}%`} />
       </div>
 
+      <div className="dash-card" style={{ marginBottom: '1.5rem' }}>
+        <div className="dash-card-header">
+          <Users size={18} />
+          <h3>Performance por Analista</h3>
+        </div>
+        <div className="analyst-bar-chart" style={{ justifyContent: byUser.length <= 10 ? 'center' : 'flex-start' }}>
+          {byUser.map(({ user, total, done, pct }) => (
+            <div key={user.id} className="analyst-bar-col">
+              <span className="analyst-bar-pct">{pct}%</span>
+              <div className="analyst-bar-track">
+                <div
+                  className="analyst-bar-fill"
+                  style={{ height: `${pct}%`, background: user.color }}
+                />
+              </div>
+              <div className="analyst-bar-avatar" style={{ background: user.color }}>
+                {user.name[0]}
+              </div>
+              <span className="analyst-bar-name">{user.name.split(' ')[0]}</span>
+              <span className="analyst-bar-total">{done}/{total}</span>
+            </div>
+          ))}
+          {byUser.length === 0 && <p className="empty-state-msg">Nenhum analista no período.</p>}
+        </div>
+        <div className="analyst-legend">
+          <span className="leg-item"><span className="leg-dot" style={{background:'#64748b'}} /> Total</span>
+          <span className="leg-item"><span className="leg-dot" style={{background:'var(--primary-color)'}} /> Concluído</span>
+        </div>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(0, 1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
         
-        {/* Coluna Esquerda: Analistas (65% width) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', minWidth: 0 }}>
-          <div className="dash-card">
-            <div className="dash-card-header">
-              <Users size={18} />
-              <h3>Performance por Analista</h3>
-            </div>
-            <div className="analyst-bar-chart" style={{ justifyContent: byUser.length <= 10 ? 'center' : 'flex-start' }}>
-              {byUser.map(({ user, total, done, pct }) => (
-                <div key={user.id} className="analyst-bar-col">
-                  <span className="analyst-bar-pct">{pct}%</span>
-                  <div className="analyst-bar-track">
-                    <div
-                      className="analyst-bar-fill"
-                      style={{ height: `${pct}%`, background: user.color }}
-                    />
-                  </div>
-                  <div className="analyst-bar-avatar" style={{ background: user.color }}>
-                    {user.name[0]}
-                  </div>
-                  <span className="analyst-bar-name">{user.name.split(' ')[0]}</span>
-                  <span className="analyst-bar-total">{done}/{total}</span>
-                </div>
-              ))}
-              {byUser.length === 0 && <p className="empty-state-msg">Nenhum analista no período.</p>}
-            </div>
-            <div className="analyst-legend">
-              <span className="leg-item"><span className="leg-dot" style={{background:'#64748b'}} /> Total</span>
-              <span className="leg-item"><span className="leg-dot" style={{background:'var(--primary-color)'}} /> Concluído</span>
-            </div>
-          </div>
+        {/* Coluna Esquerda: Gráfico de Linhas (65% width) */}
+        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
           <div className="dash-card">
             <div className="dash-card-header">
