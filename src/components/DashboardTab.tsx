@@ -299,18 +299,18 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
               <TrendingUp size={18} />
               <h3>% de Atividades com Prioridade Alta</h3>
             </div>
-            <div style={{ width: '100%', height: '220px', position: 'relative', marginTop: '1rem', paddingBottom: '30px' }}>
+            <div style={{ width: '100%', height: '300px', position: 'relative', marginTop: '1rem', paddingBottom: '30px' }}>
               {byUser.length > 0 ? (
                 <>
-                  <svg width="100%" height="100%" viewBox="0 0 1000 200" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+                  <svg width="100%" height="100%" viewBox="0 0 1000 300" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
                     {/* Linhas de grade horizontais */}
-                    <line x1="0" y1="50" x2="1000" y2="50" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
-                    <line x1="0" y1="100" x2="1000" y2="100" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
+                    <line x1="0" y1="75" x2="1000" y2="75" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
                     <line x1="0" y1="150" x2="1000" y2="150" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
+                    <line x1="0" y1="225" x2="1000" y2="225" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
                     
                     {/* Linha Principal do Gráfico */}
                     <polyline 
-                      points={byUser.map((u, i) => `${(i + 0.5) * (1000 / byUser.length)},${200 - (u.pctHighPrio / 100 * 160) - 20}`).join(' ')} 
+                      points={byUser.map((u, i) => `${(i + 0.5) * (1000 / byUser.length)},${300 - (u.pctHighPrio / 100 * 250) - 25}`).join(' ')} 
                       fill="none" 
                       stroke="#ef4444" 
                       strokeWidth="3" 
@@ -322,7 +322,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                   <div style={{ position: 'absolute', inset: 0, paddingBottom: '30px' }}>
                     {byUser.map((u, i) => {
                       const xPct = ((i + 0.5) / byUser.length) * 100;
-                      const yPct = ((200 - (u.pctHighPrio / 100 * 160) - 20) / 200) * 100;
+                      const yPct = ((300 - (u.pctHighPrio / 100 * 250) - 25) / 300) * 100;
                       return (
                         <div key={u.user.id}>
                           {/* Círculo do ponto */}
