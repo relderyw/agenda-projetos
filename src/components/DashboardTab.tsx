@@ -205,7 +205,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
       <div className="tab-header dashboard-header">
         <div>
           <h1 className="tab-title">Gestão de Resultados</h1>
-          <p className="tab-subtitle">Performance e Monitoramento Tático LSL</p>
+          <p className="tab-subtitle">Performance e Monitoramento</p>
         </div>
 
         <div className="dashboard-controls">
@@ -304,11 +304,11 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
               <TrendingUp size={18} />
               <h3>% de Atividades com Prioridade Alta</h3>
             </div>
-            <div style={{ flex: 1, minHeight: '420px', position: 'relative', marginTop: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, minHeight: '280px', position: 'relative', marginTop: '1rem', display: 'flex', flexDirection: 'column' }}>
               {byUser.length > 0 ? (
                 <>
-                  <div style={{ flex: 1, position: 'relative', minHeight: '340px' }}>
-                    <svg width="100%" height="100%" viewBox="0 0 1000 400" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+                  <div style={{ flex: 1, position: 'relative', minHeight: '200px' }}>
+                    <svg width="100%" height="100%" viewBox="0 0 1000 240" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
                       <defs>
                         <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" />
@@ -324,21 +324,21 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                       </defs>
 
                       {/* Linhas de grade horizontais */}
-                      <line x1="0" y1="100" x2="1000" y2="100" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
-                      <line x1="0" y1="200" x2="1000" y2="200" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
-                      <line x1="0" y1="300" x2="1000" y2="300" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
+                      <line x1="0" y1="60" x2="1000" y2="60" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
+                      <line x1="0" y1="120" x2="1000" y2="120" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
+                      <line x1="0" y1="180" x2="1000" y2="180" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
                       
                       {/* Área Preenchida */}
                       <path
-                        d={`M ${(0.5) * (1000 / byUser.length)},400 ` + 
-                           byUser.map((u, i) => `L ${(i + 0.5) * (1000 / byUser.length)},${400 - (u.pctHighPrio / 100 * 320) - 40}`).join(' ') +
-                           ` L ${(byUser.length - 0.5) * (1000 / byUser.length)},400 Z`}
+                        d={`M ${(0.5) * (1000 / byUser.length)},240 ` + 
+                           byUser.map((u, i) => `L ${(i + 0.5) * (1000 / byUser.length)},${240 - (u.pctHighPrio / 100 * 180) - 30}`).join(' ') +
+                           ` L ${(byUser.length - 0.5) * (1000 / byUser.length)},240 Z`}
                         fill="url(#areaGradient)"
                       />
 
                       {/* Linha Principal do Gráfico */}
                       <polyline 
-                        points={byUser.map((u, i) => `${(i + 0.5) * (1000 / byUser.length)},${400 - (u.pctHighPrio / 100 * 320) - 40}`).join(' ')} 
+                        points={byUser.map((u, i) => `${(i + 0.5) * (1000 / byUser.length)},${240 - (u.pctHighPrio / 100 * 180) - 30}`).join(' ')} 
                         fill="none" 
                         stroke="#ef4444" 
                         strokeWidth="3" 
@@ -351,8 +351,8 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                     <div style={{ position: 'absolute', inset: 0 }}>
                       {byUser.map((u, i) => {
                         const xPct = ((i + 0.5) / byUser.length) * 100;
-                        const yVal = 400 - (u.pctHighPrio / 100 * 320) - 40;
-                        const yPct = (yVal / 400) * 100;
+                        const yVal = 240 - (u.pctHighPrio / 100 * 180) - 30;
+                        const yPct = (yVal / 240) * 100;
                         return (
                           <div key={u.user.id}>
                             {/* Círculo do ponto */}
@@ -391,10 +391,10 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                     </div>
                   </div>
 
-                  {/* Nomes Eixo X (Aproximado) */}
-                  <div style={{ display: 'flex', height: '50px', alignItems: 'center', marginTop: '10px' }}>
+                  {/* Nomes Eixo X (Compacto) */}
+                  <div style={{ display: 'flex', height: '40px', alignItems: 'center', marginTop: '5px' }}>
                     {byUser.map((u) => (
-                      <div key={u.user.id} style={{ flex: 1, textAlign: 'center', fontSize: '10px', color: 'var(--text-muted)', whiteSpace: 'nowrap', padding: '0 2px' }}>
+                      <div key={u.user.id} style={{ flex: 1, textAlign: 'center', fontSize: '9px', color: 'var(--text-muted)', whiteSpace: 'nowrap', padding: '0 2px' }}>
                         <div style={{ transform: 'rotate(-25deg)', display: 'inline-block', fontWeight: '700' }}>{u.user.name.split(' ')[0]}</div>
                       </div>
                     ))}
