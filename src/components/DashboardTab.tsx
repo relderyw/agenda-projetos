@@ -192,11 +192,11 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
       { label: 'Mar/27', start: '2027-03-01', end: '2027-03-31' }
     ];
     
-    // Busca flexível pelo tema de Extra Fluxo
+    // Busca flexível pelo tema de Extra Fluxo (considera qualquer tema com 'extra')
     const extraFlowThemes = themes.filter(t => t.name.toLowerCase().includes('extra')).map(t => t.id);
     
-    // Filtramos apenas pelo usuário selecionado, ignorando as datas de filtro globais para o gráfico anual
-    const yearlyActivities = activities.filter(a => {
+    // Gráfico de Analistas: Filtramos conforme solicitado pelo usuário
+    const analystActivities = activities.filter(a => {
       const isAnalystAct = onlyAnalysts.some(u => u.id === a.responsavel);
       if (!isAnalystAct) return false;
       const matchUser = selectedUser === 'all' || a.responsavel === selectedUser;
@@ -204,9 +204,17 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
     });
 
     return months.map(m => {
-      const plano = yearlyActivities.filter(a => a.planejamento >= m.start && a.planejamento <= m.end).length;
-      const real = yearlyActivities.filter(a => a.status === 'FINALIZADA' && a.dataFinalizada && a.dataFinalizada >= m.start && a.dataFinalizada <= m.end).length;
-      const extra = yearlyActivities.filter(a => extraFlowThemes.includes(a.tema) && a.planejamento >= m.start && a.planejamento <= m.end).length;
+      const activitiesInMonth = analystActivities.filter(a => a.planejamento >= m.start && a.planejamento <= m.end);
+      
+      // Atividades 'Extra Fluxo' são as que pertencem aos temas identificados como Extra
+      const extra = activitiesInMonth.filter(a => extraFlowThemes.includes(a.tema)).length;
+      
+      // 'Plano' são as atividades totais MENOS as de Extra Fluxo (porque Extra não foi planejado)
+      const plano = activitiesInMonth.length - extra;
+      
+      // 'Real' são todas as finalizadas no mês (podem ser planejadas ou extras)
+      const real = analystActivities.filter(a => a.status === 'FINALIZADA' && a.dataFinalizada && a.dataFinalizada >= m.start && a.dataFinalizada <= m.end).length;
+      
       return { month: m.label, plano, real, extra };
     });
   }, [activities, themes, onlyAnalysts, selectedUser]);
@@ -473,11 +481,18 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
 
           <div className="dash-card" style={{ padding: '1rem' }}>
             <div className="monthly-chart-section" style={{ marginTop: 0 }}>
-              <h4 className="chart-title-sm" style={{ marginBottom: '1.25rem', fontSize: '0.85rem', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Desempenho Anual (FY 26/27)</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 className="chart-title-sm" style={{ margin: 0, fontSize: '0.85rem', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Desempenho Anual (FY 26/27)</h4>
+                <div className="chart-legend-new" style={{ display: 'flex', gap: '0.75rem', border: 'none', padding: 0, margin: 0 }}>
+                  <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#94a3b8', borderRadius: '2px' }} /> Plano</span>
+                  <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#3b82f6', borderRadius: '2px' }} /> Real</span>
+                  <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#f59e0b', borderRadius: '2px' }} /> Extra</span>
+                </div>
+              </div>
               <div className="monthly-scroll-wrap" style={{ overflow: 'visible', position: 'relative' }}>
                 {/* Linhas de fundo para referência */}
                 <div style={{ position: 'absolute', inset: '0 0 25px 0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none', zIndex: 0 }}>
-                  {[1, 2, 3, 4, 5, 6, 7].map(i => (
+                  {[1, 2, 3].map(i => (
                     <div key={i} style={{ width: '100%', height: '1px', borderTop: '1px dashed rgba(255,255,255,0.05)' }} />
                   ))}
                 </div>
@@ -487,7 +502,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                     const maxVal = Math.max(...monthlyData.flatMap(d => [d.plano, d.real, d.extra]), 1);
                     return monthlyData.map(m => (
                       <div key={m.month} className="monthly-col-new" style={{ flex: 1, minWidth: '40px' }}>
-                        <div className="monthly-bars-new" style={{ height: '240px', gap: '4px', alignItems: 'flex-end', justifyContent: 'center' }}>
+                        <div className="monthly-bars-new" style={{ height: '105px', gap: '4px', alignItems: 'flex-end', justifyContent: 'center' }}>
                           {(m.plano > 0 || m.real > 0 || m.extra > 0) ? (
                             <>
                               {m.plano > 0 && (
@@ -534,11 +549,6 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                     ));
                   })()}
                 </div>
-              </div>
-              <div className="chart-legend-new" style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
-                <span className="leg-item" style={{ fontSize: '0.7rem', opacity: 0.8 }}><span className="leg-dot" style={{ width: '8px', height: '8px', background: '#94a3b8', borderRadius: '2px' }} /> Plano</span>
-                <span className="leg-item" style={{ fontSize: '0.7rem', opacity: 0.8 }}><span className="leg-dot" style={{ width: '8px', height: '8px', background: '#3b82f6', borderRadius: '2px' }} /> Real</span>
-                <span className="leg-item" style={{ fontSize: '0.7rem', opacity: 0.8 }}><span className="leg-dot" style={{ width: '8px', height: '8px', background: '#f59e0b', borderRadius: '2px' }} /> Extra</span>
               </div>
             </div>
           </div>
