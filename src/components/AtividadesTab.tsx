@@ -181,7 +181,13 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
           const planDate = new Date(y, m - 1, d);
           if (!isNaN(planDate.getTime())) {
             const dayOfMonth = planDate.getDate();
-            const weekNum = Math.ceil(dayOfMonth / 7);
+            const firstDay = new Date(y, m - 1, 1);
+            const firstDayOfWeek = firstDay.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+            
+            // Ajuste para semana começando na Segunda-feira: Dom=6, Seg=0, Ter=1, Qua=2...
+            const offset = (firstDayOfWeek + 6) % 7; 
+            const weekNum = Math.ceil((dayOfMonth + offset) / 7);
+            
             const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
             a.week = `W${weekNum > 5 ? 5 : weekNum} - ${months[planDate.getMonth()]}`;
           }
@@ -449,15 +455,23 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
                   <div className="input-icon-wrap">
                     <Calendar size={15} />
                     <input type="date" value={form.planejamento} onChange={e => {
-                      const date = e.target.value;
-                      const d = new Date(date);
-                      const day = d.getUTCDate();
-                      let w = 'W1';
-                      if (day > 7) w = 'W2';
-                      if (day > 14) w = 'W3';
-                      if (day > 21) w = 'W4';
-                      const month = d.toLocaleString('pt-BR', { month: 'short' });
-                      setForm(f => ({ ...f, planejamento: date, week: `${w} - ${month}` }));
+                      const dateStr = e.target.value;
+                      if (!dateStr) return;
+                      const [y, m, d] = dateStr.split('-').map(Number);
+                      const planDate = new Date(y, m - 1, d);
+                      if (isNaN(planDate.getTime())) return;
+                      
+                      const dayOfMonth = planDate.getDate();
+                      const firstDay = new Date(y, m - 1, 1);
+                      const firstDayOfWeek = firstDay.getDay();
+                      const offset = (firstDayOfWeek + 6) % 7;
+                      const weekNum = Math.ceil((dayOfMonth + offset) / 7);
+                      
+                      const ptMonths = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+                      const w = `W${weekNum > 5 ? 5 : weekNum}`;
+                      const month = ptMonths[planDate.getMonth()];
+                      
+                      setForm(f => ({ ...f, planejamento: dateStr, week: `${w} - ${month}` }));
                     }} />
                   </div>
                 </div>

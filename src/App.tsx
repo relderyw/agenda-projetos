@@ -181,6 +181,49 @@ export default function App() {
     return () => { channel.unsubscribe(); };
   }, [currentUser]);
 
+  // --- Migration: Corrigir Labels de Semanas (Executa uma vez por sessão se houver discrepância) ---
+  const migrateWeeks = useCallback(async () => {
+    if (!currentUser || (currentUser.role !== 'Administrador' && currentUser.role !== 'Gestão')) return;
+    if ((window as any)._weeks_migrated) return;
+    (window as any)._weeks_migrated = true;
+
+    const getWeekOfMonthString = (dateStr: string) => {
+      if (!dateStr) return '';
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const date = new Date(y, m - 1, d);
+      if (isNaN(date.getTime())) return '';
+      const dayOfMonth = date.getDate();
+      const firstDay = new Date(y, m - 1, 1);
+      const firstDayOfWeek = firstDay.getDay();
+      const offset = (firstDayOfWeek + 6) % 7; 
+      const weekNum = Math.ceil((dayOfMonth + offset) / 7);
+      const ptMonths = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      return `W${weekNum > 5 ? 5 : weekNum} - ${ptMonths[date.getMonth()]}`;
+    };
+
+    const toUpdate = activities.filter(a => {
+      if (!a.planejamento) return false;
+      const correctWeek = getWeekOfMonthString(a.planejamento);
+      return a.week !== correctWeek;
+    });
+
+    if (toUpdate.length > 0) {
+      console.log(`[MIGRATION] Sincronizando ${toUpdate.length} atividades...`);
+      for (const a of toUpdate) {
+        const correctWeek = getWeekOfMonthString(a.planejamento);
+        await dbService.saveActivity({ ...a, week: correctWeek });
+      }
+      showToast('info', 'Correção de Calendário', `${toUpdate.length} atividades foram sincronizadas com o novo padrão semanal.`);
+      loadData();
+    }
+  }, [activities, currentUser, showToast, loadData]);
+
+  useEffect(() => {
+    if (activities.length > 0 && currentUser) {
+      migrateWeeks();
+    }
+  }, [activities.length, currentUser, migrateWeeks]);
+
   // ── Activities CRUD ──────────────────────────────────────
   const addActivity = async (a: Activity) => {
     if (!currentUser) return;
