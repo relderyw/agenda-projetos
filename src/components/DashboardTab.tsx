@@ -411,24 +411,23 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
               <BarChart2 size={18} />
               <h3>Progresso por Semana</h3>
             </div>
-            <div className="week-bars">
+            <div className="week-bars" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {byWeek.map(({ week, total, done, pct }) => (
-                <div key={week} className="week-row">
-                  <span className="week-label">{week}</span>
-                  <div className="prog-bar week-prog" style={{ height: '12px', background: 'rgba(255,255,255,0.05)' }}>
+                <div key={week} className="week-row-prime">
+                  <span className="week-label-prime">{week}</span>
+                  <div className="week-prog-prime">
                     <div
-                      className="prog-fill"
+                      className="week-fill-prime"
                       style={{
                         width: `${pct}%`,
-                        height: '100%',
-                        borderRadius: '6px',
-                        background: `linear-gradient(90deg, ${pct === 100 ? '#10b981' : pct >= 50 ? '#3b82f6' : '#f59e0b'}, rgba(255,255,255,0.2))`,
-                        boxShadow: '0 0 10px rgba(0,0,0,0.2)'
+                        background: pct === 100 ? 'linear-gradient(90deg, #059669, #10b981)' : pct >= 50 ? 'linear-gradient(90deg, #2563eb, #3b82f6)' : 'linear-gradient(90deg, #d97706, #f59e0b)'
                       }}
                     />
                   </div>
-                  <span className="week-nums">{done}/{total}</span>
-                  <span className="week-pct">{pct}%</span>
+                  <div className="week-meta-prime">
+                    <span className="week-nums-prime">{done}/{total}</span>
+                    <span className="week-pct-prime">{pct}%</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -490,38 +489,38 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
 
       {isAdminOrGestao && (
         <div className="management-insights">
-          <div className="dash-card insight-card">
+          <div className="dash-card insight-card" style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
             <div className="dash-card-header"><h3>Top Temas Atrasados</h3></div>
             <div className="ranking-list">
               {topLateThemes.length > 0 ? topLateThemes.map((t, i) => (
-                <div key={t.theme?.id} className="ranking-item">
-                  <span className="rank-num">{i+1}º</span>
-                  <span className="rank-name">{t.theme?.name}</span>
-                  <span className="rank-val red">{t.count} ativ.</span>
+                <div key={t.theme?.id} className="ranking-item-premium">
+                  <span className={`rank-badge-pill ${i < 3 ? `rank-${i+1}` : 'rank-other'}`}>{i+1}º</span>
+                  <span className="rank-name-prime">{t.theme?.name}</span>
+                  <span className="rank-val-prime" style={{ color: '#ef4444' }}>{t.count} ativ.</span>
                 </div>
               )) : <div className="empty-ranking-msg">✓ Nenhum tema com atraso identificado</div>}
             </div>
           </div>
-          <div className="dash-card insight-card">
-            <div className="dash-card-header"><h3>Gargalos por Analista (Atrasos)</h3></div>
+          <div className="dash-card insight-card" style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
+            <div className="dash-card-header"><h3>Gargalos por Analista</h3></div>
             <div className="ranking-list">
               {topLateUsers.length > 0 ? topLateUsers.map((u, i) => (
-                <div key={u.user?.id} className="ranking-item">
-                  <span className="rank-num">{i+1}º</span>
-                  <span className="rank-name">{u.user?.name}</span>
-                  <span className="rank-val orange">{u.count} atrasos</span>
+                <div key={u.user?.id} className="ranking-item-premium">
+                  <span className={`rank-badge-pill ${i < 3 ? `rank-${i+1}` : 'rank-other'}`}>{i+1}º</span>
+                  <span className="rank-name-prime">{u.user?.name}</span>
+                  <span className="rank-val-prime" style={{ color: '#f59e0b' }}>{u.count} atrasos</span>
                 </div>
               )) : <div className="empty-ranking-msg">✓ Todos os analistas em dia</div>}
             </div>
           </div>
-          <div className="dash-card insight-card">
-            <div className="dash-card-header"><h3>Top Performers (Entregas)</h3></div>
+          <div className="dash-card insight-card" style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
+            <div className="dash-card-header"><h3>Top Performers</h3></div>
             <div className="ranking-list">
               {topDeliveryUsers.length > 0 ? topDeliveryUsers.map((u, i) => (
-                <div key={u.user?.id} className="ranking-item">
-                  <span className="rank-num">{i+1}º</span>
-                  <span className="rank-name">{u.user?.name}</span>
-                  <span className="rank-val green">{u.count} finalizadas</span>
+                <div key={u.user?.id} className="ranking-item-premium">
+                  <span className={`rank-badge-pill ${i < 3 ? `rank-${i+1}` : 'rank-other'}`}>{i+1}º</span>
+                  <span className="rank-name-prime">{u.user?.name}</span>
+                  <span className="rank-val-prime" style={{ color: '#10b981' }}>{u.count} finalizadas</span>
                 </div>
               )) : <div className="empty-ranking-msg">Aguardando entregas...</div>}
             </div>
