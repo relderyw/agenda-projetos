@@ -462,58 +462,72 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
 
           <div className="dash-card" style={{ padding: '1rem' }}>
             <div className="monthly-chart-section" style={{ marginTop: 0 }}>
-              <h4 className="chart-title-sm" style={{ marginBottom: '1rem', fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-primary)' }}>Desempenho Anual (FY 26/27)</h4>
-              <div className="monthly-scroll-wrap" style={{ overflow: 'visible' }}>
-                <div className="monthly-grid-new" style={{ gap: '0.5rem', justifyContent: 'space-between' }}>
-                  {monthlyData.map(m => (
-                    <div key={m.month} className="monthly-col-new" style={{ flex: 1 }}>
-                      <div className="monthly-bars-new" style={{ height: '80px', gap: '2px' }}>
-                        {(m.plano > 0 || m.real > 0 || m.extra > 0) ? (
-                          <>
-                            {m.plano > 0 && (
-                              <div className="m-bar-wrap">
-                                <span className="m-bar-lbl" style={{ fontSize: '0.5rem' }}>{m.plano}</span>
-                                <div className="m-bar-new" style={{ 
-                                  width: '8px',
-                                  height: `${(m.plano / Math.max(...monthlyData.flatMap(d => [d.plano, d.real, d.extra]), 1)) * 100}%`, 
-                                  background: 'linear-gradient(to bottom, #94a3b8, #64748b)' 
-                                }} />
-                              </div>
-                            )}
-                            {m.real > 0 && (
-                              <div className="m-bar-wrap">
-                                <span className="m-bar-lbl" style={{ fontSize: '0.5rem' }}>{m.real}</span>
-                                <div className="m-bar-new" style={{ 
-                                  width: '8px',
-                                  height: `${(m.real / Math.max(...monthlyData.flatMap(d => [d.plano, d.real, d.extra]), 1)) * 100}%`, 
-                                  background: 'linear-gradient(to bottom, #3b82f6, #2563eb)' 
-                                }} />
-                              </div>
-                            )}
-                            {m.extra > 0 && (
-                              <div className="m-bar-wrap">
-                                <span className="m-bar-lbl" style={{ fontSize: '0.5rem' }}>{m.extra}</span>
-                                <div className="m-bar-new" style={{ 
-                                  width: '8px',
-                                  height: `${(m.extra / Math.max(...monthlyData.flatMap(d => [d.plano, d.real, d.extra]), 1)) * 100}%`, 
-                                  background: 'linear-gradient(to bottom, #f59e0b, #d97706)' 
-                                }} />
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                           <div style={{ height: '1px', width: '100%', background: 'rgba(255,255,255,0.05)' }} />
-                        )}
-                      </div>
-                      <span className="month-lbl-new" style={{ fontSize: '0.55rem', marginTop: '6px' }}>{m.month.split('/')[0].toUpperCase()}</span>
-                    </div>
+              <h4 className="chart-title-sm" style={{ marginBottom: '1.25rem', fontSize: '0.85rem', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Desempenho Anual (FY 26/27)</h4>
+              <div className="monthly-scroll-wrap" style={{ overflow: 'visible', position: 'relative' }}>
+                {/* Linhas de fundo para referência */}
+                <div style={{ position: 'absolute', inset: '0 0 25px 0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none', zIndex: 0 }}>
+                  {[1, 2, 3].map(i => (
+                    <div key={i} style={{ width: '100%', height: '1px', borderTop: '1px dashed rgba(255,255,255,0.05)' }} />
                   ))}
                 </div>
+
+                <div className="monthly-grid-new" style={{ gap: '0.25rem', justifyContent: 'space-around', position: 'relative', zIndex: 1 }}>
+                  {(() => {
+                    const maxVal = Math.max(...monthlyData.flatMap(d => [d.plano, d.real, d.extra]), 1);
+                    return monthlyData.map(m => (
+                      <div key={m.month} className="monthly-col-new" style={{ flex: 1, minWidth: '40px' }}>
+                        <div className="monthly-bars-new" style={{ height: '90px', gap: '3px', alignItems: 'flex-end', justifyContent: 'center' }}>
+                          {(m.plano > 0 || m.real > 0 || m.extra > 0) ? (
+                            <>
+                              {m.plano > 0 && (
+                                <div className="m-bar-wrap">
+                                  <span className="m-bar-lbl" style={{ fontSize: '0.55rem', fontWeight: '900', opacity: 0.8 }}>{m.plano}</span>
+                                  <div className="m-bar-new" style={{ 
+                                    width: '12px',
+                                    height: `${(m.plano / maxVal) * 100}%`, 
+                                    background: 'linear-gradient(to bottom, #94a3b8, #64748b)',
+                                    borderRadius: '3px 3px 0 0'
+                                  }} />
+                                </div>
+                              )}
+                              {m.real > 0 && (
+                                <div className="m-bar-wrap">
+                                  <span className="m-bar-lbl" style={{ fontSize: '0.55rem', fontWeight: '900' }}>{m.real}</span>
+                                  <div className="m-bar-new" style={{ 
+                                    width: '12px',
+                                    height: `${(m.real / maxVal) * 100}%`, 
+                                    background: 'linear-gradient(to bottom, #3b82f6, #2563eb)',
+                                    borderRadius: '3px 3px 0 0',
+                                    boxShadow: '0 0 10px rgba(59, 130, 246, 0.2)'
+                                  }} />
+                                </div>
+                              )}
+                              {m.extra > 0 && (
+                                <div className="m-bar-wrap">
+                                  <span className="m-bar-lbl" style={{ fontSize: '0.55rem', fontWeight: '900', color: '#f59e0b' }}>{m.extra}</span>
+                                  <div className="m-bar-new" style={{ 
+                                    width: '12px',
+                                    height: `${(m.extra / maxVal) * 100}%`, 
+                                    background: 'linear-gradient(to bottom, #f59e0b, #d97706)',
+                                    borderRadius: '3px 3px 0 0'
+                                  }} />
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                             <div style={{ height: '1px', width: '20px', background: 'rgba(255,255,255,0.03)' }} />
+                          )}
+                        </div>
+                        <span className="month-lbl-new" style={{ fontSize: '0.65rem', marginTop: '10px', fontWeight: '800', opacity: 0.6 }}>{m.month.split('/')[0].toUpperCase()}</span>
+                      </div>
+                    ));
+                  })()}
+                </div>
               </div>
-              <div className="chart-legend-new" style={{ marginTop: '1rem', paddingTop: '0.75rem', gap: '1rem' }}>
-                <span className="leg-item" style={{ fontSize: '0.65rem' }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#94a3b8' }} /> Plano</span>
-                <span className="leg-item" style={{ fontSize: '0.65rem' }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#3b82f6' }} /> Real</span>
-                <span className="leg-item" style={{ fontSize: '0.65rem' }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#f59e0b' }} /> Extra</span>
+              <div className="chart-legend-new" style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
+                <span className="leg-item" style={{ fontSize: '0.7rem', opacity: 0.8 }}><span className="leg-dot" style={{ width: '8px', height: '8px', background: '#94a3b8', borderRadius: '2px' }} /> Plano</span>
+                <span className="leg-item" style={{ fontSize: '0.7rem', opacity: 0.8 }}><span className="leg-dot" style={{ width: '8px', height: '8px', background: '#3b82f6', borderRadius: '2px' }} /> Real</span>
+                <span className="leg-item" style={{ fontSize: '0.7rem', opacity: 0.8 }}><span className="leg-dot" style={{ width: '8px', height: '8px', background: '#f59e0b', borderRadius: '2px' }} /> Extra</span>
               </div>
             </div>
           </div>
