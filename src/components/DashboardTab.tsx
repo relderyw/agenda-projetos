@@ -260,8 +260,9 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
       </div>
 
       <div className="dash-two-col">
-        <div className="dash-card">
-          <div className="dash-card-header">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', overflow: 'hidden' }}>
+          <div className="dash-card">
+            <div className="dash-card-header">
             <Users size={18} />
             <h3>Performance por Analista</h3>
           </div>
@@ -280,9 +281,6 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                 </div>
                 <span className="analyst-bar-name">{user.name.split(' ')[0]}</span>
                 <span className="analyst-bar-total">{done}/{total}</span>
-                <span style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 600, marginTop: '2px', textAlign: 'center', lineHeight: 1.1 }}>
-                  Alta: {doneHighPrio} ({pctHighPrio}%)
-                </span>
               </div>
             ))}
             {byUser.length === 0 && <p className="empty-state-msg">Nenhum analista no período.</p>}
@@ -292,6 +290,88 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
             <span className="leg-item"><span className="leg-dot" style={{background:'var(--primary-color)'}} /> Concluído</span>
           </div>
         </div>
+
+        <div className="dash-card">
+          <div className="dash-card-header">
+            <TrendingUp size={18} />
+            <h3>% de Atividades com Prioridade Alta</h3>
+          </div>
+          <div style={{ width: '100%', height: '220px', position: 'relative', marginTop: '1rem', paddingBottom: '30px' }}>
+            {byUser.length > 0 ? (
+              <>
+                <svg width="100%" height="100%" viewBox="0 0 1000 200" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+                  {/* Linhas de grade horizontais */}
+                  <line x1="0" y1="50" x2="1000" y2="50" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
+                  <line x1="0" y1="100" x2="1000" y2="100" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
+                  <line x1="0" y1="150" x2="1000" y2="150" stroke="rgba(255,255,255,0.05)" vectorEffect="non-scaling-stroke" />
+                  
+                  {/* Linha Principal do Gráfico */}
+                  <polyline 
+                    points={byUser.map((u, i) => `${(i + 0.5) * (1000 / byUser.length)},${200 - (u.pctHighPrio / 100 * 160) - 20}`).join(' ')} 
+                    fill="none" 
+                    stroke="#ef4444" 
+                    strokeWidth="3" 
+                    vectorEffect="non-scaling-stroke" 
+                  />
+                </svg>
+
+                {/* Pontos sobre a linha e Rótulos */}
+                <div style={{ position: 'absolute', inset: 0, paddingBottom: '30px' }}>
+                  {byUser.map((u, i) => {
+                    const xPct = ((i + 0.5) / byUser.length) * 100;
+                    const yPct = ((200 - (u.pctHighPrio / 100 * 160) - 20) / 200) * 100;
+                    return (
+                      <div key={u.user.id}>
+                        {/* Círculo do ponto */}
+                        <div 
+                          style={{
+                            position: 'absolute',
+                            left: `${xPct}%`,
+                            top: `${yPct}%`,
+                            transform: 'translate(-50%, -50%)',
+                            width: '10px', height: '10px',
+                            borderRadius: '50%',
+                            background: '#1e293b',
+                            border: '2px solid #ef4444',
+                            zIndex: 2,
+                            boxShadow: '0 0 4px rgba(0,0,0,0.5)'
+                          }}
+                        />
+                        {/* Rótulo de Valor */}
+                        <span 
+                          style={{ 
+                            position: 'absolute', 
+                            left: `${xPct}%`, 
+                            top: `calc(${yPct}% - 22px)`,
+                            transform: 'translateX(-50%)',
+                            color: '#ef4444', 
+                            fontWeight: 'bold', 
+                            fontSize: '0.75rem',
+                            textShadow: '0 2px 4px rgba(0,0,0,0.8)'
+                          }}
+                        >
+                          {u.pctHighPrio}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Nomes Eixo X */}
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', height: '30px', alignItems: 'center' }}>
+                  {byUser.map((u) => (
+                    <div key={u.user.id} style={{ flex: 1, textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: '0 4px' }}>
+                      {u.user.name.split(' ')[0]}
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="empty-state-msg">Sem dados suficientes para o gráfico.</p>
+            )}
+          </div>
+        </div>
+      </div>
 
         <div className="dash-card">
           <div className="dash-card-header">
@@ -329,19 +409,19 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                         {m.plano > 0 && (
                           <div className="m-bar-wrap" title={`Plano: ${m.plano}`}>
                             <span className="m-bar-lbl">{m.plano}</span>
-                            <div className="m-bar-new chart-plano" style={{ height: `${(m.plano / globalMax) * 100}%`, background: '#64748b' }} />
+                            <div className="m-bar-new" style={{ height: `${(m.plano / globalMax) * 100}%`, backgroundColor: '#94a3b8' }} />
                           </div>
                         )}
                         {m.real > 0 && (
                           <div className="m-bar-wrap" title={`Real: ${m.real}`}>
                             <span className="m-bar-lbl">{m.real}</span>
-                            <div className="m-bar-new chart-real" style={{ height: `${(m.real / globalMax) * 100}%`, background: '#3b82f6' }} />
+                            <div className="m-bar-new" style={{ height: `${(m.real / globalMax) * 100}%`, backgroundColor: '#3b82f6' }} />
                           </div>
                         )}
                         {m.extra > 0 && (
                           <div className="m-bar-wrap" title={`Extra Fluxo: ${m.extra}`}>
                             <span className="m-bar-lbl">{m.extra}</span>
-                            <div className="m-bar-new chart-extra" style={{ height: `${(m.extra / globalMax) * 100}%`, background: '#f59e0b' }} />
+                            <div className="m-bar-new" style={{ height: `${(m.extra / globalMax) * 100}%`, backgroundColor: '#f59e0b' }} />
                           </div>
                         )}
                       </div>
