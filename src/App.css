@@ -4412,4 +4412,59 @@
 @keyframes toast-progress {
   from { width: 100%; }
   to   { width: 0%; }
+}/* ── Permissions Matrix ── */
+.permissions-section {
+  margin-top: 1rem;
+}
+
+.permission-row:hover {
+  background: rgba(255,255,255,0.05) !important;
+}
+
+[data-theme='light'] .permission-row {
+  background: rgba(0,0,0,0.02) !important;
+}
+[data-theme='light'] .permission-row:hover {
+  background: rgba(0,0,0,0.04) !important;
+}
+
+.custom-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-theme='light'] .custom-checkbox {
+  background: #f8fafc;
+}
+
+.custom-checkbox:checked {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+}
+
+.custom-checkbox:checked::after {
+  content: '';
+  width: 10px;
+  height: 5px;
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+  transform: rotate(-45deg);
+  margin-bottom: 2px;
+}
+
+.custom-checkbox:hover {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
 }

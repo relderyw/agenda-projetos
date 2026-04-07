@@ -436,23 +436,60 @@ export default function CadastrosTab({
                   </div>
                 </div>
                 {/* Permissions matrix */}
-                <div className="form-group full">
-                  <label style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', marginBottom: '8px' }}>
-                    Níveis de Permissão do App
+                <div className="form-group full permissions-section">
+                  <label style={{ 
+                    borderBottom: '1px solid var(--border-color)', 
+                    paddingBottom: '10px', 
+                    marginBottom: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
+                    color: 'var(--text-primary)'
+                  }}>
+                    <span>Níveis de Permissão do App</span>
                   </label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+                  {/* Header Row */}
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'minmax(140px, 1fr) 80px 80px 80px', 
+                    gap: '1rem', 
+                    padding: '0 12px 8px 12px',
+                    textAlign: 'center',
+                    borderBottom: '1px solid var(--border-color)',
+                    marginBottom: '8px'
+                  }}>
+                    <span style={{ textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Módulo</span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ver</span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Edit</span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Del</span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {(Object.keys(MOCK_PERMS) as Array<keyof UserPermissions>).map(mod => (
-                      <div key={mod} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 1fr 1fr', gap: '1rem', alignItems: 'center', background: 'var(--bg-card)', padding: '8px', borderRadius: '4px' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{MODULE_LABELS[mod]}</span>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>
-                          <input type="checkbox" checked={uForm.permissions?.[mod]?.view} onChange={e => setPerm(mod, 'view', e.target.checked)} /> Visualizar
-                        </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>
-                          <input type="checkbox" checked={uForm.permissions?.[mod]?.edit} onChange={e => setPerm(mod, 'edit', e.target.checked)} /> Editar
-                        </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>
-                          <input type="checkbox" checked={uForm.permissions?.[mod]?.delete} onChange={e => setPerm(mod, 'delete', e.target.checked)} /> Excluir
-                        </label>
+                      <div key={mod} className="permission-row" style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'minmax(140px, 1fr) 80px 80px 80px', 
+                        gap: '1rem', 
+                        alignItems: 'center', 
+                        background: 'rgba(255,255,255,0.02)', 
+                        padding: '10px 12px', 
+                        borderRadius: '6px',
+                        transition: 'background 0.2s'
+                      }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{MODULE_LABELS[mod]}</span>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                          <input type="checkbox" className="custom-checkbox" checked={uForm.permissions?.[mod]?.view} onChange={e => setPerm(mod, 'view', e.target.checked)} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                          <input type="checkbox" className="custom-checkbox" checked={uForm.permissions?.[mod]?.edit} onChange={e => setPerm(mod, 'edit', e.target.checked)} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                          <input type="checkbox" className="custom-checkbox" checked={uForm.permissions?.[mod]?.delete} onChange={e => setPerm(mod, 'delete', e.target.checked)} />
+                        </div>
                       </div>
                     ))}
                   </div>
