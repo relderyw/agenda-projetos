@@ -391,7 +391,7 @@ export default function CadastrosTab({
                     onChange={e => setUForm(f => ({ ...f, name: e.target.value }))} />
                 </div>
                 <div className="form-group">
-                  <label>Nome de Usuário (Para Login) *</label>
+                  <label>Usuário (Login) *</label>
                   <input type="text" placeholder="ex: hudson_silva" value={uForm.username}
                     onChange={e => setUForm(f => ({ ...f, username: e.target.value.toLowerCase() }))} />
                 </div>
@@ -457,14 +457,13 @@ export default function CadastrosTab({
                     gridTemplateColumns: 'minmax(140px, 1fr) 80px 80px 80px', 
                     gap: '1rem', 
                     padding: '0 12px 8px 12px',
-                    textAlign: 'center',
                     borderBottom: '1px solid var(--border-color)',
                     marginBottom: '8px'
                   }}>
                     <span style={{ textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Módulo</span>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ver</span>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Edit</span>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Del</span>
+                    <span style={{ display: 'flex', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ver</span>
+                    <span style={{ display: 'flex', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Edit</span>
+                    <span style={{ display: 'flex', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Del</span>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

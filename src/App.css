@@ -4414,57 +4414,79 @@
   to   { width: 0%; }
 }/* ── Permissions Matrix ── */
 .permissions-section {
-  margin-top: 1rem;
+  margin-top: 1.5rem;
+  background: rgba(0,0,0,0.1);
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.permission-row {
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.permission-row:last-child {
+  border-bottom: none;
 }
 
 .permission-row:hover {
-  background: rgba(255,255,255,0.05) !important;
+  background: rgba(255,255,255,0.04) !important;
+  transform: translateX(4px);
 }
 
 [data-theme='light'] .permission-row {
-  background: rgba(0,0,0,0.02) !important;
+  background: transparent !important;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 [data-theme='light'] .permission-row:hover {
-  background: rgba(0,0,0,0.04) !important;
+  background: rgba(0,0,0,0.02) !important;
 }
 
 .custom-checkbox {
   appearance: none;
   -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
   background: rgba(255,255,255,0.05);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
   cursor: pointer;
   position: relative;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0 auto;
 }
 
 [data-theme='light'] .custom-checkbox {
-  background: #f8fafc;
+  background: #fff;
+  border-color: #cbd5e1;
 }
 
 .custom-checkbox:checked {
   background: #3b82f6;
   border-color: #3b82f6;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
 }
 
 .custom-checkbox:checked::after {
   content: '';
   width: 10px;
   height: 5px;
-  border-left: 2px solid white;
-  border-bottom: 2px solid white;
+  border-left: 2.5px solid white;
+  border-bottom: 2.5px solid white;
   transform: rotate(-45deg);
   margin-bottom: 2px;
 }
 
 .custom-checkbox:hover {
   border-color: #3b82f6;
-  background: rgba(59, 130, 246, 0.1);
+  transform: scale(1.1);
+}
+
+.custom-checkbox:active {
+  transform: scale(0.95);
 }
