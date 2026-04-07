@@ -330,8 +330,8 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                     <svg width="100%" height="100%" viewBox="0 0 1000 240" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
                       <defs>
                         <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" />
-                          <stop offset="100%" stopColor="#ef4444" stopOpacity="0.0" />
+                          <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+                          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
                         </linearGradient>
                         <filter id="glow">
                           <feGaussianBlur stdDeviation="3" result="coloredBlur" />
@@ -375,11 +375,10 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                         fill="url(#areaGradient)"
                       />
 
-                      {/* Linha Principal do Gráfico */}
                       <polyline 
                         points={byUser.map((u, i) => `${(i + 0.5) * (1000 / byUser.length)},${240 - (u.pctHighPrio / 100 * 180) - 30}`).join(' ')} 
                         fill="none" 
-                        stroke="#ef4444" 
+                        stroke="#3b82f6" 
                         strokeWidth="3" 
                         filter="url(#glow)"
                         vectorEffect="non-scaling-stroke" 
@@ -404,9 +403,9 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                                 width: '10px', height: '10px',
                                 borderRadius: '50%',
                                 background: '#1e293b',
-                                border: '2px solid #ef4444',
+                                border: '2px solid #3b82f6',
                                 zIndex: 2,
-                                boxShadow: '0 0 8px rgba(239, 68, 68, 0.4)'
+                                boxShadow: '0 0 8px rgba(59, 130, 246, 0.4)'
                               }}
                             />
                             {/* Rótulo de Valor */}
@@ -416,7 +415,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                                 left: `${xPct}%`, 
                                 top: `calc(${yPct}% - 22px)`,
                                 transform: 'translateX(-50%)',
-                                color: '#ef4444', 
+                                color: '#3b82f6', 
                                 fontWeight: '800', 
                                 fontSize: '0.8rem',
                                 textShadow: '0 2px 4px rgba(0,0,0,0.8)',
