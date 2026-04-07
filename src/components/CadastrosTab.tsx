@@ -454,29 +454,28 @@ export default function CadastrosTab({
                   {/* Header Row */}
                   <div style={{ 
                     display: 'grid', 
-                    gridTemplateColumns: 'minmax(140px, 1fr) 80px 80px 80px', 
-                    gap: '1rem', 
-                    padding: '0 12px 8px 12px',
+                    gridTemplateColumns: '1fr 60px 60px 60px', 
+                    gap: '1.5rem', 
+                    padding: '8px 12px',
                     borderBottom: '1px solid var(--border-color)',
-                    marginBottom: '8px'
+                    marginBottom: '4px'
                   }}>
-                    <span style={{ textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Módulo</span>
-                    <span style={{ display: 'flex', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ver</span>
-                    <span style={{ display: 'flex', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Edit</span>
-                    <span style={{ display: 'flex', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Del</span>
+                    <span style={{ textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Módulo</span>
+                    <span style={{ display: 'flex', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)' }}>VER</span>
+                    <span style={{ display: 'flex', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)' }}>EDIT</span>
+                    <span style={{ display: 'flex', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)' }}>DEL</span>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     {(Object.keys(MOCK_PERMS) as Array<keyof UserPermissions>).map(mod => (
                       <div key={mod} className="permission-row" style={{ 
                         display: 'grid', 
-                        gridTemplateColumns: 'minmax(140px, 1fr) 80px 80px 80px', 
-                        gap: '1rem', 
+                        gridTemplateColumns: '1fr 60px 60px 60px', 
+                        gap: '1.5rem', 
                         alignItems: 'center', 
                         background: 'rgba(255,255,255,0.02)', 
-                        padding: '10px 12px', 
-                        borderRadius: '6px',
-                        transition: 'background 0.2s'
+                        padding: '8px 12px', 
+                        borderRadius: '6px'
                       }}>
                         <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{MODULE_LABELS[mod]}</span>
                         
