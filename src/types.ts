@@ -46,6 +46,8 @@ export interface UserPermissions {
   henkatens: AppPermissions;
   cadastros: AppPermissions;
   usuarios: AppPermissions;
+  conhecimentoTP: AppPermissions;
+  conhecimentoProj: AppPermissions;
 }
 
 export type Role = 'Administrador' | 'Gestão' | 'Analista';

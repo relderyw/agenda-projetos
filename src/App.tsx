@@ -437,15 +437,16 @@ export default function App() {
   ]
 
   const navItems = navItemsRaw.filter(item => {
-    if (item.key === 'cadastros' && currentUser?.role !== 'Administrador') {
-      return false;
-    }
-    if (item.key === 'logs' && currentUser?.role !== 'Administrador') {
-      return false;
-    }
-    if (item.key === 'conhecimento' && (currentUser?.role !== 'Administrador' && currentUser?.role !== 'Gestão')) {
-      return false;
-    }
+    if (!currentUser) return false;
+    const p = currentUser.permissions;
+
+    // Administrador sempre vê tudo
+    if (currentUser.role === 'Administrador') return true;
+
+    if (item.key === 'cadastros') return p?.cadastros?.view ?? false;
+    if (item.key === 'logs') return false; // Somente Admin (já coberto acima)
+    if (item.key === 'conhecimento') return (p?.conhecimentoTP?.view || p?.conhecimentoProj?.view) ?? (currentUser.role === 'Gestão');
+
     return true;
   })
 

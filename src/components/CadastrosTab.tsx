@@ -28,10 +28,21 @@ const COLORS = [
 const ROLES = ['Analista', 'Coordenador(a)', 'Operacional', 'Gerente', 'Supervisor(a)', 'Técnico(a)'];
 
 const MOCK_PERMS: UserPermissions = {
-  atividades: { view: true, edit: false, delete: false },
-  henkatens:  { view: true, edit: false, delete: false },
-  cadastros:  { view: false, edit: false, delete: false },
-  usuarios:   { view: false, edit: false, delete: false }
+  atividades:      { view: true, edit: false, delete: false },
+  henkatens:       { view: true, edit: false, delete: false },
+  cadastros:       { view: false, edit: false, delete: false },
+  usuarios:        { view: false, edit: false, delete: false },
+  conhecimentoTP:  { view: true, edit: false, delete: false },
+  conhecimentoProj: { view: true, edit: false, delete: false }
+};
+
+const MODULE_LABELS: Record<keyof UserPermissions, string> = {
+  atividades: 'Atividades',
+  henkatens: 'Henkatens',
+  cadastros: 'Cadastros',
+  usuarios: 'Usuários',
+  conhecimentoTP: 'Conhecimento T&P',
+  conhecimentoProj: 'Conhecimento Projetos'
 };
 
 export default function CadastrosTab({
@@ -430,17 +441,17 @@ export default function CadastrosTab({
                     Níveis de Permissão do App
                   </label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {(['atividades', 'henkatens', 'cadastros', 'usuarios'] as const).map(mod => (
-                      <div key={mod} style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr 1fr', gap: '1rem', alignItems: 'center', background: 'var(--bg-card)', padding: '8px', borderRadius: '4px' }}>
-                        <span style={{ textTransform: 'capitalize', fontWeight: 600, fontSize: '0.85rem' }}>{mod}</span>
+                    {(Object.keys(MOCK_PERMS) as Array<keyof UserPermissions>).map(mod => (
+                      <div key={mod} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 1fr 1fr', gap: '1rem', alignItems: 'center', background: 'var(--bg-card)', padding: '8px', borderRadius: '4px' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{MODULE_LABELS[mod]}</span>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>
-                          <input type="checkbox" checked={uForm.permissions?.[mod].view} onChange={e => setPerm(mod, 'view', e.target.checked)} /> Visualizar
+                          <input type="checkbox" checked={uForm.permissions?.[mod]?.view} onChange={e => setPerm(mod, 'view', e.target.checked)} /> Visualizar
                         </label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>
-                          <input type="checkbox" checked={uForm.permissions?.[mod].edit} onChange={e => setPerm(mod, 'edit', e.target.checked)} /> Editar
+                          <input type="checkbox" checked={uForm.permissions?.[mod]?.edit} onChange={e => setPerm(mod, 'edit', e.target.checked)} /> Editar
                         </label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>
-                          <input type="checkbox" checked={uForm.permissions?.[mod].delete} onChange={e => setPerm(mod, 'delete', e.target.checked)} /> Excluir
+                          <input type="checkbox" checked={uForm.permissions?.[mod]?.delete} onChange={e => setPerm(mod, 'delete', e.target.checked)} /> Excluir
                         </label>
                       </div>
                     ))}

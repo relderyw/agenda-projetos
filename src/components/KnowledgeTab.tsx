@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, X, Edit2, Plus, Layout, Globe, AlertCircle, Trash2 } from 'lucide-react';
+import { Check, X, Edit2, Plus, Layout, Globe, AlertCircle, Trash2, ShieldAlert } from 'lucide-react';
 import type { User, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, KnowledgeStatus } from '../types';
 import { dbService } from '../services/db';
 import React from 'react';
@@ -26,7 +26,22 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
   const [actModal, setActModal] = useState<{ open: boolean; editing: KnowledgeActivity | null; categoryId?: string; suggestedOrder?: string }>({ open: false, editing: null });
   const [userModal, setUserModal] = useState<{ open: boolean }>({ open: false });
 
-  const isAdmin = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão';
+  const p = currentUser?.permissions;
+  const isGlobalAdmin = currentUser?.role === 'Administrador';
+  
+  const canView = useMemo(() => {
+    if (isGlobalAdmin) return true;
+    if (activeArea === 'T&P') return p?.conhecimentoTP?.view ?? (currentUser?.role === 'Gestão');
+    return p?.conhecimentoProj?.view ?? (currentUser?.role === 'Gestão');
+  }, [currentUser, activeArea, p, isGlobalAdmin]);
+
+  const canEdit = useMemo(() => {
+    if (isGlobalAdmin) return true;
+    if (activeArea === 'T&P') return p?.conhecimentoTP?.edit ?? (currentUser?.role === 'Gestão');
+    return p?.conhecimentoProj?.edit ?? (currentUser?.role === 'Gestão');
+  }, [currentUser, activeArea, p, isGlobalAdmin]);
+
+  const isAdmin = canEdit; // Mantido para compatibilidade com o restante do arquivo
   
   const areaAnalysts = useMemo(() => 
     users.filter(u => u.role === 'Analista' && (u.area === activeArea || !u.area)), 
@@ -179,6 +194,16 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
       return { ...u, pct };
     }).sort((a,b) => b.pct - a.pct); // Sort by highest progress
   }, [areaAnalysts, activities, categories, progressMap, activeArea]);
+
+  if (!canView) {
+    return (
+      <div className="tab-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem', color: 'var(--text-secondary)' }}>
+        <ShieldAlert size={48} />
+        <h2>Acesso Restrito</h2>
+        <p>Você não tem permissão para visualizar a matriz de {activeArea}.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="tab-content kn-full-root">
