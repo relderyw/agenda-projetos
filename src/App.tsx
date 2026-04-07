@@ -606,6 +606,7 @@ export default function App() {
             activities={activities}
             themes={themes}
             users={users}
+            themeMode={themeMode}
           />
         )}
         {activeTab === 'henkatens' && (

@@ -41,6 +41,12 @@
   --prog-track:    rgba(255,255,255,0.06);
   --sf-divider:    rgba(255,255,255,0.08);
 
+  --chart-glow-opacity: 0.4;
+  --chart-area-opacity: 0.3;
+  --chart-dot-bg:       #1e293b;
+  --chart-text-shadow:  0 2px 4px rgba(0,0,0,0.8);
+  --chart-grid-stroke:  rgba(255,255,255,0.08);
+
   --logo-img-bg:   white;
   --logo-img-radius: 10px;
 
@@ -86,6 +92,12 @@
 
   --prog-track:    rgba(15,23,42,0.08);
   --sf-divider:    rgba(15,23,42,0.10);
+
+  --chart-glow-opacity: 0.1;
+  --chart-area-opacity: 0.1;
+  --chart-dot-bg:       #ffffff;
+  --chart-text-shadow:  0 1px 2px rgba(0,0,0,0.1);
+  --chart-grid-stroke:  rgba(15,23,42,0.08);
 
   --logo-img-bg:   transparent;
   --logo-img-radius: 10px;

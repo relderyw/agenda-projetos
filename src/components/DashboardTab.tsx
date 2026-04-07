@@ -10,9 +10,10 @@ interface Props {
   activities: Activity[];
   themes: Theme[];
   users: User[];
+  themeMode?: 'dark' | 'light';
 }
 
-export default function DashboardTab({ currentUser, activities, themes, users }: Props) {
+export default function DashboardTab({ currentUser, activities, themes, users, themeMode = 'light' }: Props) {
   // Estados de Controle e Scroll
   const [isScrolling, setIsScrolling] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(1);
@@ -330,11 +331,11 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                     <svg width="100%" height="100%" viewBox="0 0 1000 240" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
                       <defs>
                         <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+                          <stop offset="0%" stopColor="#3b82f6" stopOpacity="var(--chart-area-opacity)" />
                           <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
                         </linearGradient>
                         <filter id="glow">
-                          <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                          <feGaussianBlur stdDeviation={themeMode === 'light' ? '1.5' : '3'} result="coloredBlur" />
                           <feMerge>
                             <feMergeNode in="coloredBlur" />
                             <feMergeNode in="SourceGraphic" />
@@ -350,14 +351,14 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                             y1={240 - (v / 100 * 180) - 30} 
                             x2="1020" 
                             y2={240 - (v / 100 * 180) - 30} 
-                            stroke="rgba(255,255,255,0.08)" 
+                            stroke="var(--chart-grid-stroke)" 
                             strokeDasharray="4 4"
                             vectorEffect="non-scaling-stroke" 
                           />
                           <text 
                             x="-25" 
                             y={240 - (v / 100 * 180) - 30} 
-                            fill="rgba(255,255,255,0.3)" 
+                            fill="var(--text-faint)" 
                             fontSize="9" 
                             textAnchor="end" 
                             alignmentBaseline="middle"
@@ -402,10 +403,11 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                                 transform: 'translate(-50%, -50%)',
                                 width: '10px', height: '10px',
                                 borderRadius: '50%',
-                                background: '#1e293b',
+                                background: 'var(--chart-dot-bg)',
                                 border: '2px solid #3b82f6',
                                 zIndex: 2,
-                                boxShadow: '0 0 8px rgba(59, 130, 246, 0.4)'
+                                opacity: 1,
+                                boxShadow: themeMode === 'light' ? '0 2px 4px rgba(0,0,0,0.1)' : '0 0 8px rgba(59, 130, 246, 0.4)'
                               }}
                             />
                             {/* Rótulo de Valor */}
@@ -418,7 +420,7 @@ export default function DashboardTab({ currentUser, activities, themes, users }:
                                 color: '#3b82f6', 
                                 fontWeight: '800', 
                                 fontSize: '0.8rem',
-                                textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+                                textShadow: 'var(--chart-text-shadow)',
                                 pointerEvents: 'none'
                               }}
                             >
