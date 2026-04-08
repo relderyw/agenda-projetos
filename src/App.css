@@ -213,7 +213,7 @@
 .main-content {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   height: 100vh;
   background: var(--bg-app);
   transition: background 0.3s ease;
@@ -1378,6 +1378,7 @@
   align-items: center;
   gap: 0.375rem;
   margin-top: 0.125rem;
+  flex-wrap: wrap;
 }
 
 .kb-status-badge {
@@ -1947,7 +1948,7 @@
 
   .main-content {
     padding: 1rem;
-    overflow-x: hidden;
+    overflow-x: auto;
   }
 
   /* Dashboard Mobile */

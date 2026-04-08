@@ -490,7 +490,7 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                   <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#f59e0b', borderRadius: '2px' }} /> Extra</span>
                 </div>
               </div>
-              <div className="monthly-scroll-wrap" style={{ overflow: 'visible', position: 'relative' }}>
+              <div className="monthly-scroll-wrap" style={{ overflowX: 'auto', position: 'relative', paddingBottom: '10px' }}>
                 {/* Linhas de fundo para referência */}
                 <div style={{ position: 'absolute', inset: '0 0 25px 0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none', zIndex: 0 }}>
                   {[1, 2, 3].map(i => (
