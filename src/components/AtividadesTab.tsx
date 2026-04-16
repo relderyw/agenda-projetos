@@ -90,12 +90,25 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
   const [filterResp, setFilterResp] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPrio, setFilterPrio] = useState('all');
+  const [filterWeek, setFilterWeek] = useState('all');
   const [sortKey, setSortKey] = useState<SortKey>('planejamento');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [modal, setModal] = useState<{ open: boolean; editing: Activity | null }>({ open: false, editing: null });
   const [form, setForm] = useState<Omit<Activity, 'id'>>(empty());
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const availableWeeks = useMemo(() => {
+    const weeks = Array.from(new Set(activities.map(a => a.week).filter(Boolean)));
+    const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    return weeks.sort((a, b) => {
+      const [wa, ma] = a.split(' - ');
+      const [wb, mb] = b.split(' - ');
+      const monthDiff = months.indexOf(ma) - months.indexOf(mb);
+      if (monthDiff !== 0) return monthDiff;
+      return wa.localeCompare(wb);
+    });
+  }, [activities]);
 
   // Apenas analistas aparecem nos dropdowns
   const filteredUsers = useMemo(() => {
@@ -118,13 +131,14 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
       const matchResp = filterResp === 'all' || a.responsavel === filterResp;
       const matchStatus = filterStatus === 'all' || a.status === filterStatus;
       const matchPrio = filterPrio === 'all' || a.prioridade === filterPrio;
+      const matchWeek = filterWeek === 'all' || a.week === filterWeek;
       
       // Sempre ocultar atividades atribuídas a Administrador ou Gestão
       const u = users.find(usr => usr.id === a.responsavel);
       const isManagement = u?.role === 'Administrador' || u?.role === 'Gestão';
       if (isManagement) return false;
 
-      return matchSearch && matchResp && matchStatus && matchPrio;
+      return matchSearch && matchResp && matchStatus && matchPrio && matchWeek;
     });
 
     if (!sortKey) return f;
@@ -156,7 +170,7 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
       if (av > bv) return sortDir === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [activities, search, filterResp, filterStatus, filterPrio, sortKey, sortDir, users, themes]);
+  }, [activities, search, filterResp, filterStatus, filterPrio, filterWeek, sortKey, sortDir, users, themes]);
 
   const openNew = () => { setForm(empty()); setModal({ open: true, editing: null }); };
   const openEdit = (a: Activity) => { setForm({ ...a }); setModal({ open: true, editing: a }); };
@@ -325,6 +339,14 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
 
         <div className="filters">
           <Filter size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+
+          <div className="select-wrap">
+            <select value={filterWeek} onChange={e => setFilterWeek(e.target.value)}>
+              <option value="all">Todas semanas</option>
+              {availableWeeks.map(w => <option key={w} value={w}>{w}</option>)}
+            </select>
+            <ChevronDown size={14} className="sel-icon" />
+          </div>
 
           <div className="select-wrap">
             <select value={filterResp} onChange={e => setFilterResp(e.target.value)}>
