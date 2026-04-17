@@ -10,7 +10,7 @@ interface Props {
   onDeleteRecord: (userId: string, date: string) => Promise<void>;
 }
 
-const STATUS_LEGEND: { status: AbsenteeismStatus; label: string; color: string; bg: string } = [
+const STATUS_LEGEND: { status: AbsenteeismStatus; label: string; color: string; bg: string }[] = [
   { status: 'P', label: 'Presente', color: '#fff', bg: '#22c55e' },
   { status: 'F', label: 'Falta', color: '#fff', bg: '#ef4444' },
   { status: 'A', label: 'Atraso', color: '#000', bg: '#eab308' },
@@ -265,7 +265,7 @@ export default function AbsenteismoTab({ currentUser, users, records, onSaveReco
                                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
                                    fontWeight: 'bold', fontSize: '0.8rem', borderRadius: '4px'
                                  }}>
-                                    {rec.status}
+                                    {rec?.status}
                                  </div>
                                ) : (
                                  <div style={{ width: '100%', height: '100%', minHeight: '30px', background: 'transparent' }} />

@@ -33,7 +33,8 @@ const MOCK_PERMS: UserPermissions = {
   cadastros:       { view: false, edit: false, delete: false },
   usuarios:        { view: false, edit: false, delete: false },
   conhecimentoTP:  { view: true, edit: false, delete: false },
-  conhecimentoProj: { view: true, edit: false, delete: false }
+  conhecimentoProj: { view: true, edit: false, delete: false },
+  absenteismo:     { view: true, edit: false, delete: false }
 };
 
 const MODULE_LABELS: Record<keyof UserPermissions, string> = {
@@ -42,7 +43,8 @@ const MODULE_LABELS: Record<keyof UserPermissions, string> = {
   cadastros: 'Cadastros',
   usuarios: 'Usuários',
   conhecimentoTP: 'Conhecimento T&P',
-  conhecimentoProj: 'Conhecimento Projetos'
+  conhecimentoProj: 'Conhecimento Projetos',
+  absenteismo: 'Absenteísmo'
 };
 
 export default function CadastrosTab({
