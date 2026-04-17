@@ -48,6 +48,7 @@ export interface UserPermissions {
   usuarios: AppPermissions;
   conhecimentoTP: AppPermissions;
   conhecimentoProj: AppPermissions;
+  absenteismo?: AppPermissions;
 }
 
 export type Role = 'Administrador' | 'Gestão' | 'Analista';
@@ -87,7 +88,7 @@ export interface Activity {
 }
 
 // ─── App State ────────────────────────────────────────────
-export type Tab = 'atividades' | 'dashboard' | 'cadastros' | 'kanban' | 'henkatens' | 'logs' | 'conhecimento';
+export type Tab = 'atividades' | 'dashboard' | 'cadastros' | 'kanban' | 'henkatens' | 'logs' | 'conhecimento' | 'absenteismo';
 
 // ─── Henkatens ──────────────────────────────────────────
 export type HenkatenType =
@@ -109,6 +110,20 @@ export interface HenkatenEvent {
   color?: string;         // override color
   status?: HenkatenStatus; // Status do evento
   postponedDate?: string;  // Nova data se postergado
+}
+
+// ─── Absenteísmo ────────────────────────────────────────
+export type AbsenteeismStatus = 
+  | 'P' | 'F' | 'A' | 'AR' | 'PR' | 'ER' | 'EC' 
+  | 'LM' | 'SA' | 'TR' | 'FE' | 'FO' | 'DE' | 'LP' | 'AF';
+
+export interface AbsenteeismRecord {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD
+  status: AbsenteeismStatus;
+  updatedBy?: string;
+  updatedAt?: string;
 }
 
 // ─── Logs ──────────────────────────────────────────────

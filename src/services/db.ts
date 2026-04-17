@@ -5,7 +5,8 @@ import {
 } from '../data'
 import type { 
   Activity, Theme, User, HenkatenEvent, LogEntry,
-  KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday
+  KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday,
+  AbsenteeismRecord
 } from '../types'
 
 const isCloudEnabled = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
@@ -279,5 +280,40 @@ export const dbService = {
     if (!isCloudEnabled) return { error: null }
     const { error } = await supabase.from('holidays').delete().eq('date', date)
     return { error }
+  },
+
+  // --- ABSENTEÍSMO ---
+  async getAbsenteeism(): Promise<AbsenteeismRecord[]> {
+    if (!isCloudEnabled) return []
+    const { data, error } = await supabase.from('absenteeism').select('*')
+    if (error) { console.error('GetAbsenteeism Error:', error); return [] }
+    return (data || []).map(row => ({
+      id: row.id,
+      userId: row.user_id || row.userId,
+      date: row.date,
+      status: row.status,
+      updatedBy: row.updated_by || row.updatedBy,
+      updatedAt: row.updated_at || row.updatedAt
+    }))
+  },
+
+  async saveAbsenteeism(record: Omit<AbsenteeismRecord, 'id'> | AbsenteeismRecord) {
+    if (!isCloudEnabled) return { data: null, error: null }
+    const dbPayload = {
+      ...(record as any).id && { id: (record as any).id }, // Only pass id if updating
+      user_id: record.userId,
+      date: record.date,
+      status: record.status,
+      updated_by: record.updatedBy,
+      updated_at: new Date().toISOString()
+    }
+    const { data, error } = await supabase.from('absenteeism').upsert(dbPayload).select()
+    if (error) console.error("Save Absenteeism Error", error)
+    return { data, error }
+  },
+
+  async deleteAbsenteeism(userId: string, date: string) {
+    if (!isCloudEnabled) return { data: null, error: null }
+    return await supabase.from('absenteeism').delete().eq('user_id', userId).eq('date', date)
   }
 };

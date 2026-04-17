@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2 } from 'lucide-react'
+import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2, UserCheck } from 'lucide-react'
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from './data'
-import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday } from './types'
+import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday, AbsenteeismRecord } from './types'
 import AtividadesTab from './components/AtividadesTab'
 import DashboardTab from './components/DashboardTab'
 import CadastrosTab from './components/CadastrosTab'
@@ -9,6 +9,7 @@ import KanbanTab from './components/KanbanTab'
 import HenkatensTab from './components/HenkatensTab'
 import LogsTab from './components/LogsTab'
 import KnowledgeTab from './components/KnowledgeTab'
+import AbsenteismoTab from './components/AbsenteismoTab'
 import Login from './components/Login'
 import { dbService } from './services/db'
 import { supabase } from './lib/supabase'
@@ -37,6 +38,7 @@ export default function App() {
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [knowledgeBase, setKnowledgeBase] = useState<{ categories: KnowledgeCategory[], activities: KnowledgeActivity[], progress: KnowledgeProgress[] }>({ categories: [], activities: [], progress: [] })
   const [holidays, setHolidays] = useState<Holiday[]>([])
+  const [absenteeism, setAbsenteeism] = useState<AbsenteeismRecord[]>([])
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
@@ -79,14 +81,15 @@ export default function App() {
     if (isFirstLoad) setLoading(true);
     
     try {
-      const [a, t, u, h, l, k, hol] = await Promise.all([
+      const [a, t, u, h, l, k, hol, abs] = await Promise.all([
         dbService.getActivities(),
         dbService.getThemes(),
         dbService.getUsers(),
         dbService.getHenkatens(),
         dbService.getTodayLogs(),
         dbService.getKnowledgeBase(),
-        dbService.getHolidays()
+        dbService.getHolidays(),
+        dbService.getAbsenteeism()
       ])
       setActivities(a)
       setThemes(t)
@@ -95,6 +98,7 @@ export default function App() {
       setLogs(l)
       setKnowledgeBase(k)
       setHolidays(hol)
+      setAbsenteeism(abs)
     } finally {
       if (isFirstLoad) setLoading(false);
       setIsFirstLoad(false);
@@ -426,10 +430,47 @@ export default function App() {
     }
   }
 
+  // ── Absenteeism CRUD ────────────────────────────────────────
+  const saveAbsenteeismRecord = async (record: Omit<AbsenteeismRecord, 'id'> | AbsenteeismRecord) => {
+    if (!currentUser) return;
+    const oldAbs = [...absenteeism];
+    
+    // update locally optimistic
+    setAbsenteeism(prev => {
+      const idx = prev.findIndex(r => r.userId === record.userId && r.date === record.date);
+      if (idx !== -1) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], status: record.status } as AbsenteeismRecord;
+        return copy;
+      } else {
+        return [...prev, { ...record, id: crypto.randomUUID() } as AbsenteeismRecord];
+      }
+    });
+
+    const { error } = await dbService.saveAbsenteeism(record);
+    if (error) {
+       setAbsenteeism(oldAbs);
+       showToast('error', 'Aviso de Sincronização', 'Falha ao salvar registro de absenteísmo na nuvem.');
+    }
+  };
+
+  const deleteAbsenteeismRecord = async (userId: string, date: string) => {
+    if (!currentUser) return;
+    const oldAbs = [...absenteeism];
+    setAbsenteeism(prev => prev.filter(r => !(r.userId === userId && r.date === date)));
+
+    const { error } = await dbService.deleteAbsenteeism(userId, date);
+    if (error) {
+       setAbsenteeism(oldAbs);
+       showToast('error', 'Aviso de Sincronização', 'Falha ao remover registro de absenteísmo na nuvem.');
+    }
+  };
+
   const navItemsRaw: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'kanban',     label: 'Programação', icon: <Kanban size={20} /> },
     { key: 'atividades', label: 'Atividades',  icon: <ListTodo size={20} /> },
     { key: 'dashboard',  label: 'Dashboard',   icon: <LayoutDashboard size={20} /> },
+    { key: 'absenteismo',label: 'Absenteísmo', icon: <UserCheck size={20} /> },
     { key: 'henkatens',  label: 'Henkatens',   icon: <Calendar size={20} /> },
     { key: 'conhecimento', label: 'Conhecimento', icon: <BookOpen size={20} /> },
     { key: 'cadastros',  label: 'Cadastros',   icon: <ShieldAlert size={20} /> },
@@ -446,6 +487,7 @@ export default function App() {
     if (item.key === 'cadastros') return p?.cadastros?.view ?? false;
     if (item.key === 'logs') return false; // Somente Admin (já coberto acima)
     if (item.key === 'conhecimento') return (p?.conhecimentoTP?.view || p?.conhecimentoProj?.view) ?? (currentUser.role === 'Gestão');
+    if (item.key === 'absenteismo') return (p?.absenteismo?.view) ?? true;
 
     return true;
   })
@@ -642,6 +684,15 @@ export default function App() {
             activities={knowledgeBase.activities}
             progress={knowledgeBase.progress}
             onRefresh={loadData}
+          />
+        )}
+        {activeTab === 'absenteismo' && (
+          <AbsenteismoTab
+            currentUser={currentUser}
+            users={users}
+            records={absenteeism}
+            onSaveRecord={saveAbsenteeismRecord}
+            onDeleteRecord={deleteAbsenteeismRecord}
           />
         )}
         {activeTab === 'logs' && (
