@@ -126,10 +126,10 @@ export default function AbsenteismoTab({
 
   // -- Cadastro de Funcionários Logic --
   const [empModal, setEmpModal] = useState<{ open: boolean; editing: Employee | null }>({ open: false, editing: null });
-  const [empForm, setEmpForm] = useState<Omit<Employee, 'id'>>({ name: '', status: 'Ativo', area: 'Projetos' });
+  const [empForm, setEmpForm] = useState<Omit<Employee, 'id'>>({ name: '', status: 'Ativo', registration: '', role: '' });
 
-  const openNewEmp = () => { setEmpForm({ name: '', status: 'Ativo', area: 'Projetos' }); setEmpModal({ open: true, editing: null }); };
-  const openEditEmp = (emp: Employee) => { setEmpForm({ name: emp.name, status: emp.status, area: emp.area || 'Projetos' }); setEmpModal({ open: true, editing: emp }); };
+  const openNewEmp = () => { setEmpForm({ name: '', status: 'Ativo', registration: '', role: '' }); setEmpModal({ open: true, editing: null }); };
+  const openEditEmp = (emp: Employee) => { setEmpForm({ name: emp.name, status: emp.status, registration: emp.registration || '', role: emp.role || '' }); setEmpModal({ open: true, editing: emp }); };
   
   const saveEmployee = async () => {
     if (!empForm.name.trim()) return;
@@ -432,7 +432,11 @@ export default function AbsenteismoTab({
                   <span className="user-avatar lg" style={{ background: emp.status === 'Ativo' ? '#10b981' : '#64748b' }}>{emp.name[0]}</span>
                   <div className="cad-card-info">
                      <span className="cad-name" style={{ textDecoration: emp.status === 'Inativo' ? 'line-through' : 'none' }}>{emp.name}</span>
-                     <span className="cad-meta">{emp.area}</span>
+                     <span className="cad-meta" style={{ display: 'flex', gap: '0.5rem', whiteSpace: 'nowrap' }}>
+                         {emp.registration && <span>Mat: {emp.registration}</span>}
+                         {emp.registration && emp.role && <span>|</span>}
+                         {emp.role && <span>{emp.role}</span>}
+                     </span>
                   </div>
                </div>
                <div className="cad-card-actions">
@@ -517,9 +521,15 @@ export default function AbsenteismoTab({
                     <label>Nome Completo *</label>
                     <input type="text" placeholder="Nome na Grade" value={empForm.name} onChange={e => setEmpForm(f => ({ ...f, name: e.target.value }))} />
                  </div>
-                 <div className="form-group full">
-                    <label>Área</label>
-                    <input type="text" placeholder="ex: Equipe Operacional" value={empForm.area} onChange={e => setEmpForm(f => ({ ...f, area: e.target.value }))} />
+                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
+                    <div className="form-group">
+                       <label>Matrícula</label>
+                       <input type="text" placeholder="ex: 12345" value={empForm.registration} onChange={e => setEmpForm(f => ({ ...f, registration: e.target.value }))} />
+                    </div>
+                    <div className="form-group">
+                       <label>Cargo</label>
+                       <input type="text" placeholder="ex: Analista" value={empForm.role} onChange={e => setEmpForm(f => ({ ...f, role: e.target.value }))} />
+                    </div>
                  </div>
                  <div className="form-group full">
                     <label>Status (Inativar remove o nome da lista de preenchimento, mas não perde histórico)</label>

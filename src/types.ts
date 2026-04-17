@@ -117,7 +117,9 @@ export interface Employee {
   id: string;
   name: string;
   status: 'Ativo' | 'Inativo';
-  area?: string; // T&P, Projetos, etc. caso queira mapear
+  registration?: string; // Matrícula
+  role?: string;         // Cargo
+  area?: string;         // T&P, Projetos, etc. (mantido por compatibilidade)
   updatedAt?: string;
 }
 

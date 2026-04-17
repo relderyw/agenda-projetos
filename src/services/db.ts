@@ -326,6 +326,8 @@ export const dbService = {
       id: row.id,
       name: row.name,
       status: row.status,
+      registration: row.registration,
+      role: row.role,
       area: row.area,
       updatedAt: row.updated_at
     }))
@@ -337,6 +339,8 @@ export const dbService = {
       id: emp.id,
       name: emp.name,
       status: emp.status,
+      registration: emp.registration,
+      role: emp.role,
       area: emp.area,
       updated_at: new Date().toISOString()
     }
