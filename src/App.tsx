@@ -443,7 +443,7 @@ export default function App() {
     
     // update locally optimistic
     setAbsenteeism(prev => {
-      const idx = prev.findIndex(r => r.userId === record.userId && r.date === record.date);
+      const idx = prev.findIndex(r => r.employeeId === record.employeeId && r.date === record.date);
       if (idx !== -1) {
         const copy = [...prev];
         copy[idx] = { ...copy[idx], status: record.status } as AbsenteeismRecord;
