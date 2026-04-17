@@ -143,7 +143,8 @@ export interface OvertimeRecord {
   startTime: string; // HH:mm
   endTime: string;   // HH:mm
   costCenter: string;
-  reason: string;
+  cause: string;
+  motive?: string;
   updatedBy?: string;
   updatedAt?: string;
 }

@@ -141,7 +141,7 @@ export default function AbsenteismoTab({
 
   // -- Hora Extra Logic --
   const [heModal, setHeModal] = useState<{ open: boolean; editing: OvertimeRecord | null }>({ open: false, editing: null });
-  const [heForm, setHeForm] = useState<Omit<OvertimeRecord, 'id'>>({ employeeId: '', date: '', startTime: '', endTime: '', costCenter: '', reason: '' });
+  const [heForm, setHeForm] = useState<Omit<OvertimeRecord, 'id'>>({ employeeId: '', date: '', startTime: '', endTime: '', costCenter: 'Honda', cause: '', motive: '' });
 
   const filterHEMonth = useMemo(() => overtimeRecords.filter(r => r.date.startsWith(selectedMonth)).sort((a,b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime)), [overtimeRecords, selectedMonth]);
 
@@ -156,8 +156,8 @@ export default function AbsenteismoTab({
     return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
   };
 
-  const openNewHE = () => { setHeForm({ employeeId: activeEmployees[0]?.id || '', date: new Date().toISOString().split('T')[0], startTime: '18:00', endTime: '20:00', costCenter: '', reason: '' }); setHeModal({ open: true, editing: null }); };
-  const openEditHE = (rec: OvertimeRecord) => { setHeForm({ employeeId: rec.employeeId, date: rec.date, startTime: rec.startTime, endTime: rec.endTime, costCenter: rec.costCenter, reason: rec.reason }); setHeModal({ open: true, editing: rec }); };
+  const openNewHE = () => { setHeForm({ employeeId: activeEmployees[0]?.id || '', date: new Date().toISOString().split('T')[0], startTime: '18:00', endTime: '20:00', costCenter: 'Honda', cause: '', motive: '' }); setHeModal({ open: true, editing: null }); };
+  const openEditHE = (rec: OvertimeRecord) => { setHeForm({ employeeId: rec.employeeId, date: rec.date, startTime: rec.startTime, endTime: rec.endTime, costCenter: rec.costCenter, cause: rec.cause, motive: rec.motive || '' }); setHeModal({ open: true, editing: rec }); };
 
   const saveHE = async () => {
     if (!heForm.employeeId || !heForm.date || !heForm.startTime || !heForm.endTime) return;
@@ -168,10 +168,10 @@ export default function AbsenteismoTab({
   };
 
   const exportHE = () => {
-    const headers = ['Data', 'Funcionário', 'Início', 'Fim', 'Total Hrs', 'Centro de Custo', 'Motivo'];
+    const headers = ['Data', 'Funcionário', 'Início', 'Fim', 'Total Hrs', 'Custo', 'Causa', 'Motivo'];
     const rows = filterHEMonth.map(r => {
       const emp = employees.find(e => e.id === r.employeeId);
-      return [r.date.split('-').reverse().join('/'), `"${emp?.name || '---'}"`, r.startTime, r.endTime, calcDiff(r.startTime, r.endTime), `"${r.costCenter}"`, `"${r.reason}"`].join(';');
+      return [r.date.split('-').reverse().join('/'), `"${emp?.name || '---'}"`, r.startTime, r.endTime, calcDiff(r.startTime, r.endTime), `"${r.costCenter}"`, `"${r.cause}"`, `"${r.motive || ''}"`].join(';');
     });
     const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(';'), ...rows].join('\n');
     const link = document.createElement("a");
@@ -384,8 +384,9 @@ export default function AbsenteismoTab({
                 <th>Início</th>
                 <th>Término</th>
                 <th>Duração</th>
-                <th>Centro de Custo</th>
-                <th>Motivo/Atividade</th>
+                <th>Custo</th>
+                <th>Causa</th>
+                <th>Motivo</th>
                 {canEdit && <th style={{ width: 80, textAlign: 'right' }}>Ações</th>}
               </tr>
             </thead>
@@ -403,7 +404,8 @@ export default function AbsenteismoTab({
                     <td>{rec.endTime}</td>
                     <td style={{ fontWeight: 'bold' }}>{calcDiff(rec.startTime, rec.endTime)}</td>
                     <td>{rec.costCenter}</td>
-                    <td>{rec.reason}</td>
+                    <td>{rec.cause}</td>
+                    <td>{rec.motive || ''}</td>
                     {canEdit && (
                       <td style={{ textAlign: 'right' }}>
                         <button className="action-btn edit" onClick={() => openEditHE(rec)}><Edit2 size={14} /></button>
@@ -490,13 +492,22 @@ export default function AbsenteismoTab({
                          <input type="time" value={heForm.endTime} onChange={e => setHeForm(f => ({ ...f, endTime: e.target.value }))} />
                        </div>
                     </div>
-                    <div className="form-group">
-                       <label>Centro de Custo</label>
-                       <input type="text" placeholder="ex: Projeto XYZ" value={heForm.costCenter} onChange={e => setHeForm(f => ({ ...f, costCenter: e.target.value }))} />
+                    <div className="form-group full">
+                       <label>Custo *</label>
+                       <div className="select-wrap full-w">
+                         <select value={heForm.costCenter} onChange={e => setHeForm(f => ({ ...f, costCenter: e.target.value }))}>
+                            <option value="Honda">Honda</option>
+                            <option value="LSL">LSL</option>
+                         </select>
+                       </div>
                     </div>
                     <div className="form-group full">
-                       <label>Razão / Atividade (Justificativa)</label>
-                       <input type="text" placeholder="ex: Finalização urgente de deploy..." value={heForm.reason} onChange={e => setHeForm(f => ({ ...f, reason: e.target.value }))} />
+                       <label>Causa</label>
+                       <input type="text" placeholder="ex: Finalização urgente de..." value={heForm.cause} onChange={e => setHeForm(f => ({ ...f, cause: e.target.value }))} />
+                    </div>
+                    <div className="form-group full">
+                       <label>Motivo</label>
+                       <input type="text" placeholder="ex: Defeito na linha X..." value={heForm.motive} onChange={e => setHeForm(f => ({ ...f, motive: e.target.value }))} />
                     </div>
                  </div>
               </div>

@@ -368,7 +368,8 @@ export const dbService = {
       startTime: row.start_time || row.startTime,
       endTime: row.end_time || row.endTime,
       costCenter: row.cost_center || row.costCenter,
-      reason: row.reason,
+      cause: row.reason || row.cause,
+      motive: row.motive,
       updatedBy: row.updated_by || row.updatedBy,
       updatedAt: row.updated_at || row.updatedAt
     }))
@@ -383,7 +384,8 @@ export const dbService = {
       start_time: record.startTime,
       end_time: record.endTime,
       cost_center: record.costCenter,
-      reason: record.reason,
+      reason: record.cause, // mantendo compatibilidade com campo reason
+      motive: record.motive,
       updated_by: record.updatedBy,
       updated_at: new Date().toISOString()
     }
