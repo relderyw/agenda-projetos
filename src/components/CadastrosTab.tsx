@@ -44,7 +44,7 @@ const MODULE_LABELS: Record<keyof UserPermissions, string> = {
   usuarios: 'Usuários',
   conhecimentoTP: 'Conhecimento T&P',
   conhecimentoProj: 'Conhecimento Projetos',
-  absenteismo: 'Absenteísmo'
+  absenteismo: 'Painel de Ponto (Abs/HE)'
 };
 
 export default function CadastrosTab({

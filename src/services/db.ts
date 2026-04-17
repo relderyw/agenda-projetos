@@ -370,6 +370,7 @@ export const dbService = {
       costCenter: row.cost_center || row.costCenter,
       cause: row.reason || row.cause,
       motive: row.motive,
+      formNumber: row.form_number,
       updatedBy: row.updated_by || row.updatedBy,
       updatedAt: row.updated_at || row.updatedAt
     }))
@@ -386,6 +387,7 @@ export const dbService = {
       cost_center: record.costCenter,
       reason: record.cause, // mantendo compatibilidade com campo reason
       motive: record.motive,
+      form_number: record.formNumber,
       updated_by: record.updatedBy,
       updated_at: new Date().toISOString()
     }

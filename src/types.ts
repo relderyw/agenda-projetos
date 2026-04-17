@@ -145,6 +145,7 @@ export interface OvertimeRecord {
   costCenter: string;
   cause: string;
   motive?: string;
+  formNumber?: string;
   updatedBy?: string;
   updatedAt?: string;
 }

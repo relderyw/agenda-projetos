@@ -141,7 +141,7 @@ export default function AbsenteismoTab({
 
   // -- Hora Extra Logic --
   const [heModal, setHeModal] = useState<{ open: boolean; editing: OvertimeRecord | null }>({ open: false, editing: null });
-  const [heForm, setHeForm] = useState<Omit<OvertimeRecord, 'id'>>({ employeeId: '', date: '', startTime: '', endTime: '', costCenter: 'Honda', cause: '', motive: '' });
+  const [heForm, setHeForm] = useState<Omit<OvertimeRecord, 'id'>>({ employeeId: '', date: '', startTime: '', endTime: '', costCenter: 'Honda', cause: '', motive: '', formNumber: '' });
 
   const filterHEMonth = useMemo(() => overtimeRecords.filter(r => r.date.startsWith(selectedMonth)).sort((a,b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime)), [overtimeRecords, selectedMonth]);
 
@@ -156,8 +156,8 @@ export default function AbsenteismoTab({
     return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
   };
 
-  const openNewHE = () => { setHeForm({ employeeId: activeEmployees[0]?.id || '', date: new Date().toISOString().split('T')[0], startTime: '18:00', endTime: '20:00', costCenter: 'Honda', cause: '', motive: '' }); setHeModal({ open: true, editing: null }); };
-  const openEditHE = (rec: OvertimeRecord) => { setHeForm({ employeeId: rec.employeeId, date: rec.date, startTime: rec.startTime, endTime: rec.endTime, costCenter: rec.costCenter, cause: rec.cause, motive: rec.motive || '' }); setHeModal({ open: true, editing: rec }); };
+  const openNewHE = () => { setHeForm({ employeeId: activeEmployees[0]?.id || '', date: new Date().toISOString().split('T')[0], startTime: '18:00', endTime: '20:00', costCenter: 'Honda', cause: '', motive: '', formNumber: '' }); setHeModal({ open: true, editing: null }); };
+  const openEditHE = (rec: OvertimeRecord) => { setHeForm({ employeeId: rec.employeeId, date: rec.date, startTime: rec.startTime, endTime: rec.endTime, costCenter: rec.costCenter, cause: rec.cause, motive: rec.motive || '', formNumber: rec.formNumber || '' }); setHeModal({ open: true, editing: rec }); };
 
   const saveHE = async () => {
     if (!heForm.employeeId || !heForm.date || !heForm.startTime || !heForm.endTime) return;
@@ -168,10 +168,10 @@ export default function AbsenteismoTab({
   };
 
   const exportHE = () => {
-    const headers = ['Data', 'Funcionário', 'Início', 'Fim', 'Total Hrs', 'Custo', 'Causa', 'Motivo'];
+    const headers = ['Data', 'Funcionário', 'Início', 'Fim', 'Total Hrs', 'Nº Formulário', 'Custo', 'Causa', 'Motivo'];
     const rows = filterHEMonth.map(r => {
       const emp = employees.find(e => e.id === r.employeeId);
-      return [r.date.split('-').reverse().join('/'), `"${emp?.name || '---'}"`, r.startTime, r.endTime, calcDiff(r.startTime, r.endTime), `"${r.costCenter}"`, `"${r.cause}"`, `"${r.motive || ''}"`].join(';');
+      return [r.date.split('-').reverse().join('/'), `"${emp?.name || '---'}"`, r.startTime, r.endTime, calcDiff(r.startTime, r.endTime), `"${r.formNumber || ''}"`, `"${r.costCenter}"`, `"${r.cause}"`, `"${r.motive || ''}"`].join(';');
     });
     const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(';'), ...rows].join('\n');
     const link = document.createElement("a");
@@ -181,6 +181,51 @@ export default function AbsenteismoTab({
   };
 
   const ptMonths = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+  // Dashboards Analytics
+  const absStats = useMemo(() => {
+    let mostAbsent = { name: '--', count: 0 };
+    let allStats: { emp: Employee, p: number, f: number, total: number, rate: number }[] = [];
+    
+    activeEmployees.forEach(emp => {
+      let calcP = 0, calcF = 0;
+      daysArray.forEach(d => {
+        const rec = getRecord(emp.id, d.dateStr);
+        if (rec) {
+          if (rec.status === 'P') calcP++;
+          else if (['F','A','AR','PR','ER','EC','SA','AF'].includes(rec.status)) calcF++;
+        }
+      });
+      if (calcF > mostAbsent.count) mostAbsent = { name: emp.name, count: calcF };
+      
+      const total = calcP + calcF;
+      const rate = total > 0 ? (calcP / total) : 0;
+      if (total > 0) allStats.push({ emp, p: calcP, f: calcF, total, rate });
+    });
+
+    const top3 = [...allStats].sort((a, b) => b.rate - a.rate || b.p - a.p).slice(0, 3);
+    return { mostAbsent, top3 };
+  }, [activeEmployees, daysArray, monthRecords]);
+
+  const heStats = useMemo(() => {
+    const totals: Record<string, number> = {};
+    filterHEMonth.forEach(rec => {
+      if (!rec.startTime || !rec.endTime) return;
+      const [h1, m1] = rec.startTime.split(':').map(Number);
+      const [h2, m2] = rec.endTime.split(':').map(Number);
+      let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+      if (diff < 0) diff += 24 * 60;
+      totals[rec.employeeId] = (totals[rec.employeeId] || 0) + diff;
+    });
+
+    let maxVal = 0, maxEmpId = '';
+    for (const id in totals) { if(totals[id] > maxVal) { maxVal = totals[id]; maxEmpId = id; } }
+    
+    const emp = employees.find(e => e.id === maxEmpId);
+    const hh = Math.floor(maxVal/60);
+    const mm = maxVal % 60;
+    return { emp, hoursText: maxVal > 0 ? `${hh}h ${mm}m` : '--' };
+  }, [filterHEMonth, employees]);
 
   return (
     <div className="tab-content" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -206,6 +251,34 @@ export default function AbsenteismoTab({
 
       {subTab === 'absenteismo' && (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1, padding: '1rem 0' }}>
+        {/* INDICADORES ABSENTEISMO */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2fr)', gap: '1rem', flexWrap: 'wrap' }}>
+          
+          <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.1) 100%)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase' }}>Colaborador com Maior Ausência</span>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem' }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{absStats.mostAbsent.name}</span>
+            </div>
+            {absStats.mostAbsent.count > 0 ? <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{absStats.mostAbsent.count} ocorrências no mês selecionado.</span> : <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Nenhuma ausência reportada.</span>}
+          </div>
+
+          <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase' }}>Top 3 Assiduidades do Mês</span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
+              {absStats.top3.length === 0 ? <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Nenhum dado calculado para o mês.</span> : null}
+              {absStats.top3.map((st, i) => (
+                <div key={st.emp.id} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#10b98115', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>#{i+1}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={st.emp.name}>{st.emp.name}</span>
+                    <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>{(st.rate * 100).toFixed(1)}% ({st.p} Pres)</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* LEGENDA */}
         <div className="table-card" style={{ padding: '1rem' }}>
           <h3 style={{ fontSize: '1rem', marginBottom: '1rem', fontWeight: 600 }}>Legenda</h3>
@@ -359,6 +432,16 @@ export default function AbsenteismoTab({
       {/* HORAS EXTRAS */}
       {subTab === 'hora-extra' && (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1, padding: '1rem 0' }}>
+
+        {/* INDICADOR HORA EXTRA */}
+        <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.1) 100%)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase' }}>DESTAQUE DO MÊS: MAIOR CARGA EXTRA</span>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{heStats.emp?.name || '--'}</span>
+          </div>
+          <span style={{ fontSize: '0.9rem', color: '#2563eb', fontWeight: 600 }}>Carga acumulada de {heStats.hoursText}</span>
+        </div>
+
         <div className="cad-section-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
             <span className="cad-count">Lançamentos de HE</span>
@@ -380,6 +463,7 @@ export default function AbsenteismoTab({
             <thead>
               <tr>
                 <th>Data</th>
+                <th>Formulário</th>
                 <th>Funcionário</th>
                 <th>Início</th>
                 <th>Término</th>
@@ -392,13 +476,14 @@ export default function AbsenteismoTab({
             </thead>
             <tbody>
               {filterHEMonth.length === 0 && (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Nenhuma hora extra lançada neste mês.</td></tr>
+                <tr><td colSpan={10} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Nenhuma hora extra lançada neste mês.</td></tr>
               )}
               {filterHEMonth.map(rec => {
                 const emp = employees.find(e => e.id === rec.employeeId);
                 return (
                   <tr key={rec.id} className="data-row">
                     <td style={{ fontWeight: 500 }}>{rec.date.split('-').reverse().join('/')}</td>
+                    <td style={{ color: 'var(--text-secondary)' }}>{rec.formNumber || '--'}</td>
                     <td style={{ fontWeight: 600 }}>{emp?.name || '-- Inválido --'}</td>
                     <td>{rec.startTime}</td>
                     <td>{rec.endTime}</td>
@@ -476,6 +561,10 @@ export default function AbsenteismoTab({
                          {activeEmployees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                       </select>
                     </div>
+                 </div>
+                 <div className="form-group full">
+                    <label>Nº do Formulário</label>
+                    <input type="text" placeholder="ex: FRM-202611" value={heForm.formNumber} onChange={e => setHeForm(f => ({ ...f, formNumber: e.target.value }))} />
                  </div>
                  <div className="form-grid">
                     <div className="form-group">
