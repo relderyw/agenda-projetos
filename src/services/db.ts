@@ -6,7 +6,7 @@ import {
 import type { 
   Activity, Theme, User, HenkatenEvent, LogEntry,
   KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday,
-  AbsenteeismRecord
+  AbsenteeismRecord, Employee, OvertimeRecord
 } from '../types'
 
 const isCloudEnabled = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
@@ -289,7 +289,7 @@ export const dbService = {
     if (error) { console.error('GetAbsenteeism Error:', error); return [] }
     return (data || []).map(row => ({
       id: row.id,
-      userId: row.user_id || row.userId,
+      employeeId: row.employee_id || row.employeeId || row.user_id || row.userId, // fallback legacy
       date: row.date,
       status: row.status,
       updatedBy: row.updated_by || row.updatedBy,
@@ -300,8 +300,8 @@ export const dbService = {
   async saveAbsenteeism(record: Omit<AbsenteeismRecord, 'id'> | AbsenteeismRecord) {
     if (!isCloudEnabled) return { data: null, error: null }
     const dbPayload = {
-      ...(record as any).id && { id: (record as any).id }, // Only pass id if updating
-      user_id: record.userId,
+      ...(record as any).id && { id: (record as any).id },
+      employee_id: record.employeeId,
       date: record.date,
       status: record.status,
       updated_by: record.updatedBy,
@@ -312,8 +312,86 @@ export const dbService = {
     return { data, error }
   },
 
-  async deleteAbsenteeism(userId: string, date: string) {
+  async deleteAbsenteeism(employeeId: string, date: string) {
     if (!isCloudEnabled) return { data: null, error: null }
-    return await supabase.from('absenteeism').delete().eq('user_id', userId).eq('date', date)
+    return await supabase.from('absenteeism').delete().eq('employee_id', employeeId).eq('date', date)
+  },
+
+  // --- EMPLOYEES (Funcionários do Ponto) ---
+  async getEmployees(): Promise<Employee[]> {
+    if (!isCloudEnabled) return []
+    const { data, error } = await supabase.from('employees').select('*').order('name')
+    if (error) { console.error('GetEmployees Error:', error); return [] }
+    return (data || []).map(row => ({
+      id: row.id,
+      name: row.name,
+      status: row.status,
+      area: row.area,
+      updatedAt: row.updated_at
+    }))
+  },
+
+  async saveEmployee(emp: Employee) {
+    if (!isCloudEnabled) return { error: null }
+    const payload = {
+      id: emp.id,
+      name: emp.name,
+      status: emp.status,
+      area: emp.area,
+      updated_at: new Date().toISOString()
+    }
+    const { error } = await supabase.from('employees').upsert(payload)
+    if (error) console.error('SaveEmployee Error', error)
+    return { error }
+  },
+
+  async deleteEmployee(id: string) {
+    if (!isCloudEnabled) return { error: null }
+    const { error } = await supabase.from('employees').delete().eq('id', id)
+    if (error) console.error('DeleteEmployee Error', error)
+    return { error }
+  },
+
+  // --- OVERTIME (Horas Extras) ---
+  async getOvertimes(): Promise<OvertimeRecord[]> {
+    if (!isCloudEnabled) return []
+    const { data, error } = await supabase.from('overtime').select('*').order('date', { ascending: false })
+    if (error) { console.error('GetOvertimes Error:', error); return [] }
+    return (data || []).map(row => ({
+      id: row.id,
+      employeeId: row.employee_id || row.employeeId,
+      date: row.date,
+      startTime: row.start_time || row.startTime,
+      endTime: row.end_time || row.endTime,
+      costCenter: row.cost_center || row.costCenter,
+      reason: row.reason,
+      updatedBy: row.updated_by || row.updatedBy,
+      updatedAt: row.updated_at || row.updatedAt
+    }))
+  },
+
+  async saveOvertime(record: Omit<OvertimeRecord, 'id'> | OvertimeRecord) {
+    if (!isCloudEnabled) return { error: null }
+    const payload = {
+      ...(record as any).id && { id: (record as any).id }, // Only pass id if updating
+      employee_id: record.employeeId,
+      date: record.date,
+      start_time: record.startTime,
+      end_time: record.endTime,
+      cost_center: record.costCenter,
+      reason: record.reason,
+      updated_by: record.updatedBy,
+      updated_at: new Date().toISOString()
+    }
+    const { error } = await supabase.from('overtime').upsert(payload)
+    if (error) console.error('SaveOvertime Error', error)
+    return { error }
+  },
+
+  async deleteOvertime(id: string) {
+    if (!isCloudEnabled) return { error: null }
+    const { error } = await supabase.from('overtime').delete().eq('id', id)
+    if (error) console.error('DeleteOvertime Error', error)
+    return { error }
   }
 };

@@ -112,16 +112,36 @@ export interface HenkatenEvent {
   postponedDate?: string;  // Nova data se postergado
 }
 
-// ─── Absenteísmo ────────────────────────────────────────
+// ─── Absenteísmo & Horas Extras (Ponto) ────────────────────
+export interface Employee {
+  id: string;
+  name: string;
+  status: 'Ativo' | 'Inativo';
+  area?: string; // T&P, Projetos, etc. caso queira mapear
+  updatedAt?: string;
+}
+
 export type AbsenteeismStatus = 
   | 'P' | 'F' | 'A' | 'AR' | 'PR' | 'ER' | 'EC' 
   | 'LM' | 'SA' | 'TR' | 'FE' | 'FO' | 'DE' | 'LP' | 'AF';
 
 export interface AbsenteeismRecord {
   id: string;
-  userId: string;
+  employeeId: string;
   date: string; // YYYY-MM-DD
   status: AbsenteeismStatus;
+  updatedBy?: string;
+  updatedAt?: string;
+}
+
+export interface OvertimeRecord {
+  id: string;
+  employeeId: string;
+  date: string; // YYYY-MM-DD
+  startTime: string; // HH:mm
+  endTime: string;   // HH:mm
+  costCenter: string;
+  reason: string;
   updatedBy?: string;
   updatedAt?: string;
 }

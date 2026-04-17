@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2, UserCheck } from 'lucide-react'
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from './data'
-import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday, AbsenteeismRecord } from './types'
+import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday, AbsenteeismRecord, Employee, OvertimeRecord } from './types'
 import AtividadesTab from './components/AtividadesTab'
 import DashboardTab from './components/DashboardTab'
 import CadastrosTab from './components/CadastrosTab'
@@ -39,6 +39,8 @@ export default function App() {
   const [knowledgeBase, setKnowledgeBase] = useState<{ categories: KnowledgeCategory[], activities: KnowledgeActivity[], progress: KnowledgeProgress[] }>({ categories: [], activities: [], progress: [] })
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const [absenteeism, setAbsenteeism] = useState<AbsenteeismRecord[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([])
+  const [overtimes, setOvertimes] = useState<OvertimeRecord[]>([])
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
@@ -81,7 +83,7 @@ export default function App() {
     if (isFirstLoad) setLoading(true);
     
     try {
-      const [a, t, u, h, l, k, hol, abs] = await Promise.all([
+      const [a, t, u, h, l, k, hol, abs, emp, ove] = await Promise.all([
         dbService.getActivities(),
         dbService.getThemes(),
         dbService.getUsers(),
@@ -89,7 +91,9 @@ export default function App() {
         dbService.getTodayLogs(),
         dbService.getKnowledgeBase(),
         dbService.getHolidays(),
-        dbService.getAbsenteeism()
+        dbService.getAbsenteeism(),
+        dbService.getEmployees(),
+        dbService.getOvertimes()
       ])
       setActivities(a)
       setThemes(t)
@@ -99,6 +103,8 @@ export default function App() {
       setKnowledgeBase(k)
       setHolidays(hol)
       setAbsenteeism(abs)
+      setEmployees(emp)
+      setOvertimes(ove)
     } finally {
       if (isFirstLoad) setLoading(false);
       setIsFirstLoad(false);
@@ -454,16 +460,64 @@ export default function App() {
     }
   };
 
-  const deleteAbsenteeismRecord = async (userId: string, date: string) => {
+  const deleteAbsenteeismRecord = async (employeeId: string, date: string) => {
     if (!currentUser) return;
     const oldAbs = [...absenteeism];
-    setAbsenteeism(prev => prev.filter(r => !(r.userId === userId && r.date === date)));
+    setAbsenteeism(prev => prev.filter(r => !(r.employeeId === employeeId && r.date === date)));
 
-    const { error } = await dbService.deleteAbsenteeism(userId, date);
+    const { error } = await dbService.deleteAbsenteeism(employeeId, date);
     if (error) {
        setAbsenteeism(oldAbs);
        showToast('error', 'Aviso de Sincronização', 'Falha ao remover registro de absenteísmo na nuvem.');
     }
+  };
+
+  const saveEmployeeRecord = async (emp: Employee) => {
+    if (!currentUser) return;
+    const isNew = !employees.find(e => e.id === emp.id);
+    setEmployees(prev => {
+      const copy = [...prev];
+      const idx = copy.findIndex(e => e.id === emp.id);
+      if (idx !== -1) copy[idx] = emp;
+      else copy.push(emp);
+      return copy;
+    });
+    const { error } = await dbService.saveEmployee(emp);
+    if (error) showToast('error', 'Aviso de Sincronização', 'Falha ao salvar funcionário.');
+    else if (isNew) showToast('success', 'Funcionário Salvo', `Perfil de ${emp.name} criado com sucesso.`);
+  };
+
+  const deleteEmployeeRecord = async (id: string) => {
+    if (!currentUser) return;
+    setEmployees(prev => prev.filter(e => e.id !== id));
+    const { error } = await dbService.deleteEmployee(id);
+    if (error) showToast('error', 'Aviso de Sincronização', 'Falha ao excluir funcionário.');
+    else showToast('success', 'Excluído', 'Funcionário excluído.');
+  };
+
+  const saveOvertimeRecord = async (record: Omit<OvertimeRecord, 'id'> | OvertimeRecord) => {
+    if (!currentUser) return;
+    setOvertimes(prev => {
+      const idx = prev.findIndex(r => r.id === (record as any).id);
+      if (idx !== -1) {
+        const copy = [...prev];
+        copy[idx] = record as OvertimeRecord;
+        return copy;
+      } else {
+        return [...prev, record as OvertimeRecord];
+      }
+    });
+
+    const { error } = await dbService.saveOvertime(record);
+    if (error) showToast('error', 'Aviso de Sincronização', 'Falha ao salvar Hora Extra.');
+    else showToast('success', 'Salvo', 'Lançamento de Hora Extra salvo.');
+  };
+
+  const deleteOvertimeRecord = async (id: string) => {
+    if (!currentUser) return;
+    setOvertimes(prev => prev.filter(r => r.id !== id));
+    const { error } = await dbService.deleteOvertime(id);
+    if (error) showToast('error', 'Aviso de Sincronização', 'Falha ao deletar Hora Extra.');
   };
 
   const navItemsRaw: { key: Tab; label: string; icon: React.ReactNode }[] = [
@@ -689,10 +743,15 @@ export default function App() {
         {activeTab === 'absenteismo' && (
           <AbsenteismoTab
             currentUser={currentUser}
-            users={users}
-            records={absenteeism}
-            onSaveRecord={saveAbsenteeismRecord}
-            onDeleteRecord={deleteAbsenteeismRecord}
+            employees={employees}
+            absenteeismRecords={absenteeism}
+            overtimeRecords={overtimes}
+            onSaveAbsenteeism={saveAbsenteeismRecord}
+            onDeleteAbsenteeism={deleteAbsenteeismRecord}
+            onSaveEmployee={saveEmployeeRecord}
+            onDeleteEmployee={deleteEmployeeRecord}
+            onSaveOvertime={saveOvertimeRecord}
+            onDeleteOvertime={deleteOvertimeRecord}
           />
         )}
         {activeTab === 'logs' && (
