@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { Download, RefreshCw, Calendar, Trash2, Users, Clock, Tag, Plus, Edit2, X, Save, SaveAll } from 'lucide-react';
-import type { User, Employee, AbsenteeismRecord, AbsenteeismStatus, OvertimeRecord } from '../types';
+import type { User, Employee, AbsenteeismRecord, AbsenteeismStatus, OvertimeRecord, Holiday } from '../types';
 
 interface Props {
   currentUser: User | null;
   employees: Employee[];
   absenteeismRecords: AbsenteeismRecord[];
   overtimeRecords: OvertimeRecord[];
+  holidays: Holiday[];
   onSaveAbsenteeism: (record: Omit<AbsenteeismRecord, 'id'> | AbsenteeismRecord) => Promise<void>;
   onDeleteAbsenteeism: (employeeId: string, date: string) => Promise<void>;
   onSaveEmployee: (emp: Employee) => Promise<void>;
@@ -34,7 +35,7 @@ const STATUS_LEGEND: { status: AbsenteeismStatus; label: string; color: string; 
 ];
 
 export default function AbsenteismoTab({
-  currentUser, employees, absenteeismRecords, overtimeRecords,
+  currentUser, employees, absenteeismRecords, overtimeRecords, holidays,
   onSaveAbsenteeism, onDeleteAbsenteeism,
   onSaveEmployee, onDeleteEmployee,
   onSaveOvertime, onDeleteOvertime
@@ -141,7 +142,7 @@ export default function AbsenteismoTab({
 
   // -- Hora Extra Logic --
   const [heModal, setHeModal] = useState<{ open: boolean; editing: OvertimeRecord | null }>({ open: false, editing: null });
-  const [heForm, setHeForm] = useState<Omit<OvertimeRecord, 'id'>>({ employeeId: '', date: '', startTime: '', endTime: '', costCenter: 'Honda', cause: '', motive: '', formNumber: '' });
+  const [heForm, setHeForm] = useState<{ employeeIds: string[], date: string, startTime: string, endTime: string, costCenter: string, cause: string, motive: string, formNumber: string }>({ employeeIds: [], date: '', startTime: '', endTime: '', costCenter: 'Honda', cause: '', motive: '', formNumber: '' });
 
   const filterHEMonth = useMemo(() => overtimeRecords.filter(r => r.date.startsWith(selectedMonth)).sort((a,b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime)), [overtimeRecords, selectedMonth]);
 
@@ -156,13 +157,26 @@ export default function AbsenteismoTab({
     return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
   };
 
-  const openNewHE = () => { setHeForm({ employeeId: activeEmployees[0]?.id || '', date: new Date().toISOString().split('T')[0], startTime: '18:00', endTime: '20:00', costCenter: 'Honda', cause: '', motive: '', formNumber: '' }); setHeModal({ open: true, editing: null }); };
-  const openEditHE = (rec: OvertimeRecord) => { setHeForm({ employeeId: rec.employeeId, date: rec.date, startTime: rec.startTime, endTime: rec.endTime, costCenter: rec.costCenter, cause: rec.cause, motive: rec.motive || '', formNumber: rec.formNumber || '' }); setHeModal({ open: true, editing: rec }); };
+  const openNewHE = () => { 
+    const now = new Date();
+    const startT = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const endNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    const endT = `${String(endNow.getHours()).padStart(2, '0')}:${String(endNow.getMinutes()).padStart(2, '0')}`;
+    setHeForm({ employeeIds: [], date: now.toISOString().split('T')[0], startTime: startT, endTime: endT, costCenter: 'Honda', cause: '', motive: '', formNumber: '' }); 
+    setHeModal({ open: true, editing: null }); 
+  };
+  const openEditHE = (rec: OvertimeRecord) => { setHeForm({ employeeIds: [rec.employeeId], date: rec.date, startTime: rec.startTime, endTime: rec.endTime, costCenter: rec.costCenter, cause: rec.cause, motive: rec.motive || '', formNumber: rec.formNumber || '' }); setHeModal({ open: true, editing: rec }); };
 
   const saveHE = async () => {
-    if (!heForm.employeeId || !heForm.date || !heForm.startTime || !heForm.endTime) return;
+    if (heForm.employeeIds.length === 0 || !heForm.date || !heForm.startTime || !heForm.endTime) return;
     setIsSaving(true);
-    await onSaveOvertime({ ...heForm, id: heModal.editing?.id || crypto.randomUUID() } as OvertimeRecord);
+    if (heModal.editing) {
+      await onSaveOvertime({ ...heForm, employeeId: heForm.employeeIds[0], id: heModal.editing.id } as OvertimeRecord);
+    } else {
+      for (const empId of heForm.employeeIds) {
+        await onSaveOvertime({ ...heForm, employeeId: empId, id: crypto.randomUUID() } as OvertimeRecord);
+      }
+    }
     setIsSaving(false);
     setHeModal({ open: false, editing: null });
   };
@@ -345,14 +359,18 @@ export default function AbsenteismoTab({
                <thead>
                   <tr>
                      <th style={{ width: '250px', position: 'sticky', left: 0, zIndex: 2, background: 'var(--bg-card)', borderRight: '2px solid var(--border-color)' }}>Funcionário</th>
-                     {daysArray.map(d => (
-                       <th key={d.day} style={{ width: '45px', minWidth: '45px', textAlign: 'center', padding: '0.4rem 0.2rem', fontSize: '0.75rem', borderBottom: '2px solid var(--border-color)' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                             <b style={{ fontSize: '1rem' }}>{d.day}</b>
-                             <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>{d.weekDay}</span>
-                          </div>
-                       </th>
-                     ))}
+                     {daysArray.map(d => {
+                       const isHoliday = holidays.some(h => h.date === d.dateStr);
+                       const isSundayOrHoliday = d.weekDay === 'Dom' || isHoliday;
+                       return (
+                         <th key={d.day} style={{ width: '45px', minWidth: '45px', textAlign: 'center', padding: '0.4rem 0.2rem', fontSize: '0.75rem', borderBottom: '2px solid var(--border-color)', ...(isSundayOrHoliday ? { background: 'rgba(239, 68, 68, 0.05)', color: '#ef4444' } : {}) }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                               <b style={{ fontSize: '1rem' }}>{d.day}</b>
+                               <span style={{ color: isSundayOrHoliday ? '#ef4444' : 'var(--text-muted)', fontSize: '0.65rem' }}>{d.weekDay}</span>
+                            </div>
+                         </th>
+                       )
+                     })}
                      <th style={{ width: '60px', textAlign: 'center', borderBottom: '2px solid var(--border-color)' }}>P</th>
                      <th style={{ width: '60px', textAlign: 'center', borderBottom: '2px solid var(--border-color)' }}>F/A</th>
                      <th style={{ width: '80px', textAlign: 'center', borderBottom: '2px solid var(--border-color)' }}>Ausência</th>
@@ -372,6 +390,8 @@ export default function AbsenteismoTab({
                           {daysArray.map(d => {
                              const rec = getRecord(emp.id, d.dateStr);
                              const leg = rec ? STATUS_LEGEND.find(l => l.status === rec.status) : null;
+                             const isHoliday = holidays.some(h => h.date === d.dateStr);
+                             const isSundayOrHoliday = d.weekDay === 'Dom' || isHoliday;
                              
                              if (rec) {
                                 if (rec.status === 'P') calcP++;
@@ -384,7 +404,8 @@ export default function AbsenteismoTab({
                                  onClick={() => handleCellClick(emp.id, d.dateStr)}
                                  style={{ 
                                    textAlign: 'center', cursor: canEdit ? 'crosshair' : 'default', padding: '3px',
-                                   border: '1px solid var(--border-color)'
+                                   border: '1px solid var(--border-color)',
+                                   ...(isSundayOrHoliday && !rec ? { background: 'rgba(239, 68, 68, 0.05)' } : {})
                                  }}
                                >
                                  {leg ? (
@@ -554,13 +575,30 @@ export default function AbsenteismoTab({
               </div>
               <div className="modal-body">
                  <div className="form-group full">
-                    <label>Funcionário *</label>
-                    <div className="select-wrap full-w">
-                      <select value={heForm.employeeId} onChange={e => setHeForm(f => ({ ...f, employeeId: e.target.value }))}>
-                         <option value="">Selecione...</option>
-                         {activeEmployees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                      </select>
+                    <label>Funcionário(s) *</label>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                      {heForm.employeeIds.map(id => {
+                        const emp = activeEmployees.find(e => e.id === id);
+                        return (
+                          <div key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: 'var(--bg-layer)', padding: '0.3rem 0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}>
+                             {emp?.name}
+                             {!heModal.editing && <X size={12} style={{ cursor: 'pointer', color: '#ef4444' }} onClick={() => setHeForm(f => ({ ...f, employeeIds: f.employeeIds.filter(x => x !== id) }))} />}
+                          </div>
+                        )
+                      })}
                     </div>
+                    {!heModal.editing && (
+                      <div className="select-wrap full-w">
+                        <select value="" onChange={e => {
+                          if (e.target.value && !heForm.employeeIds.includes(e.target.value)) {
+                             setHeForm(f => ({ ...f, employeeIds: [...f.employeeIds, e.target.value] }));
+                          }
+                        }}>
+                           <option value="">Adicionar funcionário...</option>
+                           {activeEmployees.filter(e => !heForm.employeeIds.includes(e.id)).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                        </select>
+                      </div>
+                    )}
                  </div>
                  <div className="form-group full">
                     <label>Nº do Formulário</label>
@@ -591,18 +629,18 @@ export default function AbsenteismoTab({
                        </div>
                     </div>
                     <div className="form-group full">
-                       <label>Causa</label>
-                       <input type="text" placeholder="ex: Finalização urgente de..." value={heForm.cause} onChange={e => setHeForm(f => ({ ...f, cause: e.target.value }))} />
-                    </div>
-                    <div className="form-group full">
                        <label>Motivo</label>
                        <input type="text" placeholder="ex: Defeito na linha X..." value={heForm.motive} onChange={e => setHeForm(f => ({ ...f, motive: e.target.value }))} />
+                    </div>
+                    <div className="form-group full">
+                       <label>Causa</label>
+                       <input type="text" placeholder="ex: Finalização urgente de..." value={heForm.cause} onChange={e => setHeForm(f => ({ ...f, cause: e.target.value }))} />
                     </div>
                  </div>
               </div>
               <div className="modal-footer">
                  <button className="btn-ghost" onClick={() => setHeModal({ open: false, editing: null })}>Cancelar</button>
-                 <button className="btn-primary" onClick={saveHE} disabled={isSaving || !heForm.employeeId || !heForm.date}><Save size={16} /> {isSaving ? 'Salvando...' : 'Salvar HE'}</button>
+                 <button className="btn-primary" onClick={saveHE} disabled={isSaving || heForm.employeeIds.length === 0 || !heForm.date}><Save size={16} /> {isSaving ? 'Salvando...' : 'Salvar HE'}</button>
               </div>
            </div>
          </div>

@@ -541,7 +541,7 @@ export default function App() {
     if (item.key === 'cadastros') return p?.cadastros?.view ?? false;
     if (item.key === 'logs') return false; // Somente Admin (já coberto acima)
     if (item.key === 'conhecimento') return (p?.conhecimentoTP?.view || p?.conhecimentoProj?.view) ?? (currentUser.role === 'Gestão');
-    if (item.key === 'absenteismo') return (p?.absenteismo?.view) ?? true;
+    if (item.key === 'absenteismo') return p?.absenteismo?.view ?? false;
 
     return true;
   })
@@ -746,6 +746,7 @@ export default function App() {
             employees={employees}
             absenteeismRecords={absenteeism}
             overtimeRecords={overtimes}
+            holidays={holidays}
             onSaveAbsenteeism={saveAbsenteeismRecord}
             onDeleteAbsenteeism={deleteAbsenteeismRecord}
             onSaveEmployee={saveEmployeeRecord}
