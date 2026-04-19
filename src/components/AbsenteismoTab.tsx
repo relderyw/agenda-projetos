@@ -248,19 +248,36 @@ export default function AbsenteismoTab({
   const ptMonths = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 
   // Dashboards Analytics
+  const [indicatorPeriod, setIndicatorPeriod] = useState<string>('selected_month');
+
+  const getPeriodRecords = (records: any[]) => {
+    return records.filter(r => {
+      if (indicatorPeriod === 'selected_month') return r.date.startsWith(selectedMonth);
+      if (indicatorPeriod === 'all') return true;
+      const [yr, mr] = r.date.split('-').map(Number);
+      const diffMonths = (new Date().getFullYear() - yr) * 12 + (new Date().getMonth() - (mr - 1));
+      if (indicatorPeriod === 'last_3') return diffMonths >= 0 && diffMonths < 3;
+      if (indicatorPeriod === 'last_6') return diffMonths >= 0 && diffMonths < 6;
+      if (indicatorPeriod === 'last_12') return diffMonths >= 0 && diffMonths < 12;
+      return false;
+    });
+  };
+
   const absStats = useMemo(() => {
     let mostAbsent = { name: '--', count: 0 };
     let allStats: { emp: Employee, p: number, f: number, total: number, rate: number }[] = [];
     
+    const periodRecords = getPeriodRecords(absenteeismRecords);
+
     activeEmployees.forEach(emp => {
       let calcP = 0, calcF = 0;
-      daysArray.forEach(d => {
-        const rec = getRecord(emp.id, d.dateStr);
-        if (rec) {
-          if (rec.status === 'P') calcP++;
-          else if (['F','A','AR','PR','ER','EC','SA','AF'].includes(rec.status)) calcF++;
-        }
+      const empRecords = periodRecords.filter(r => r.employeeId === emp.id);
+      
+      empRecords.forEach(rec => {
+        if (rec.status === 'P') calcP++;
+        else if (['F','A','AR','PR','ER','EC','SA','AF'].includes(rec.status)) calcF++;
       });
+      
       if (calcF > mostAbsent.count) mostAbsent = { name: emp.name, count: calcF };
       
       const total = calcP + calcF;
@@ -270,11 +287,13 @@ export default function AbsenteismoTab({
 
     const top3 = [...allStats].sort((a, b) => b.rate - a.rate || b.p - a.p).slice(0, 3);
     return { mostAbsent, top3 };
-  }, [activeEmployees, daysArray, monthRecords]);
+  }, [activeEmployees, absenteeismRecords, selectedMonth, indicatorPeriod]);
 
   const heStats = useMemo(() => {
     const totals: Record<string, number> = {};
-    filterHEMonth.forEach(rec => {
+    const periodRecords = getPeriodRecords(overtimeRecords);
+
+    periodRecords.forEach(rec => {
       if (!rec.startTime || !rec.endTime) return;
       const [h1, m1] = rec.startTime.split(':').map(Number);
       const [h2, m2] = rec.endTime.split(':').map(Number);
@@ -290,7 +309,25 @@ export default function AbsenteismoTab({
     const hh = Math.floor(maxVal/60);
     const mm = maxVal % 60;
     return { emp, hoursText: maxVal > 0 ? `${hh}h ${mm}m` : '--' };
-  }, [filterHEMonth, employees]);
+  }, [overtimeRecords, employees, selectedMonth, indicatorPeriod]);
+
+  // Reusable Select Filter for Indicators
+  const IndicatorFilter = () => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', width: '100%' }}>
+       <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Filtro do Resumo:</span>
+       <select 
+         value={indicatorPeriod} 
+         onChange={e => setIndicatorPeriod(e.target.value)}
+         style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-layer)', fontSize: '0.85rem', color: 'var(--text-primary)', outline: 'none' }}
+       >
+         <option value="selected_month">Mês Selecionado na Grade</option>
+         <option value="last_3">Últimos 3 Meses</option>
+         <option value="last_6">Últimos 6 Meses</option>
+         <option value="last_12">Últimos 12 Meses</option>
+         <option value="all">Todo o Período</option>
+       </select>
+    </div>
+  );
 
   return (
     <div className="tab-content" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -317,20 +354,21 @@ export default function AbsenteismoTab({
       {subTab === 'absenteismo' && (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1, padding: '1rem 0' }}>
         {/* INDICADORES ABSENTEISMO */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2fr)', gap: '1rem', flexWrap: 'wrap' }}>
+        <IndicatorFilter />
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2fr)', gap: '1rem', flexWrap: 'wrap', marginTop: '-0.5rem' }}>
           
           <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.1) 100%)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase' }}>Colaborador com Maior Ausência</span>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem' }}>
               <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{absStats.mostAbsent.name}</span>
             </div>
-            {absStats.mostAbsent.count > 0 ? <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{absStats.mostAbsent.count} ocorrências no mês selecionado.</span> : <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Nenhuma ausência reportada.</span>}
+            {absStats.mostAbsent.count > 0 ? <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{absStats.mostAbsent.count} ocorrências no período.</span> : <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Nenhuma ausência reportada.</span>}
           </div>
 
           <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase' }}>Top 3 Assiduidades do Mês</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase' }}>Top 3 Assiduidades do Período</span>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
-              {absStats.top3.length === 0 ? <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Nenhum dado calculado para o mês.</span> : null}
+              {absStats.top3.length === 0 ? <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Nenhum dado calculado para o período.</span> : null}
               {absStats.top3.map((st, i) => (
                 <div key={st.emp.id} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
                   <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#10b98115', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>#{i+1}</div>
@@ -506,8 +544,9 @@ export default function AbsenteismoTab({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1, padding: '1rem 0' }}>
 
         {/* INDICADOR HORA EXTRA */}
-        <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.1) 100%)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase' }}>DESTAQUE DO MÊS: MAIOR CARGA EXTRA</span>
+        <IndicatorFilter />
+        <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.1) 100%)', border: '1px solid rgba(59, 130, 246, 0.2)', marginTop: '-0.5rem' }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase' }}>DESTAQUE DO PERÍODO: MAIOR CARGA EXTRA</span>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem' }}>
             <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{heStats.emp?.name || '--'}</span>
           </div>
