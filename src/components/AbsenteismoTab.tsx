@@ -2,6 +2,18 @@ import React, { useState, useMemo } from 'react';
 import { Download, RefreshCw, Calendar, Trash2, Users, Clock, Tag, Plus, Edit2, X, Save, SaveAll } from 'lucide-react';
 import type { User, Employee, AbsenteeismRecord, AbsenteeismStatus, OvertimeRecord, Holiday } from '../types';
 
+interface HEGroup {
+  key: string;
+  records: OvertimeRecord[];
+  date: string;
+  formNumber?: string;
+  startTime: string;
+  endTime: string;
+  costCenter: string;
+  cause: string;
+  motive?: string;
+}
+
 interface Props {
   currentUser: User | null;
   employees: Employee[];
@@ -141,10 +153,32 @@ export default function AbsenteismoTab({
   };
 
   // -- Hora Extra Logic --
-  const [heModal, setHeModal] = useState<{ open: boolean; editing: OvertimeRecord | null }>({ open: false, editing: null });
+  const [heModal, setHeModal] = useState<{ open: boolean; editingGroup: HEGroup | null }>({ open: false, editingGroup: null });
   const [heForm, setHeForm] = useState<{ employeeIds: string[], date: string, startTime: string, endTime: string, costCenter: string, cause: string, motive: string, formNumber: string }>({ employeeIds: [], date: '', startTime: '', endTime: '', costCenter: 'Honda', cause: '', motive: '', formNumber: '' });
 
   const filterHEMonth = useMemo(() => overtimeRecords.filter(r => r.date.startsWith(selectedMonth)).sort((a,b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime)), [overtimeRecords, selectedMonth]);
+
+  const heGroups = useMemo(() => {
+    const groups: Record<string, HEGroup> = {};
+    filterHEMonth.forEach(rec => {
+      const key = `${rec.date}|${rec.formNumber||''}|${rec.startTime}|${rec.endTime}|${rec.costCenter}|${rec.cause}|${rec.motive||''}`;
+      if (!groups[key]) {
+        groups[key] = {
+          key,
+          records: [],
+          date: rec.date,
+          formNumber: rec.formNumber,
+          startTime: rec.startTime,
+          endTime: rec.endTime,
+          costCenter: rec.costCenter,
+          cause: rec.cause,
+          motive: rec.motive
+        };
+      }
+      groups[key].records.push(rec);
+    });
+    return Object.values(groups);
+  }, [filterHEMonth]);
 
   const calcDiff = (start: string, end: string) => {
     if (!start || !end) return '00:00';
@@ -163,22 +197,39 @@ export default function AbsenteismoTab({
     const endNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
     const endT = `${String(endNow.getHours()).padStart(2, '0')}:${String(endNow.getMinutes()).padStart(2, '0')}`;
     setHeForm({ employeeIds: [], date: now.toISOString().split('T')[0], startTime: startT, endTime: endT, costCenter: 'Honda', cause: '', motive: '', formNumber: '' }); 
-    setHeModal({ open: true, editing: null }); 
+    setHeModal({ open: true, editingGroup: null }); 
   };
-  const openEditHE = (rec: OvertimeRecord) => { setHeForm({ employeeIds: [rec.employeeId], date: rec.date, startTime: rec.startTime, endTime: rec.endTime, costCenter: rec.costCenter, cause: rec.cause, motive: rec.motive || '', formNumber: rec.formNumber || '' }); setHeModal({ open: true, editing: rec }); };
+  const openEditGroup = (grp: HEGroup) => { setHeForm({ employeeIds: grp.records.map(r => r.employeeId), date: grp.date, startTime: grp.startTime, endTime: grp.endTime, costCenter: grp.costCenter, cause: grp.cause, motive: grp.motive || '', formNumber: grp.formNumber || '' }); setHeModal({ open: true, editingGroup: grp }); };
 
   const saveHE = async () => {
     if (heForm.employeeIds.length === 0 || !heForm.date || !heForm.startTime || !heForm.endTime) return;
     setIsSaving(true);
-    if (heModal.editing) {
-      await onSaveOvertime({ ...heForm, employeeId: heForm.employeeIds[0], id: heModal.editing.id } as OvertimeRecord);
+    if (heModal.editingGroup) {
+      const oldRecords = heModal.editingGroup.records;
+      const oldIds = oldRecords.map(r => r.employeeId);
+      
+      for (const oldId of oldIds) {
+        if (!heForm.employeeIds.includes(oldId)) {
+          const recToDel = oldRecords.find(r => r.employeeId === oldId);
+          if (recToDel) await onDeleteOvertime(recToDel.id);
+        }
+      }
+      
+      for (const empId of heForm.employeeIds) {
+        const oldRec = oldRecords.find(r => r.employeeId === empId);
+        if (oldRec) {
+          await onSaveOvertime({ ...heForm, employeeId: empId, id: oldRec.id } as OvertimeRecord);
+        } else {
+          await onSaveOvertime({ ...heForm, employeeId: empId, id: crypto.randomUUID() } as OvertimeRecord);
+        }
+      }
     } else {
       for (const empId of heForm.employeeIds) {
         await onSaveOvertime({ ...heForm, employeeId: empId, id: crypto.randomUUID() } as OvertimeRecord);
       }
     }
     setIsSaving(false);
-    setHeModal({ open: false, editing: null });
+    setHeModal({ open: false, editingGroup: null });
   };
 
   const exportHE = () => {
@@ -496,26 +547,32 @@ export default function AbsenteismoTab({
               </tr>
             </thead>
             <tbody>
-              {filterHEMonth.length === 0 && (
+              {heGroups.length === 0 && (
                 <tr><td colSpan={10} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Nenhuma hora extra lançada neste mês.</td></tr>
               )}
-              {filterHEMonth.map(rec => {
-                const emp = employees.find(e => e.id === rec.employeeId);
+              {heGroups.map(grp => {
+                const names = grp.records.map(r => {
+                  const emp = employees.find(e => e.id === r.employeeId);
+                  return emp?.name || '---';
+                }).join(', ');
+                
                 return (
-                  <tr key={rec.id} className="data-row">
-                    <td style={{ fontWeight: 500 }}>{rec.date.split('-').reverse().join('/')}</td>
-                    <td style={{ color: 'var(--text-secondary)' }}>{rec.formNumber || '--'}</td>
-                    <td style={{ fontWeight: 600 }}>{emp?.name || '-- Inválido --'}</td>
-                    <td>{rec.startTime}</td>
-                    <td>{rec.endTime}</td>
-                    <td style={{ fontWeight: 'bold' }}>{calcDiff(rec.startTime, rec.endTime)}</td>
-                    <td>{rec.costCenter}</td>
-                    <td>{rec.cause}</td>
-                    <td>{rec.motive || ''}</td>
+                  <tr key={grp.key} className="data-row">
+                    <td style={{ fontWeight: 500 }}>{grp.date.split('-').reverse().join('/')}</td>
+                    <td style={{ color: 'var(--text-secondary)' }}>{grp.formNumber || '--'}</td>
+                    <td style={{ fontWeight: 600, maxWidth: '250px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={names}>
+                      {grp.records.length > 1 ? `${grp.records.length} Colaboradores` : names}
+                    </td>
+                    <td>{grp.startTime}</td>
+                    <td>{grp.endTime}</td>
+                    <td style={{ fontWeight: 'bold' }}>{calcDiff(grp.startTime, grp.endTime)}</td>
+                    <td>{grp.costCenter}</td>
+                    <td>{grp.cause}</td>
+                    <td>{grp.motive || ''}</td>
                     {canEdit && (
                       <td style={{ textAlign: 'right' }}>
-                        <button className="action-btn edit" onClick={() => openEditHE(rec)}><Edit2 size={14} /></button>
-                        <button className="action-btn del" onClick={() => { if(confirm("Remover este registro?")) onDeleteOvertime(rec.id); }}><Trash2 size={14} /></button>
+                        <button className="action-btn edit" onClick={() => openEditGroup(grp)}><Edit2 size={14} /></button>
+                        <button className="action-btn del" onClick={() => { if(confirm("Remover TODAS as horas (de " + grp.records.length + " funcionários) deste grupo?")) grp.records.forEach(r => onDeleteOvertime(r.id)); }}><Trash2 size={14} /></button>
                       </td>
                     )}
                   </tr>
@@ -567,11 +624,11 @@ export default function AbsenteismoTab({
 
       {/* MODAL HE */}
       {heModal.open && (
-         <div className="modal-overlay" onClick={() => setHeModal({ open: false, editing: null })}>
+         <div className="modal-overlay" onClick={() => setHeModal({ open: false, editingGroup: null })}>
            <div className="modal-box" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
-                 <h2>{heModal.editing ? 'Editar Horas Extras' : 'Lançar Horas Extras'}</h2>
-                 <button className="modal-close" onClick={() => setHeModal({ open: false, editing: null })}><X size={20} /></button>
+                 <h2>{heModal.editingGroup ? 'Editar Grupo de Horas Extras' : 'Lançar Horas Extras'}</h2>
+                 <button className="modal-close" onClick={() => setHeModal({ open: false, editingGroup: null })}><X size={20} /></button>
               </div>
               <div className="modal-body">
                  <div className="form-group full">
@@ -582,23 +639,21 @@ export default function AbsenteismoTab({
                         return (
                           <div key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: 'var(--bg-layer)', padding: '0.3rem 0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}>
                              {emp?.name}
-                             {!heModal.editing && <X size={12} style={{ cursor: 'pointer', color: '#ef4444' }} onClick={() => setHeForm(f => ({ ...f, employeeIds: f.employeeIds.filter(x => x !== id) }))} />}
+                             <X size={12} style={{ cursor: 'pointer', color: '#ef4444' }} onClick={() => setHeForm(f => ({ ...f, employeeIds: f.employeeIds.filter(x => x !== id) }))} />
                           </div>
                         )
                       })}
                     </div>
-                    {!heModal.editing && (
-                      <div className="select-wrap full-w">
-                        <select value="" onChange={e => {
-                          if (e.target.value && !heForm.employeeIds.includes(e.target.value)) {
-                             setHeForm(f => ({ ...f, employeeIds: [...f.employeeIds, e.target.value] }));
-                          }
-                        }}>
-                           <option value="">Adicionar funcionário...</option>
-                           {activeEmployees.filter(e => !heForm.employeeIds.includes(e.id)).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                        </select>
-                      </div>
-                    )}
+                    <div className="select-wrap full-w">
+                      <select value="" onChange={e => {
+                        if (e.target.value && !heForm.employeeIds.includes(e.target.value)) {
+                           setHeForm(f => ({ ...f, employeeIds: [...f.employeeIds, e.target.value] }));
+                        }
+                      }}>
+                         <option value="">Adicionar funcionário...</option>
+                         {activeEmployees.filter(e => !heForm.employeeIds.includes(e.id)).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                      </select>
+                    </div>
                  </div>
                  <div className="form-group full">
                     <label>Nº do Formulário</label>
@@ -639,7 +694,7 @@ export default function AbsenteismoTab({
                  </div>
               </div>
               <div className="modal-footer">
-                 <button className="btn-ghost" onClick={() => setHeModal({ open: false, editing: null })}>Cancelar</button>
+                 <button className="btn-ghost" onClick={() => setHeModal({ open: false, editingGroup: null })}>Cancelar</button>
                  <button className="btn-primary" onClick={saveHE} disabled={isSaving || heForm.employeeIds.length === 0 || !heForm.date}><Save size={16} /> {isSaving ? 'Salvando...' : 'Salvar HE'}</button>
               </div>
            </div>
