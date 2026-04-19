@@ -313,19 +313,21 @@ export default function AbsenteismoTab({
 
   // Reusable Select Filter for Indicators
   const IndicatorFilter = () => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', width: '100%' }}>
-       <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Filtro do Resumo:</span>
-       <select 
-         value={indicatorPeriod} 
-         onChange={e => setIndicatorPeriod(e.target.value)}
-         style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-layer)', fontSize: '0.85rem', color: 'var(--text-primary)', outline: 'none' }}
-       >
-         <option value="selected_month">Mês Selecionado na Grade</option>
-         <option value="last_3">Últimos 3 Meses</option>
-         <option value="last_6">Últimos 6 Meses</option>
-         <option value="last_12">Últimos 12 Meses</option>
-         <option value="all">Todo o Período</option>
-       </select>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '1rem', width: '100%', background: 'var(--bg-card)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+       <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Filtro do Resumo:</span>
+       <div className="select-wrap" style={{ minWidth: '220px', background: 'var(--bg-layer)' }}>
+         <select 
+           value={indicatorPeriod} 
+           onChange={e => setIndicatorPeriod(e.target.value)}
+           style={{ fontWeight: 600, color: 'var(--text-primary)' }}
+         >
+           <option value="selected_month" style={{ color: '#000', fontWeight: 500 }}>Mês Selecionado na Grade</option>
+           <option value="last_3" style={{ color: '#000', fontWeight: 500 }}>Últimos 3 Meses</option>
+           <option value="last_6" style={{ color: '#000', fontWeight: 500 }}>Últimos 6 Meses</option>
+           <option value="last_12" style={{ color: '#000', fontWeight: 500 }}>Últimos 12 Meses</option>
+           <option value="all" style={{ color: '#000', fontWeight: 500 }}>Todo o Período</option>
+         </select>
+       </div>
     </div>
   );
 
