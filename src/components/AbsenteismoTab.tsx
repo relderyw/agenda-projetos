@@ -105,7 +105,7 @@ export default function AbsenteismoTab({
   const { summaryTotals } = useMemo(() => {
     const totalsPerDay = new Array(daysInMonth).fill(0);
     monthRecords.forEach(r => {
-      if (['F', 'A', 'PR', 'ER', 'EC', 'SA', 'AF'].includes(r.status)) {
+      if (['F', 'A', 'PR', 'ER', 'EC', 'LM', 'SA', 'DE', 'AF'].includes(r.status)) {
         const day = parseInt(r.date.split('-')[2], 10);
         totalsPerDay[day - 1]++;
       }
@@ -121,7 +121,7 @@ export default function AbsenteismoTab({
         const rec = getRecord(emp.id, d.dateStr);
         if (rec) {
           if (rec.status === 'P') calcP++;
-          else if (['F', 'A', 'PR', 'ER', 'EC', 'SA', 'AF'].includes(rec.status)) calcF++;
+          else if (['F', 'A', 'PR', 'ER', 'EC', 'LM', 'SA', 'DE', 'AF'].includes(rec.status)) calcF++;
         }
         return rec ? rec.status : '';
       });
@@ -273,9 +273,13 @@ export default function AbsenteismoTab({
       let calcP = 0, calcF = 0;
       const empRecords = periodRecords.filter(r => r.employeeId === emp.id);
 
+      const processedDates = new Set();
       empRecords.forEach(rec => {
-        if (rec.status === 'P') calcP++;
-        else if (['F', 'A', 'PR', 'ER', 'EC', 'SA', 'AF'].includes(rec.status)) calcF++;
+        if (!processedDates.has(rec.date)) {
+          processedDates.add(rec.date);
+          if (rec.status === 'P') calcP++;
+          else if (['F', 'A', 'PR', 'ER', 'EC', 'LM', 'SA', 'DE', 'AF'].includes(rec.status)) calcF++;
+        }
       });
 
       if (calcF > mostAbsent.count) mostAbsent = { name: emp.name, count: calcF };
@@ -449,7 +453,7 @@ export default function AbsenteismoTab({
               <table className="data-table" style={{ borderCollapse: 'collapse', width: '100%', tableLayout: 'fixed' }}>
                 <thead>
                   <tr>
-                    <th style={{ width: '250px', position: 'sticky', left: 0, zIndex: 2, background: 'var(--bg-card)', borderRight: '2px solid var(--border-color)' }}>Funcionário</th>
+                    <th style={{ width: '250px', position: 'sticky', left: 0, zIndex: 10, background: 'var(--bg-card)', borderRight: '2px solid var(--border-color)' }}>Funcionário</th>
                     {daysArray.map(d => {
                       const isHoliday = holidays.some(h => h.date === d.dateStr);
                       const isSundayOrHoliday = d.weekDay === 'Dom' || isHoliday;
@@ -475,7 +479,7 @@ export default function AbsenteismoTab({
                     let calcP = 0; let calcF = 0;
                     return (
                       <tr key={emp.id} className="data-row hover-row">
-                        <td style={{ position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-card)', borderRight: '2px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ position: 'sticky', left: 0, zIndex: 10, background: 'var(--bg-card)', borderRight: '2px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
                           <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{emp.name}</span>
                         </td>
                         {daysArray.map(d => {
@@ -486,7 +490,7 @@ export default function AbsenteismoTab({
 
                           if (rec) {
                             if (rec.status === 'P') calcP++;
-                            else if (['F', 'A', 'PR', 'ER', 'EC', 'SA', 'AF'].includes(rec.status)) calcF++;
+                            else if (['F', 'A', 'PR', 'ER', 'EC', 'LM', 'SA', 'DE', 'AF'].includes(rec.status)) calcF++;
                           }
 
                           return (
@@ -525,7 +529,7 @@ export default function AbsenteismoTab({
                   })}
                   {/* TOTAIS */}
                   <tr style={{ borderTop: '2px solid var(--border-color)' }}>
-                    <td style={{ position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-card)', fontWeight: 'bold', borderRight: '2px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ position: 'sticky', left: 0, zIndex: 10, background: 'var(--bg-card)', fontWeight: 'bold', borderRight: '2px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
                       TOTAL GERAL MÊS
                     </td>
                     {summaryTotals.map((tot, idx) => (
