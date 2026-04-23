@@ -53,7 +53,9 @@ export default function AbsenteismoTab({
   onSaveOvertime, onDeleteOvertime
 }: Props) {
   const [subTab, setSubTab] = useState<'absenteismo' | 'hora-extra' | 'funcionarios'>('absenteismo');
-  const canEdit = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão' || currentUser?.role === 'Analista';
+  const canEdit = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão' || !!currentUser?.permissions?.absenteismo?.edit;
+  const canDelete = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão' || !!currentUser?.permissions?.absenteismo?.delete;
+  const canViewDashboards = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão' || !!currentUser?.permissions?.absenteismo?.edit || !!currentUser?.permissions?.absenteismo?.delete;
 
   // State: Absenteísmo
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -360,33 +362,37 @@ export default function AbsenteismoTab({
       {subTab === 'absenteismo' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1, padding: '1rem 0' }}>
           {/* INDICADORES ABSENTEISMO */}
-          <IndicatorFilter />
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2fr)', gap: '1rem', flexWrap: 'wrap', marginTop: '-0.5rem' }}>
+          {canViewDashboards && (
+            <>
+              <IndicatorFilter />
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2fr)', gap: '1rem', flexWrap: 'wrap', marginTop: '-0.5rem' }}>
 
-            <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.1) 100%)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase' }}>Colaborador com Maior Ausência</span>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem' }}>
-                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{absStats.mostAbsent.name}</span>
-              </div>
-              {absStats.mostAbsent.count > 0 ? <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{absStats.mostAbsent.count} ocorrências no período.</span> : <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Nenhuma ausência reportada.</span>}
-            </div>
-
-            <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase' }}>Top 3 Assiduidades do Período</span>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
-                {absStats.top3.length === 0 ? <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Nenhum dado calculado para o período.</span> : null}
-                {absStats.top3.map((st, i) => (
-                  <div key={st.emp.id} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#10b98115', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>#{i + 1}</div>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={st.emp.name}>{st.emp.name}</span>
-                      <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>{(st.rate * 100).toFixed(1)}% ({st.p} Pres)</span>
-                    </div>
+                <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.1) 100%)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase' }}>Colaborador com Maior Ausência</span>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{absStats.mostAbsent.name}</span>
                   </div>
-                ))}
+                  {absStats.mostAbsent.count > 0 ? <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{absStats.mostAbsent.count} ocorrências no período.</span> : <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Nenhuma ausência reportada.</span>}
+                </div>
+
+                <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase' }}>Top 3 Assiduidades do Período</span>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
+                    {absStats.top3.length === 0 ? <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Nenhum dado calculado para o período.</span> : null}
+                    {absStats.top3.map((st, i) => (
+                      <div key={st.emp.id} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#10b98115', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>#{i + 1}</div>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={st.emp.name}>{st.emp.name}</span>
+                          <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>{(st.rate * 100).toFixed(1)}% ({st.p} Pres)</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          )}
 
           {/* LEGENDA */}
           <div className="table-card" style={{ padding: '1rem' }}>
@@ -550,14 +556,18 @@ export default function AbsenteismoTab({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1, padding: '1rem 0' }}>
 
           {/* INDICADOR HORA EXTRA */}
-          <IndicatorFilter />
-          <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.1) 100%)', border: '1px solid rgba(59, 130, 246, 0.2)', marginTop: '-0.5rem' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase' }}>DESTAQUE DO PERÍODO: MAIOR CARGA EXTRA</span>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem' }}>
-              <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{heStats.emp?.name || '--'}</span>
-            </div>
-            <span style={{ fontSize: '0.9rem', color: '#2563eb', fontWeight: 600 }}>Carga acumulada de {heStats.hoursText}</span>
-          </div>
+          {canViewDashboards && (
+            <>
+              <IndicatorFilter />
+              <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.1) 100%)', border: '1px solid rgba(59, 130, 246, 0.2)', marginTop: '-0.5rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase' }}>DESTAQUE DO PERÍODO: MAIOR CARGA EXTRA</span>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{heStats.emp?.name || '--'}</span>
+                </div>
+                <span style={{ fontSize: '0.9rem', color: '#2563eb', fontWeight: 600 }}>Carga acumulada de {heStats.hoursText}</span>
+              </div>
+            </>
+          )}
 
           <div className="cad-section-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
@@ -588,7 +598,7 @@ export default function AbsenteismoTab({
                   <th>Custo</th>
                   <th>Causa</th>
                   <th>Motivo</th>
-                  {canEdit && <th style={{ width: 80, textAlign: 'right' }}>Ações</th>}
+                  {(canEdit || canDelete) && <th style={{ width: 80, textAlign: 'right' }}>Ações</th>}
                 </tr>
               </thead>
               <tbody>
@@ -614,10 +624,10 @@ export default function AbsenteismoTab({
                       <td>{grp.costCenter}</td>
                       <td>{grp.cause}</td>
                       <td>{grp.motive || ''}</td>
-                      {canEdit && (
-                        <td style={{ textAlign: 'right' }}>
-                          <button className="action-btn edit" onClick={() => openEditGroup(grp)}><Edit2 size={14} /></button>
-                          <button className="action-btn del" onClick={() => { if (confirm("Remover TODAS as horas (de " + grp.records.length + " funcionários) deste grupo?")) grp.records.forEach(r => onDeleteOvertime(r.id)); }}><Trash2 size={14} /></button>
+                      {(canEdit || canDelete) && (
+                        <td style={{ textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                          {canEdit && <button className="action-btn edit" onClick={() => openEditGroup(grp)}><Edit2 size={14} /></button>}
+                          {canDelete && <button className="action-btn del" onClick={() => { if (confirm("Remover TODAS as horas (de " + grp.records.length + " funcionários) deste grupo?")) grp.records.forEach(r => onDeleteOvertime(r.id)); }}><Trash2 size={14} /></button>}
                         </td>
                       )}
                     </tr>
@@ -656,10 +666,10 @@ export default function AbsenteismoTab({
                     <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', background: '#64748b20', padding: '2px 8px', borderRadius: '12px' }}>Inativo</span>
                   )}
                   {canEdit && (
-                    <>
-                      <button className="action-btn edit" onClick={() => openEditEmp(emp)}><Edit2 size={14} /></button>
-                      <button className="action-btn del" onClick={() => { if (confirm("Apagar funcionário definitivamente e perder histórico? Melhor apenas inativar.")) onDeleteEmployee(emp.id) }}><Trash2 size={14} /></button>
-                    </>
+                    <div className="cad-actions">
+                      {canEdit && <button className="action-btn edit" onClick={() => openEditEmp(emp)}><Edit2 size={16} /></button>}
+                      {canDelete && <button className="action-btn del" onClick={() => window.confirm('Excluir ' + emp.name + '?') && onDeleteEmployee(emp.id)}><Trash2 size={16} /></button>}
+                    </div>
                   )}
                 </div>
               </div>
