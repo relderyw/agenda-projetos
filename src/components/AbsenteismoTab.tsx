@@ -651,10 +651,10 @@ export default function AbsenteismoTab({
                 <div className="cad-card-left">
                   <span className="user-avatar lg" style={{ background: emp.status === 'Ativo' ? '#10b981' : '#64748b' }}>{emp.name[0]}</span>
                   <div className="cad-card-info">
-                    <span className="cad-name" style={{ textDecoration: emp.status === 'Inativo' ? 'line-through' : 'none' }}>{emp.name}</span>
-                    <span className="cad-meta" style={{ display: 'flex', gap: '0.5rem', whiteSpace: 'nowrap' }}>
+                    <span className="cad-name" style={{ textDecoration: emp.status === 'Inativo' ? 'line-through' : 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.name}</span>
+                    <span className="cad-meta" style={{ display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {emp.registration && <span>Mat: {emp.registration}</span>}
-                      {emp.registration && emp.role && <span>|</span>}
+                      {emp.registration && emp.role && <span style={{ margin: '0 0.4rem' }}>|</span>}
                       {emp.role && <span>{emp.role}</span>}
                     </span>
                   </div>
