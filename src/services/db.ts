@@ -479,39 +479,28 @@ export const dbService = {
   },
 
   async saveStaffingBoard(board: StaffingBoard) {
-    if (!isCloudEnabled) {
-      const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
-      const idx = boards.findIndex((b: any) => b.id === board.id);
-      if (idx !== -1) boards[idx] = board;
-      else boards.push(board);
-      localStorage.setItem('staffing_boards', JSON.stringify(boards));
-      return { error: null };
+    const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
+    const idx = boards.findIndex((b: any) => b.id === board.id);
+    if (idx !== -1) boards[idx] = board;
+    else boards.push(board);
+    localStorage.setItem('staffing_boards', JSON.stringify(boards));
+
+    if (isCloudEnabled) {
+      const { error } = await supabase.from('staffing_boards').upsert(board);
+      if (error) console.warn('[Staffing] Board sync failed, using localStorage:', error.message);
     }
-    const { error } = await supabase.from('staffing_boards').upsert(board);
-    if (error && error.code === '42P01') {
-      const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
-      const idx = boards.findIndex((b: any) => b.id === board.id);
-      if (idx !== -1) boards[idx] = board;
-      else boards.push(board);
-      localStorage.setItem('staffing_boards', JSON.stringify(boards));
-      return { error: null };
-    }
-    return { error };
+    return { error: null };
   },
 
   async deleteStaffingBoard(id: string) {
-    if (!isCloudEnabled) {
-      const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
-      localStorage.setItem('staffing_boards', JSON.stringify(boards.filter((b: any) => b.id !== id)));
-      return { error: null };
+    const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
+    localStorage.setItem('staffing_boards', JSON.stringify(boards.filter((b: any) => b.id !== id)));
+
+    if (isCloudEnabled) {
+      const { error } = await supabase.from('staffing_boards').delete().eq('id', id);
+      if (error) console.warn('[Staffing] Board delete sync failed:', error.message);
     }
-    const { error } = await supabase.from('staffing_boards').delete().eq('id', id);
-    if (error && error.code === '42P01') {
-      const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
-      localStorage.setItem('staffing_boards', JSON.stringify(boards.filter((b: any) => b.id !== id)));
-      return { error: null };
-    }
-    return { error };
+    return { error: null };
   },
 
   async saveStaffingColumn(column: StaffingColumn) {
@@ -523,39 +512,28 @@ export const dbService = {
       real: column.real,
       order: column.order
     };
-    if (!isCloudEnabled) {
-      const columns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
-      const idx = columns.findIndex((c: any) => c.id === column.id);
-      if (idx !== -1) columns[idx] = column;
-      else columns.push(column);
-      localStorage.setItem('staffing_columns', JSON.stringify(columns));
-      return { error: null };
+    const columns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
+    const idx = columns.findIndex((c: any) => c.id === column.id);
+    if (idx !== -1) columns[idx] = column;
+    else columns.push(column);
+    localStorage.setItem('staffing_columns', JSON.stringify(columns));
+
+    if (isCloudEnabled) {
+      const { error } = await supabase.from('staffing_columns').upsert(dbPayload);
+      if (error) console.warn('[Staffing] Column sync failed, using localStorage:', error.message);
     }
-    const { error } = await supabase.from('staffing_columns').upsert(dbPayload);
-    if (error && error.code === '42P01') {
-      const columns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
-      const idx = columns.findIndex((c: any) => c.id === column.id);
-      if (idx !== -1) columns[idx] = column;
-      else columns.push(column);
-      localStorage.setItem('staffing_columns', JSON.stringify(columns));
-      return { error: null };
-    }
-    return { error };
+    return { error: null };
   },
 
   async deleteStaffingColumn(id: string) {
-    if (!isCloudEnabled) {
-      const columns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
-      localStorage.setItem('staffing_columns', JSON.stringify(columns.filter((c: any) => c.id !== id)));
-      return { error: null };
+    const columns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
+    localStorage.setItem('staffing_columns', JSON.stringify(columns.filter((c: any) => c.id !== id)));
+
+    if (isCloudEnabled) {
+      const { error } = await supabase.from('staffing_columns').delete().eq('id', id);
+      if (error) console.warn('[Staffing] Column delete sync failed:', error.message);
     }
-    const { error } = await supabase.from('staffing_columns').delete().eq('id', id);
-    if (error && error.code === '42P01') {
-      const columns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
-      localStorage.setItem('staffing_columns', JSON.stringify(columns.filter((c: any) => c.id !== id)));
-      return { error: null };
-    }
-    return { error };
+    return { error: null };
   },
 
   async saveStaffingRow(row: StaffingRow) {
@@ -566,39 +544,28 @@ export const dbService = {
       setor: row.setor,
       order: row.order
     };
-    if (!isCloudEnabled) {
-      const rows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
-      const idx = rows.findIndex((r: any) => r.id === row.id);
-      if (idx !== -1) rows[idx] = row;
-      else rows.push(row);
-      localStorage.setItem('staffing_rows', JSON.stringify(rows));
-      return { error: null };
+    const rows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
+    const idx = rows.findIndex((r: any) => r.id === row.id);
+    if (idx !== -1) rows[idx] = row;
+    else rows.push(row);
+    localStorage.setItem('staffing_rows', JSON.stringify(rows));
+
+    if (isCloudEnabled) {
+      const { error } = await supabase.from('staffing_rows').upsert(dbPayload);
+      if (error) console.warn('[Staffing] Row sync failed, using localStorage:', error.message);
     }
-    const { error } = await supabase.from('staffing_rows').upsert(dbPayload);
-    if (error && error.code === '42P01') {
-      const rows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
-      const idx = rows.findIndex((r: any) => r.id === row.id);
-      if (idx !== -1) rows[idx] = row;
-      else rows.push(row);
-      localStorage.setItem('staffing_rows', JSON.stringify(rows));
-      return { error: null };
-    }
-    return { error };
+    return { error: null };
   },
 
   async deleteStaffingRow(id: string) {
-    if (!isCloudEnabled) {
-      const rows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
-      localStorage.setItem('staffing_rows', JSON.stringify(rows.filter((r: any) => r.id !== id)));
-      return { error: null };
+    const rows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
+    localStorage.setItem('staffing_rows', JSON.stringify(rows.filter((r: any) => r.id !== id)));
+
+    if (isCloudEnabled) {
+      const { error } = await supabase.from('staffing_rows').delete().eq('id', id);
+      if (error) console.warn('[Staffing] Row delete sync failed:', error.message);
     }
-    const { error } = await supabase.from('staffing_rows').delete().eq('id', id);
-    if (error && error.code === '42P01') {
-      const rows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
-      localStorage.setItem('staffing_rows', JSON.stringify(rows.filter((r: any) => r.id !== id)));
-      return { error: null };
-    }
-    return { error };
+    return { error: null };
   },
 
   async saveStaffingCell(cell: StaffingCell) {
@@ -609,23 +576,16 @@ export const dbService = {
       value: cell.value,
       status: cell.status
     };
-    if (!isCloudEnabled) {
-      const cells = JSON.parse(localStorage.getItem('staffing_cells') || '[]');
-      const idx = cells.findIndex((c: any) => c.id === cell.id);
-      if (idx !== -1) cells[idx] = cell;
-      else cells.push(cell);
-      localStorage.setItem('staffing_cells', JSON.stringify(cells));
-      return { error: null };
+    const cells = JSON.parse(localStorage.getItem('staffing_cells') || '[]');
+    const idx = cells.findIndex((c: any) => c.id === cell.id);
+    if (idx !== -1) cells[idx] = cell;
+    else cells.push(cell);
+    localStorage.setItem('staffing_cells', JSON.stringify(cells));
+
+    if (isCloudEnabled) {
+      const { error } = await supabase.from('staffing_cells').upsert(dbPayload);
+      if (error) console.warn('[Staffing] Cell sync failed, using localStorage:', error.message);
     }
-    const { error } = await supabase.from('staffing_cells').upsert(dbPayload);
-    if (error && error.code === '42P01') {
-      const cells = JSON.parse(localStorage.getItem('staffing_cells') || '[]');
-      const idx = cells.findIndex((c: any) => c.id === cell.id);
-      if (idx !== -1) cells[idx] = cell;
-      else cells.push(cell);
-      localStorage.setItem('staffing_cells', JSON.stringify(cells));
-      return { error: null };
-    }
-    return { error };
+    return { error: null };
   }
 };
