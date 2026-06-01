@@ -66,6 +66,34 @@ export default function QuadroPessoalTab({
     return map;
   }, [cells]);
 
+  // Count unique active collaborators per sector in active board (without duplicates across columns)
+  const sectorCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const sectorUniqueNames: Record<string, Set<string>> = {};
+
+    boardRows.forEach(row => {
+      const sector = row.setor || 'Sem Setor';
+      if (!sectorUniqueNames[sector]) {
+        sectorUniqueNames[sector] = new Set<string>();
+      }
+
+      boardColumns.forEach(col => {
+        const cell = cellMap[`${row.id}_${col.id}`];
+        if (cell && cell.value && cell.value.trim() !== '' && cell.value.trim() !== '-') {
+          if (cell.status !== 'transferido') {
+            sectorUniqueNames[sector].add(cell.value.trim().toUpperCase());
+          }
+        }
+      });
+    });
+
+    Object.keys(sectorUniqueNames).forEach(sector => {
+      counts[sector] = sectorUniqueNames[sector].size;
+    });
+
+    return counts;
+  }, [boardRows, boardColumns, cellMap]);
+
   // Modal states
   const [boardModalOpen, setBoardModalOpen] = useState(false);
   const [boardFormName, setBoardFormName] = useState('');
@@ -546,23 +574,39 @@ export default function QuadroPessoalTab({
         )}
       </div>
 
-      {/* ── LEGENDA ── */}
-      <div className="table-card" style={{ padding: '1rem', margin: '0.75rem 0' }}>
-        <h3 style={{ fontSize: '0.85rem', marginBottom: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>LEGENDA:</h3>
-        <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>NOME PRETO</span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>— COLABORADOR REGULAR/ATIVO</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#ef4444' }}>NOME VERMELHO</span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>— TRANSFERIDO OUTRO SETOR / DESLIGADO</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#f97316' }}>NOME LARANJA</span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>— AFASTADO INSS</span>
+      {/* ── LEGENDA E RESUMO ── */}
+      <div className="table-card" style={{ padding: '1rem', margin: '0.75rem 0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div>
+          <h3 style={{ fontSize: '0.85rem', marginBottom: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>LEGENDA:</h3>
+          <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>NOME PRETO</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>— COLABORADOR REGULAR/ATIVO</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#ef4444' }}>NOME VERMELHO</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>— TRANSFERIDO OUTRO SETOR / DESLIGADO</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#f97316' }}>NOME LARANJA</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>— AFASTADO INSS</span>
+            </div>
           </div>
         </div>
+
+        {Object.keys(sectorCounts).length > 0 && (
+          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+            <h3 style={{ fontSize: '0.85rem', marginBottom: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Resumo de Colaboradores Ativos (Headcount Único):</h3>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              {Object.entries(sectorCounts).map(([sector, count]) => (
+                <div key={sector} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-layer)', padding: '0.4rem 0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{sector}:</span>
+                  <span style={{ fontSize: '1rem', fontWeight: 800, color: '#10b981' }}>{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── GRID TABLE ── */}
