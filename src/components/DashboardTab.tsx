@@ -210,27 +210,29 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
     });
 
     return months.map(m => {
-      // Plano: Atividades planejadas para este mês (excluindo extra fluxo)
+      // Plano: Atividades não-extra planejadas para este mês (por data de planejamento)
       const plano = analystActivities.filter(a => 
         !extraFlowThemes.includes(a.tema) && 
         a.planejamento >= m.start && a.planejamento <= m.end
       ).length;
       
-      // Real: Atividades planejadas (não extra) que foram concluídas neste mês
+      // Real: Das atividades não-extra planejadas neste mês, quantas foram finalizadas
       const real = analystActivities.filter(a => 
         !extraFlowThemes.includes(a.tema) && 
         a.status === 'FINALIZADA' && 
-        a.dataFinalizada && a.dataFinalizada >= m.start && a.dataFinalizada <= m.end
+        a.planejamento >= m.start && a.planejamento <= m.end
       ).length;
       
-      // Extra: Atividades de Extra Fluxo concluídas neste mês
+      // Extra: Atividades de Extra Fluxo planejadas neste mês (por data de planejamento)
       const extra = analystActivities.filter(a => 
         extraFlowThemes.includes(a.tema) && 
-        a.status === 'FINALIZADA' && 
-        a.dataFinalizada && a.dataFinalizada >= m.start && a.dataFinalizada <= m.end
+        a.planejamento >= m.start && a.planejamento <= m.end
       ).length;
+
+      // Total do mês = Plano (regular) + Extra → Ttl badge
+      const totalMes = plano + extra;
       
-      return { month: m.label, plano, real, extra };
+      return { month: m.label, plano, real, extra, totalMes };
     });
   }, [activities, themes, onlyAnalysts, selectedUser]);
 
@@ -516,20 +518,13 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                 <div style={{ position: 'relative' }}>
                   <div className="monthly-grid-new" style={{ gap: '0.25rem', justifyContent: 'space-around', position: 'relative', zIndex: 1 }}>
                   {(() => {
-                    const maxVal = Math.max(...monthlyData.flatMap(d => [d.plano, d.real, d.extra]), 1);
+                    const maxVal = Math.max(...monthlyData.flatMap(d => [d.totalMes, d.plano, d.real, d.extra]), 1);
                     const BAR_H = 105; // must match height below
-                    // Line chart points (based on plano = total do mês)
-                    const linePoints = monthlyData.map((m, i) => {
-                      const x = ((i + 0.5) / monthlyData.length) * 100;
-                      const y = BAR_H - (m.plano / maxVal) * BAR_H;
-                      return { x, y, v: m.plano };
-                    });
-                    const pointsStr = linePoints.map(p => `${p.x}%,${p.y}px`).join(' ');
 
                     return monthlyData.map((m, idx) => {
                       return (
                         <div key={m.month} className="monthly-col-new" style={{ flex: 1, minWidth: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          {m.plano > 0 ? (
+                          {m.totalMes > 0 ? (
                             <div style={{
                               background: 'linear-gradient(135deg, rgba(165, 180, 252, 0.15), rgba(99, 102, 241, 0.15))',
                               border: '1px solid rgba(165, 180, 252, 0.35)',
@@ -545,9 +540,9 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '2px'
-                            }} title={`Total planejado do mês: ${m.plano}`}>
+                            }} title={`Total planejado do mês (Plano + Extra): ${m.totalMes}`}>
                               <span style={{ fontSize: '0.5rem', opacity: 0.7, fontWeight: 'normal' }}>Ttl:</span>
-                              {m.plano}
+                              {m.totalMes}
                             </div>
                           ) : (
                             <div style={{ height: '17px', marginBottom: '6px' }} />
@@ -603,13 +598,13 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
 
                   {/* Linha de tendência do Ttl/Mês sobreposta */}
                   {(() => {
-                    const maxVal = Math.max(...monthlyData.map(d => d.plano), 1);
+                    const maxVal = Math.max(...monthlyData.flatMap(d => [d.totalMes, d.plano, d.real, d.extra]), 1);
                     const BAR_H = 105;
                     const BADGE_H = 23; // height of badge + margin above bars
                     const points = monthlyData.map((m, i) => ({
                       xPct: ((i + 0.5) / monthlyData.length) * 100,
-                      yPx: BAR_H - (m.plano / maxVal) * BAR_H,
-                      v: m.plano
+                      yPx: BAR_H - (m.totalMes / maxVal) * BAR_H,
+                      v: m.totalMes
                     }));
                     const hasAnyData = points.some(p => p.v > 0);
                     if (!hasAnyData) return null;
