@@ -406,12 +406,13 @@ export const dbService = {
 
   // --- QUADRO DE PESSOAL (STAFFING BOARD) ---
   async getStaffingData(): Promise<{ boards: StaffingBoard[], columns: StaffingColumn[], rows: StaffingRow[], cells: StaffingCell[] }> {
+    const localBoards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
+    const localColumns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
+    const localRows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
+    const localCells = JSON.parse(localStorage.getItem('staffing_cells') || '[]');
+
     if (!isCloudEnabled) {
-      const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
-      const columns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
-      const rows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
-      const cells = JSON.parse(localStorage.getItem('staffing_cells') || '[]');
-      return { boards, columns, rows, cells };
+      return { boards: localBoards, columns: localColumns, rows: localRows, cells: localCells };
     }
     
     try {
@@ -424,11 +425,7 @@ export const dbService = {
 
       if (boardsRes.error || columnsRes.error || rowsRes.error || cellsRes.error) {
         console.error('Staffing fetch error, using local fallback:', boardsRes.error || columnsRes.error || rowsRes.error || cellsRes.error);
-        const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
-        const columns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
-        const rows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
-        const cells = JSON.parse(localStorage.getItem('staffing_cells') || '[]');
-        return { boards, columns, rows, cells };
+        return { boards: localBoards, columns: localColumns, rows: localRows, cells: localCells };
       }
 
       const boards = (boardsRes.data || []).map((row: any) => ({
@@ -462,6 +459,13 @@ export const dbService = {
         status: row.status || 'ativo'
       }));
 
+      // If Supabase returns nothing but we have local data, do not overwrite the local cache.
+      // This prevents RLS / database blockages from wiping out user's local entries.
+      if (boards.length === 0 && localBoards.length > 0) {
+        console.warn('[Staffing] Supabase returned empty boards but localStorage has data. Keeping local data to prevent RLS/sync wipeout.');
+        return { boards: localBoards, columns: localColumns, rows: localRows, cells: localCells };
+      }
+
       localStorage.setItem('staffing_boards', JSON.stringify(boards));
       localStorage.setItem('staffing_columns', JSON.stringify(columns));
       localStorage.setItem('staffing_rows', JSON.stringify(rows));
@@ -470,11 +474,7 @@ export const dbService = {
       return { boards, columns, rows, cells };
     } catch (e) {
       console.error('Supabase error, using local fallback:', e);
-      const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
-      const columns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
-      const rows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
-      const cells = JSON.parse(localStorage.getItem('staffing_cells') || '[]');
-      return { boards, columns, rows, cells };
+      return { boards: localBoards, columns: localColumns, rows: localRows, cells: localCells };
     }
   },
 
