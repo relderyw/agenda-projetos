@@ -502,7 +502,7 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                   <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#94a3b8', borderRadius: '2px' }} /> Plano</span>
                   <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#3b82f6', borderRadius: '2px' }} /> Real</span>
                   <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#f59e0b', borderRadius: '2px' }} /> Extra</span>
-                  <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#a5b4fc', borderRadius: '2px' }} /> Total Concluído</span>
+                  <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span style={{ display: 'inline-block', width: '12px', height: '2px', background: '#a5b4fc', borderRadius: '2px', verticalAlign: 'middle', marginRight: '2px' }} /> Ttl/Mês</span>
                 </div>
               </div>
               <div className="monthly-scroll-wrap" style={{ overflowX: 'auto', position: 'relative', paddingBottom: '10px' }}>
@@ -513,14 +513,23 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                   ))}
                 </div>
 
-                <div className="monthly-grid-new" style={{ gap: '0.25rem', justifyContent: 'space-around', position: 'relative', zIndex: 1 }}>
+                <div style={{ position: 'relative' }}>
+                  <div className="monthly-grid-new" style={{ gap: '0.25rem', justifyContent: 'space-around', position: 'relative', zIndex: 1 }}>
                   {(() => {
                     const maxVal = Math.max(...monthlyData.flatMap(d => [d.plano, d.real, d.extra]), 1);
-                    return monthlyData.map(m => {
-                      const totalEntregas = m.real + m.extra;
+                    const BAR_H = 105; // must match height below
+                    // Line chart points (based on plano = total do mês)
+                    const linePoints = monthlyData.map((m, i) => {
+                      const x = ((i + 0.5) / monthlyData.length) * 100;
+                      const y = BAR_H - (m.plano / maxVal) * BAR_H;
+                      return { x, y, v: m.plano };
+                    });
+                    const pointsStr = linePoints.map(p => `${p.x}%,${p.y}px`).join(' ');
+
+                    return monthlyData.map((m, idx) => {
                       return (
                         <div key={m.month} className="monthly-col-new" style={{ flex: 1, minWidth: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          {totalEntregas > 0 ? (
+                          {m.plano > 0 ? (
                             <div style={{
                               background: 'linear-gradient(135deg, rgba(165, 180, 252, 0.15), rgba(99, 102, 241, 0.15))',
                               border: '1px solid rgba(165, 180, 252, 0.35)',
@@ -536,14 +545,14 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '2px'
-                            }} title={`Total de entregas concluídas no mês (Real + Extra): ${totalEntregas}`}>
-                              <span style={{ fontSize: '0.5rem', opacity: 0.7, fontWeight: 'normal' }}>Tot:</span>
-                              {totalEntregas}
+                            }} title={`Total planejado do mês: ${m.plano}`}>
+                              <span style={{ fontSize: '0.5rem', opacity: 0.7, fontWeight: 'normal' }}>Ttl:</span>
+                              {m.plano}
                             </div>
                           ) : (
                             <div style={{ height: '17px', marginBottom: '6px' }} />
                           )}
-                          <div className="monthly-bars-new" style={{ height: '105px', gap: '4px', alignItems: 'flex-end', justifyContent: 'center' }}>
+                          <div className="monthly-bars-new" style={{ height: `${BAR_H}px`, gap: '4px', alignItems: 'flex-end', justifyContent: 'center', position: 'relative' }}>
                           {(m.plano > 0 || m.real > 0 || m.extra > 0) ? (
                             <>
                               {m.plano > 0 && (
@@ -584,12 +593,79 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                           ) : (
                              <div style={{ height: '1px', width: '20px', background: 'rgba(255,255,255,0.03)' }} />
                           )}
+                          </div>
+                          <span className="month-lbl-new" style={{ fontSize: '0.65rem', marginTop: '10px', fontWeight: '800', opacity: 0.6 }}>{m.month.split('/')[0].toUpperCase()}</span>
                         </div>
-                        <span className="month-lbl-new" style={{ fontSize: '0.65rem', marginTop: '10px', fontWeight: '800', opacity: 0.6 }}>{m.month.split('/')[0].toUpperCase()}</span>
-                      </div>
+                      );
+                    });
+                  })()}
+                  </div>
+
+                  {/* Linha de tendência do Ttl/Mês sobreposta */}
+                  {(() => {
+                    const maxVal = Math.max(...monthlyData.map(d => d.plano), 1);
+                    const BAR_H = 105;
+                    const BADGE_H = 23; // height of badge + margin above bars
+                    const points = monthlyData.map((m, i) => ({
+                      xPct: ((i + 0.5) / monthlyData.length) * 100,
+                      yPx: BAR_H - (m.plano / maxVal) * BAR_H,
+                      v: m.plano
+                    }));
+                    const hasAnyData = points.some(p => p.v > 0);
+                    if (!hasAnyData) return null;
+                    return (
+                      <svg
+                        style={{
+                          position: 'absolute',
+                          top: `${BADGE_H}px`,
+                          left: 0,
+                          width: '100%',
+                          height: `${BAR_H}px`,
+                          pointerEvents: 'none',
+                          overflow: 'visible',
+                          zIndex: 10
+                        }}
+                        preserveAspectRatio="none"
+                      >
+                        <defs>
+                          <linearGradient id="lineAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#a5b4fc" stopOpacity="0.18" />
+                            <stop offset="100%" stopColor="#a5b4fc" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        {/* Area fill */}
+                        <path
+                          d={
+                            `M ${points[0].xPct}%,${BAR_H}px ` +
+                            points.map(p => `L ${p.xPct}%,${p.yPx}px`).join(' ') +
+                            ` L ${points[points.length - 1].xPct}%,${BAR_H}px Z`
+                          }
+                          fill="url(#lineAreaGrad)"
+                        />
+                        {/* Line */}
+                        <polyline
+                          points={points.map(p => `${p.xPct}%,${p.yPx}px`).join(' ')}
+                          fill="none"
+                          stroke="#a5b4fc"
+                          strokeWidth="1.5"
+                          strokeDasharray="4 2"
+                          vectorEffect="non-scaling-stroke"
+                        />
+                        {/* Dots */}
+                        {points.filter(p => p.v > 0).map((p, i) => (
+                          <circle
+                            key={i}
+                            cx={`${p.xPct}%`}
+                            cy={`${p.yPx}px`}
+                            r="3"
+                            fill="#a5b4fc"
+                            stroke="rgba(0,0,0,0.3)"
+                            strokeWidth="1"
+                          />
+                        ))}
+                      </svg>
                     );
-                  });
-                })()}
+                  })()}
                 </div>
               </div>
             </div>
