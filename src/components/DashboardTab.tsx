@@ -504,7 +504,6 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                   <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#94a3b8', borderRadius: '2px' }} /> Plano</span>
                   <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#3b82f6', borderRadius: '2px' }} /> Real</span>
                   <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#f59e0b', borderRadius: '2px' }} /> Extra</span>
-                  <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span style={{ display: 'inline-block', width: '12px', height: '2px', background: '#a5b4fc', borderRadius: '2px', verticalAlign: 'middle', marginRight: '2px' }} /> Ttl/Mês</span>
                 </div>
               </div>
               <div className="monthly-scroll-wrap" style={{ overflowX: 'auto', position: 'relative', paddingBottom: '10px' }}>
@@ -515,8 +514,7 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                   ))}
                 </div>
 
-                <div style={{ position: 'relative' }}>
-                  <div className="monthly-grid-new" style={{ gap: '0.25rem', justifyContent: 'space-around', position: 'relative', zIndex: 1 }}>
+                <div className="monthly-grid-new" style={{ gap: '0.25rem', justifyContent: 'space-around', position: 'relative', zIndex: 1 }}>
                   {(() => {
                     const maxVal = Math.max(...monthlyData.flatMap(d => [d.totalMes, d.plano, d.real, d.extra]), 1);
                     const BAR_H = 105; // must match height below
@@ -593,72 +591,6 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                         </div>
                       );
                     });
-                  })()}
-                  </div>
-
-                  {/* Linha de tendência do Ttl/Mês sobreposta — viewBox numérico fixo */}
-                  {(() => {
-                    const VW = 1000; // largura do viewBox
-                    const VH = 105;  // altura do viewBox (= BAR_H)
-                    const BADGE_H = 23;
-                    const maxVal = Math.max(...monthlyData.flatMap(d => [d.totalMes, d.plano, d.real, d.extra]), 1);
-                    const pts = monthlyData.map((m, i) => ({
-                      x: ((i + 0.5) / monthlyData.length) * VW,
-                      y: VH - (m.totalMes / maxVal) * VH,
-                      v: m.totalMes
-                    }));
-                    const hasData = pts.some(p => p.v > 0);
-                    if (!hasData) return null;
-                    const lineD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-                    const areaD = `M ${pts[0].x} ${VH} ${lineD.slice(1)} L ${pts[pts.length-1].x} ${VH} Z`;
-                    return (
-                      <svg
-                        viewBox={`0 0 ${VW} ${VH}`}
-                        preserveAspectRatio="none"
-                        style={{
-                          position: 'absolute',
-                          top: `${BADGE_H}px`,
-                          left: 0,
-                          width: '100%',
-                          height: `${VH}px`,
-                          pointerEvents: 'none',
-                          overflow: 'visible',
-                          zIndex: 10,
-                        }}
-                      >
-                        <defs>
-                          <linearGradient id="lineAreaGrad2" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#a5b4fc" stopOpacity="0.22" />
-                            <stop offset="100%" stopColor="#a5b4fc" stopOpacity="0" />
-                          </linearGradient>
-                        </defs>
-                        {/* Área preenchida */}
-                        <path d={areaD} fill="url(#lineAreaGrad2)" />
-                        {/* Linha */}
-                        <path
-                          d={lineD}
-                          fill="none"
-                          stroke="#a5b4fc"
-                          strokeWidth="8"
-                          strokeDasharray="20 8"
-                          strokeLinecap="round"
-                          vectorEffect="non-scaling-stroke"
-                        />
-                        {/* Pontos */}
-                        {pts.filter(p => p.v > 0).map((p, i) => (
-                          <circle
-                            key={i}
-                            cx={p.x}
-                            cy={p.y}
-                            r="12"
-                            fill="#a5b4fc"
-                            stroke="rgba(0,0,0,0.35)"
-                            strokeWidth="4"
-                            vectorEffect="non-scaling-stroke"
-                          />
-                        ))}
-                      </svg>
-                    );
                   })()}
                 </div>
               </div>
