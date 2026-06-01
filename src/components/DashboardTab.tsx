@@ -596,66 +596,65 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                   })()}
                   </div>
 
-                  {/* Linha de tendência do Ttl/Mês sobreposta */}
+                  {/* Linha de tendência do Ttl/Mês sobreposta — viewBox numérico fixo */}
                   {(() => {
+                    const VW = 1000; // largura do viewBox
+                    const VH = 105;  // altura do viewBox (= BAR_H)
+                    const BADGE_H = 23;
                     const maxVal = Math.max(...monthlyData.flatMap(d => [d.totalMes, d.plano, d.real, d.extra]), 1);
-                    const BAR_H = 105;
-                    const BADGE_H = 23; // height of badge + margin above bars
-                    const points = monthlyData.map((m, i) => ({
-                      xPct: ((i + 0.5) / monthlyData.length) * 100,
-                      yPx: BAR_H - (m.totalMes / maxVal) * BAR_H,
+                    const pts = monthlyData.map((m, i) => ({
+                      x: ((i + 0.5) / monthlyData.length) * VW,
+                      y: VH - (m.totalMes / maxVal) * VH,
                       v: m.totalMes
                     }));
-                    const hasAnyData = points.some(p => p.v > 0);
-                    if (!hasAnyData) return null;
+                    const hasData = pts.some(p => p.v > 0);
+                    if (!hasData) return null;
+                    const lineD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+                    const areaD = `M ${pts[0].x} ${VH} ${lineD.slice(1)} L ${pts[pts.length-1].x} ${VH} Z`;
                     return (
                       <svg
+                        viewBox={`0 0 ${VW} ${VH}`}
+                        preserveAspectRatio="none"
                         style={{
                           position: 'absolute',
                           top: `${BADGE_H}px`,
                           left: 0,
                           width: '100%',
-                          height: `${BAR_H}px`,
+                          height: `${VH}px`,
                           pointerEvents: 'none',
                           overflow: 'visible',
-                          zIndex: 10
+                          zIndex: 10,
                         }}
-                        preserveAspectRatio="none"
                       >
                         <defs>
-                          <linearGradient id="lineAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#a5b4fc" stopOpacity="0.18" />
+                          <linearGradient id="lineAreaGrad2" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#a5b4fc" stopOpacity="0.22" />
                             <stop offset="100%" stopColor="#a5b4fc" stopOpacity="0" />
                           </linearGradient>
                         </defs>
-                        {/* Area fill */}
+                        {/* Área preenchida */}
+                        <path d={areaD} fill="url(#lineAreaGrad2)" />
+                        {/* Linha */}
                         <path
-                          d={
-                            `M ${points[0].xPct}%,${BAR_H}px ` +
-                            points.map(p => `L ${p.xPct}%,${p.yPx}px`).join(' ') +
-                            ` L ${points[points.length - 1].xPct}%,${BAR_H}px Z`
-                          }
-                          fill="url(#lineAreaGrad)"
-                        />
-                        {/* Line */}
-                        <polyline
-                          points={points.map(p => `${p.xPct}%,${p.yPx}px`).join(' ')}
+                          d={lineD}
                           fill="none"
                           stroke="#a5b4fc"
-                          strokeWidth="1.5"
-                          strokeDasharray="4 2"
+                          strokeWidth="8"
+                          strokeDasharray="20 8"
+                          strokeLinecap="round"
                           vectorEffect="non-scaling-stroke"
                         />
-                        {/* Dots */}
-                        {points.filter(p => p.v > 0).map((p, i) => (
+                        {/* Pontos */}
+                        {pts.filter(p => p.v > 0).map((p, i) => (
                           <circle
                             key={i}
-                            cx={`${p.xPct}%`}
-                            cy={`${p.yPx}px`}
-                            r="3"
+                            cx={p.x}
+                            cy={p.y}
+                            r="12"
                             fill="#a5b4fc"
-                            stroke="rgba(0,0,0,0.3)"
-                            strokeWidth="1"
+                            stroke="rgba(0,0,0,0.35)"
+                            strokeWidth="4"
+                            vectorEffect="non-scaling-stroke"
                           />
                         ))}
                       </svg>
