@@ -63,6 +63,9 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
       const isAnalystAct = onlyAnalysts.some(u => u.id === a.responsavel);
       if (!isAnalystAct) return false;
       
+      // Regra: Atividades canceladas não contam nos gráficos/dashboard
+      if (a.status === 'CANCELADA') return false;
+      
       const matchUser = selectedUser === 'all' || a.responsavel === selectedUser;
       const matchStart = !startDate || a.planejamento >= startDate;
       const matchEnd = !endDate || a.planejamento <= endDate;
@@ -200,21 +203,32 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
     const analystActivities = activities.filter(a => {
       const isAnalystAct = onlyAnalysts.some(u => u.id === a.responsavel);
       if (!isAnalystAct) return false;
+      // Regra: Atividades canceladas não contam no gráfico anual
+      if (a.status === 'CANCELADA') return false;
       const matchUser = selectedUser === 'all' || a.responsavel === selectedUser;
       return matchUser;
     });
 
     return months.map(m => {
-      const activitiesInMonth = analystActivities.filter(a => a.planejamento >= m.start && a.planejamento <= m.end);
+      // Plano: Atividades planejadas para este mês (excluindo extra fluxo)
+      const plano = analystActivities.filter(a => 
+        !extraFlowThemes.includes(a.tema) && 
+        a.planejamento >= m.start && a.planejamento <= m.end
+      ).length;
       
-      // Atividades 'Extra Fluxo' são as que pertencem aos temas identificados como Extra
-      const extra = activitiesInMonth.filter(a => extraFlowThemes.includes(a.tema)).length;
+      // Real: Atividades planejadas (não extra) que foram concluídas neste mês
+      const real = analystActivities.filter(a => 
+        !extraFlowThemes.includes(a.tema) && 
+        a.status === 'FINALIZADA' && 
+        a.dataFinalizada && a.dataFinalizada >= m.start && a.dataFinalizada <= m.end
+      ).length;
       
-      // 'Plano' são as atividades totais MENOS as de Extra Fluxo (porque Extra não foi planejado)
-      const plano = activitiesInMonth.length - extra;
-      
-      // 'Real' são todas as finalizadas no mês (podem ser planejadas ou extras)
-      const real = analystActivities.filter(a => a.status === 'FINALIZADA' && a.dataFinalizada && a.dataFinalizada >= m.start && a.dataFinalizada <= m.end).length;
+      // Extra: Atividades de Extra Fluxo concluídas neste mês
+      const extra = analystActivities.filter(a => 
+        extraFlowThemes.includes(a.tema) && 
+        a.status === 'FINALIZADA' && 
+        a.dataFinalizada && a.dataFinalizada >= m.start && a.dataFinalizada <= m.end
+      ).length;
       
       return { month: m.label, plano, real, extra };
     });
@@ -488,6 +502,7 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                   <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#94a3b8', borderRadius: '2px' }} /> Plano</span>
                   <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#3b82f6', borderRadius: '2px' }} /> Real</span>
                   <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#f59e0b', borderRadius: '2px' }} /> Extra</span>
+                  <span className="leg-item" style={{ fontSize: '0.6rem', opacity: 0.7 }}><span className="leg-dot" style={{ width: '6px', height: '6px', background: '#a5b4fc', borderRadius: '2px' }} /> Total Concluído</span>
                 </div>
               </div>
               <div className="monthly-scroll-wrap" style={{ overflowX: 'auto', position: 'relative', paddingBottom: '10px' }}>
@@ -501,9 +516,34 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                 <div className="monthly-grid-new" style={{ gap: '0.25rem', justifyContent: 'space-around', position: 'relative', zIndex: 1 }}>
                   {(() => {
                     const maxVal = Math.max(...monthlyData.flatMap(d => [d.plano, d.real, d.extra]), 1);
-                    return monthlyData.map(m => (
-                      <div key={m.month} className="monthly-col-new" style={{ flex: 1, minWidth: '40px' }}>
-                        <div className="monthly-bars-new" style={{ height: '105px', gap: '4px', alignItems: 'flex-end', justifyContent: 'center' }}>
+                    return monthlyData.map(m => {
+                      const totalEntregas = m.real + m.extra;
+                      return (
+                        <div key={m.month} className="monthly-col-new" style={{ flex: 1, minWidth: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          {totalEntregas > 0 ? (
+                            <div style={{
+                              background: 'linear-gradient(135deg, rgba(165, 180, 252, 0.15), rgba(99, 102, 241, 0.15))',
+                              border: '1px solid rgba(165, 180, 252, 0.35)',
+                              color: '#c7d2fe',
+                              borderRadius: '12px',
+                              padding: '2px 6px',
+                              fontSize: '0.55rem',
+                              fontWeight: '900',
+                              marginBottom: '6px',
+                              textAlign: 'center',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                              whiteSpace: 'nowrap',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px'
+                            }} title={`Total de entregas concluídas no mês (Real + Extra): ${totalEntregas}`}>
+                              <span style={{ fontSize: '0.5rem', opacity: 0.7, fontWeight: 'normal' }}>Tot:</span>
+                              {totalEntregas}
+                            </div>
+                          ) : (
+                            <div style={{ height: '17px', marginBottom: '6px' }} />
+                          )}
+                          <div className="monthly-bars-new" style={{ height: '105px', gap: '4px', alignItems: 'flex-end', justifyContent: 'center' }}>
                           {(m.plano > 0 || m.real > 0 || m.extra > 0) ? (
                             <>
                               {m.plano > 0 && (
@@ -547,8 +587,9 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                         </div>
                         <span className="month-lbl-new" style={{ fontSize: '0.65rem', marginTop: '10px', fontWeight: '800', opacity: 0.6 }}>{m.month.split('/')[0].toUpperCase()}</span>
                       </div>
-                    ));
-                  })()}
+                    );
+                  });
+                })()}
                 </div>
               </div>
             </div>

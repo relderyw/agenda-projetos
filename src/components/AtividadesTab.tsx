@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Plus, Search, Filter, ChevronDown, Edit2, Trash2,
   CheckCircle2, Clock, AlertCircle, X, Calendar, Save,
@@ -20,19 +20,21 @@ type SortKey = keyof Activity | '';
 type SortDir = 'asc' | 'desc';
 
 const PRIORITIES: Priority[] = ['Alta', 'Média', 'Baixa'];
-const STATUSES: Status[] = ['PENDENTE', 'EM ANDAMENTO', 'FINALIZADA', 'POSTERGADA'];
+const STATUSES: Status[] = ['PENDENTE', 'EM ANDAMENTO', 'FINALIZADA', 'POSTERGADA', 'CANCELADA'];
 
 const PRIO_ORDER: Record<Priority, number> = { Alta: 0, Média: 1, Baixa: 2 };
-const STATUS_ORDER: Record<Status, number> = { PENDENTE: 0, 'EM ANDAMENTO': 1, FINALIZADA: 2, POSTERGADA: 3 };
+const STATUS_ORDER: Record<Status, number> = { PENDENTE: 0, 'EM ANDAMENTO': 1, FINALIZADA: 2, POSTERGADA: 3, CANCELADA: 4 };
 
 function getStatusIcon(status: Status) {
   if (status === 'FINALIZADA') return <CheckCircle2 size={14} />;
   if (status === 'EM ANDAMENTO') return <Clock size={14} />;
+  if (status === 'CANCELADA') return <X size={14} />;
   return <AlertCircle size={14} />;
 }
 function getStatusClass(status: Status) {
   if (status === 'FINALIZADA') return 'badge-green';
   if (status === 'EM ANDAMENTO') return 'badge-blue';
+  if (status === 'CANCELADA') return 'badge-gray';
   return 'badge-red';
 }
 function getPrioClass(p: Priority) {
@@ -97,6 +99,23 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
   const [form, setForm] = useState<Omit<Activity, 'id'>>(empty());
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Fechar o modal ou o confirm de exclusão com a tecla Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (deleteConfirm) {
+          setDeleteConfirm(null);
+        } else if (modal.open) {
+          closeModal();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [modal.open, deleteConfirm]);
 
   const availableWeeks = useMemo(() => {
     const weeks = Array.from(new Set(activities.map(a => a.week).filter(Boolean)));
@@ -454,8 +473,8 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
       </div>
 
       {modal.open && (
-        <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-box" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal-box">
             <div className="modal-header">
               <h2>{modal.editing ? 'Editar Atividade' : 'Nova Atividade'}</h2>
               <button className="modal-close" onClick={closeModal}><X size={20} /></button>
@@ -594,9 +613,9 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
                       setForm(f => ({ 
                         ...f, 
                         dataFinalizada: date,
-                        // Se informou data, assume 100% e status FINALIZADA (se não estiver postergado)
-                        percentualAndamento: (date && f.status !== 'POSTERGADA') ? 100 : f.percentualAndamento,
-                        status: (date && f.status !== 'POSTERGADA' && f.status !== 'FINALIZADA') ? 'FINALIZADA' : f.status
+                        // Se informou data, assume 100% e status FINALIZADA (se não estiver postergado e nem cancelado)
+                        percentualAndamento: (date && f.status !== 'POSTERGADA' && f.status !== 'CANCELADA') ? 100 : f.percentualAndamento,
+                        status: (date && f.status !== 'POSTERGADA' && f.status !== 'CANCELADA' && f.status !== 'FINALIZADA') ? 'FINALIZADA' : f.status
                       }));
                     }} />
                   </div>

@@ -67,7 +67,7 @@ export interface User {
 
 // ─── Atividades ───────────────────────────────────────────
 export type Priority = 'Alta' | 'Média' | 'Baixa';
-export type Status = 'FINALIZADA' | 'PENDENTE' | 'EM ANDAMENTO' | 'POSTERGADA';
+export type Status = 'FINALIZADA' | 'PENDENTE' | 'EM ANDAMENTO' | 'POSTERGADA' | 'CANCELADA';
 
 export interface Activity {
   id: string;

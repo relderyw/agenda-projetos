@@ -116,7 +116,7 @@ function ActivityCard({
 
   const isDone = pct === 100;
   const todayStr = new Date().toISOString().slice(0, 10)
-  const isLate = !isDone && act.dataPrevistaFinalizacao && act.dataPrevistaFinalizacao < todayStr
+  const isLate = !isDone && act.status !== 'CANCELADA' && act.dataPrevistaFinalizacao && act.dataPrevistaFinalizacao < todayStr
   const isStarted = pct > 0 && pct < 100
 
   let cardClass = 'kb-card'
@@ -229,7 +229,8 @@ export default function KanbanTab({ activities, themes, users, holidays, current
     const endStr   = formatDate(addDays(weekStart, 5))
     return activities.filter(a => {
       if (!onlyAnalysts.some(u => u.id === a.responsavel)) return false;
-      if (!a.planejamento) return false
+      if (!a.planejamento) return false;
+      if (a.status === 'CANCELADA') return false; // Atividades canceladas não aparecem no Kanban semanal
       const actStart = a.planejamento
       const actEnd = a.dataPrevistaFinalizacao && a.dataPrevistaFinalizacao.length === 10 ? a.dataPrevistaFinalizacao : actStart
       return actStart <= endStr && actEnd >= startStr
