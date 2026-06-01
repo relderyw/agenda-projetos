@@ -488,6 +488,14 @@ export const dbService = {
       return { error: null };
     }
     const { error } = await supabase.from('staffing_boards').upsert(board);
+    if (error && error.code === '42P01') {
+      const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
+      const idx = boards.findIndex((b: any) => b.id === board.id);
+      if (idx !== -1) boards[idx] = board;
+      else boards.push(board);
+      localStorage.setItem('staffing_boards', JSON.stringify(boards));
+      return { error: null };
+    }
     return { error };
   },
 
@@ -498,6 +506,11 @@ export const dbService = {
       return { error: null };
     }
     const { error } = await supabase.from('staffing_boards').delete().eq('id', id);
+    if (error && error.code === '42P01') {
+      const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
+      localStorage.setItem('staffing_boards', JSON.stringify(boards.filter((b: any) => b.id !== id)));
+      return { error: null };
+    }
     return { error };
   },
 
@@ -519,6 +532,14 @@ export const dbService = {
       return { error: null };
     }
     const { error } = await supabase.from('staffing_columns').upsert(dbPayload);
+    if (error && error.code === '42P01') {
+      const columns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
+      const idx = columns.findIndex((c: any) => c.id === column.id);
+      if (idx !== -1) columns[idx] = column;
+      else columns.push(column);
+      localStorage.setItem('staffing_columns', JSON.stringify(columns));
+      return { error: null };
+    }
     return { error };
   },
 
@@ -529,6 +550,11 @@ export const dbService = {
       return { error: null };
     }
     const { error } = await supabase.from('staffing_columns').delete().eq('id', id);
+    if (error && error.code === '42P01') {
+      const columns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
+      localStorage.setItem('staffing_columns', JSON.stringify(columns.filter((c: any) => c.id !== id)));
+      return { error: null };
+    }
     return { error };
   },
 
@@ -549,6 +575,14 @@ export const dbService = {
       return { error: null };
     }
     const { error } = await supabase.from('staffing_rows').upsert(dbPayload);
+    if (error && error.code === '42P01') {
+      const rows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
+      const idx = rows.findIndex((r: any) => r.id === row.id);
+      if (idx !== -1) rows[idx] = row;
+      else rows.push(row);
+      localStorage.setItem('staffing_rows', JSON.stringify(rows));
+      return { error: null };
+    }
     return { error };
   },
 
@@ -559,6 +593,11 @@ export const dbService = {
       return { error: null };
     }
     const { error } = await supabase.from('staffing_rows').delete().eq('id', id);
+    if (error && error.code === '42P01') {
+      const rows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
+      localStorage.setItem('staffing_rows', JSON.stringify(rows.filter((r: any) => r.id !== id)));
+      return { error: null };
+    }
     return { error };
   },
 
@@ -579,6 +618,14 @@ export const dbService = {
       return { error: null };
     }
     const { error } = await supabase.from('staffing_cells').upsert(dbPayload);
+    if (error && error.code === '42P01') {
+      const cells = JSON.parse(localStorage.getItem('staffing_cells') || '[]');
+      const idx = cells.findIndex((c: any) => c.id === cell.id);
+      if (idx !== -1) cells[idx] = cell;
+      else cells.push(cell);
+      localStorage.setItem('staffing_cells', JSON.stringify(cells));
+      return { error: null };
+    }
     return { error };
   }
 };
