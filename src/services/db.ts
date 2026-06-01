@@ -6,7 +6,8 @@ import {
 import type { 
   Activity, Theme, User, HenkatenEvent, LogEntry,
   KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday,
-  AbsenteeismRecord, Employee, OvertimeRecord
+  AbsenteeismRecord, Employee, OvertimeRecord,
+  StaffingBoard, StaffingColumn, StaffingRow, StaffingCell
 } from '../types'
 
 const isCloudEnabled = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
@@ -401,5 +402,183 @@ export const dbService = {
     const { error } = await supabase.from('overtime').delete().eq('id', id)
     if (error) console.error('DeleteOvertime Error', error)
     return { error }
+  },
+
+  // --- QUADRO DE PESSOAL (STAFFING BOARD) ---
+  async getStaffingData(): Promise<{ boards: StaffingBoard[], columns: StaffingColumn[], rows: StaffingRow[], cells: StaffingCell[] }> {
+    if (!isCloudEnabled) {
+      const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
+      const columns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
+      const rows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
+      const cells = JSON.parse(localStorage.getItem('staffing_cells') || '[]');
+      return { boards, columns, rows, cells };
+    }
+    
+    try {
+      const [boardsRes, columnsRes, rowsRes, cellsRes] = await Promise.all([
+        supabase.from('staffing_boards').select('*').order('order', { ascending: true }),
+        supabase.from('staffing_columns').select('*').order('order', { ascending: true }),
+        supabase.from('staffing_rows').select('*').order('order', { ascending: true }),
+        supabase.from('staffing_cells').select('*')
+      ]);
+
+      if (boardsRes.error || columnsRes.error || rowsRes.error || cellsRes.error) {
+        console.error('Staffing fetch error, using local fallback:', boardsRes.error || columnsRes.error || rowsRes.error || cellsRes.error);
+        const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
+        const columns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
+        const rows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
+        const cells = JSON.parse(localStorage.getItem('staffing_cells') || '[]');
+        return { boards, columns, rows, cells };
+      }
+
+      const boards = (boardsRes.data || []).map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        order: row.order
+      }));
+
+      const columns = (columnsRes.data || []).map((row: any) => ({
+        id: row.id,
+        boardId: row.board_id || row.boardId,
+        name: row.name,
+        orcado: row.orcado ?? 0,
+        real: row.real ?? 0,
+        order: row.order
+      }));
+
+      const rows = (rowsRes.data || []).map((row: any) => ({
+        id: row.id,
+        boardId: row.board_id || row.boardId,
+        cargo: row.cargo,
+        setor: row.setor,
+        order: row.order
+      }));
+
+      const cells = (cellsRes.data || []).map((row: any) => ({
+        id: row.id,
+        rowId: row.row_id || row.rowId,
+        columnId: row.column_id || row.columnId,
+        value: row.value || '',
+        status: row.status || 'ativo'
+      }));
+
+      localStorage.setItem('staffing_boards', JSON.stringify(boards));
+      localStorage.setItem('staffing_columns', JSON.stringify(columns));
+      localStorage.setItem('staffing_rows', JSON.stringify(rows));
+      localStorage.setItem('staffing_cells', JSON.stringify(cells));
+
+      return { boards, columns, rows, cells };
+    } catch (e) {
+      console.error('Supabase error, using local fallback:', e);
+      const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
+      const columns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
+      const rows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
+      const cells = JSON.parse(localStorage.getItem('staffing_cells') || '[]');
+      return { boards, columns, rows, cells };
+    }
+  },
+
+  async saveStaffingBoard(board: StaffingBoard) {
+    if (!isCloudEnabled) {
+      const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
+      const idx = boards.findIndex((b: any) => b.id === board.id);
+      if (idx !== -1) boards[idx] = board;
+      else boards.push(board);
+      localStorage.setItem('staffing_boards', JSON.stringify(boards));
+      return { error: null };
+    }
+    const { error } = await supabase.from('staffing_boards').upsert(board);
+    return { error };
+  },
+
+  async deleteStaffingBoard(id: string) {
+    if (!isCloudEnabled) {
+      const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
+      localStorage.setItem('staffing_boards', JSON.stringify(boards.filter((b: any) => b.id !== id)));
+      return { error: null };
+    }
+    const { error } = await supabase.from('staffing_boards').delete().eq('id', id);
+    return { error };
+  },
+
+  async saveStaffingColumn(column: StaffingColumn) {
+    const dbPayload = {
+      id: column.id,
+      board_id: column.boardId,
+      name: column.name,
+      orcado: column.orcado,
+      real: column.real,
+      order: column.order
+    };
+    if (!isCloudEnabled) {
+      const columns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
+      const idx = columns.findIndex((c: any) => c.id === column.id);
+      if (idx !== -1) columns[idx] = column;
+      else columns.push(column);
+      localStorage.setItem('staffing_columns', JSON.stringify(columns));
+      return { error: null };
+    }
+    const { error } = await supabase.from('staffing_columns').upsert(dbPayload);
+    return { error };
+  },
+
+  async deleteStaffingColumn(id: string) {
+    if (!isCloudEnabled) {
+      const columns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
+      localStorage.setItem('staffing_columns', JSON.stringify(columns.filter((c: any) => c.id !== id)));
+      return { error: null };
+    }
+    const { error } = await supabase.from('staffing_columns').delete().eq('id', id);
+    return { error };
+  },
+
+  async saveStaffingRow(row: StaffingRow) {
+    const dbPayload = {
+      id: row.id,
+      board_id: row.boardId,
+      cargo: row.cargo,
+      setor: row.setor,
+      order: row.order
+    };
+    if (!isCloudEnabled) {
+      const rows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
+      const idx = rows.findIndex((r: any) => r.id === row.id);
+      if (idx !== -1) rows[idx] = row;
+      else rows.push(row);
+      localStorage.setItem('staffing_rows', JSON.stringify(rows));
+      return { error: null };
+    }
+    const { error } = await supabase.from('staffing_rows').upsert(dbPayload);
+    return { error };
+  },
+
+  async deleteStaffingRow(id: string) {
+    if (!isCloudEnabled) {
+      const rows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
+      localStorage.setItem('staffing_rows', JSON.stringify(rows.filter((r: any) => r.id !== id)));
+      return { error: null };
+    }
+    const { error } = await supabase.from('staffing_rows').delete().eq('id', id);
+    return { error };
+  },
+
+  async saveStaffingCell(cell: StaffingCell) {
+    const dbPayload = {
+      id: cell.id,
+      row_id: cell.rowId,
+      column_id: cell.columnId,
+      value: cell.value,
+      status: cell.status
+    };
+    if (!isCloudEnabled) {
+      const cells = JSON.parse(localStorage.getItem('staffing_cells') || '[]');
+      const idx = cells.findIndex((c: any) => c.id === cell.id);
+      if (idx !== -1) cells[idx] = cell;
+      else cells.push(cell);
+      localStorage.setItem('staffing_cells', JSON.stringify(cells));
+      return { error: null };
+    }
+    const { error } = await supabase.from('staffing_cells').upsert(dbPayload);
+    return { error };
   }
 };

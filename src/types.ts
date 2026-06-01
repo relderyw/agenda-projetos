@@ -49,6 +49,7 @@ export interface UserPermissions {
   conhecimentoTP: AppPermissions;
   conhecimentoProj: AppPermissions;
   absenteismo?: AppPermissions;
+  quadroPessoal?: AppPermissions;
 }
 
 export type Role = 'Administrador' | 'Gestão' | 'Analista';
@@ -88,7 +89,7 @@ export interface Activity {
 }
 
 // ─── App State ────────────────────────────────────────────
-export type Tab = 'atividades' | 'dashboard' | 'cadastros' | 'kanban' | 'henkatens' | 'logs' | 'conhecimento' | 'absenteismo';
+export type Tab = 'atividades' | 'dashboard' | 'cadastros' | 'kanban' | 'henkatens' | 'logs' | 'conhecimento' | 'absenteismo' | 'quadroPessoal';
 
 // ─── Henkatens ──────────────────────────────────────────
 export type HenkatenType =
@@ -158,4 +159,36 @@ export interface LogEntry {
   action: string;      // Ex: "Criou Atividade", "Editou Henkaten"
   target?: string;     // Ex: Descrição ou Título do item
   timestamp: string;   // ISO String
+}
+
+// ─── Quadro de Pessoal ─────────────────────────────────
+export interface StaffingBoard {
+  id: string;
+  name: string;
+  order: number;
+}
+
+export interface StaffingColumn {
+  id: string;
+  boardId: string;
+  name: string;
+  orcado: number;
+  real: number;
+  order: number;
+}
+
+export interface StaffingRow {
+  id: string;
+  boardId: string;
+  cargo: string;
+  setor: string;
+  order: number;
+}
+
+export interface StaffingCell {
+  id: string;
+  rowId: string;
+  columnId: string;
+  value: string;
+  status: 'ativo' | 'transferido' | 'afastado';
 }

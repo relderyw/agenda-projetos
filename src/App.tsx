@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2, UserCheck } from 'lucide-react'
+import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2, UserCheck, Users } from 'lucide-react'
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from './data'
-import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday, AbsenteeismRecord, Employee, OvertimeRecord } from './types'
+import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday, AbsenteeismRecord, Employee, OvertimeRecord, StaffingBoard, StaffingColumn, StaffingRow, StaffingCell } from './types'
 import AtividadesTab from './components/AtividadesTab'
 import DashboardTab from './components/DashboardTab'
 import CadastrosTab from './components/CadastrosTab'
@@ -10,6 +10,7 @@ import HenkatensTab from './components/HenkatensTab'
 import LogsTab from './components/LogsTab'
 import KnowledgeTab from './components/KnowledgeTab'
 import AbsenteismoTab from './components/AbsenteismoTab'
+import QuadroPessoalTab from './components/QuadroPessoalTab'
 import Login from './components/Login'
 import { dbService } from './services/db'
 import { supabase } from './lib/supabase'
@@ -41,6 +42,10 @@ export default function App() {
   const [absenteeism, setAbsenteeism] = useState<AbsenteeismRecord[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [overtimes, setOvertimes] = useState<OvertimeRecord[]>([])
+  const [staffingBoards, setStaffingBoards] = useState<StaffingBoard[]>([])
+  const [staffingColumns, setStaffingColumns] = useState<StaffingColumn[]>([])
+  const [staffingRows, setStaffingRows] = useState<StaffingRow[]>([])
+  const [staffingCells, setStaffingCells] = useState<StaffingCell[]>([])
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
@@ -83,7 +88,7 @@ export default function App() {
     if (isFirstLoad) setLoading(true);
     
     try {
-      const [a, t, u, h, l, k, hol, abs, emp, ove] = await Promise.all([
+      const [a, t, u, h, l, k, hol, abs, emp, ove, staffing] = await Promise.all([
         dbService.getActivities(),
         dbService.getThemes(),
         dbService.getUsers(),
@@ -93,7 +98,8 @@ export default function App() {
         dbService.getHolidays(),
         dbService.getAbsenteeism(),
         dbService.getEmployees(),
-        dbService.getOvertimes()
+        dbService.getOvertimes(),
+        dbService.getStaffingData()
       ])
       setActivities(a)
       setThemes(t)
@@ -105,6 +111,10 @@ export default function App() {
       setAbsenteeism(abs)
       setEmployees(emp)
       setOvertimes(ove)
+      setStaffingBoards(staffing.boards)
+      setStaffingColumns(staffing.columns)
+      setStaffingRows(staffing.rows)
+      setStaffingCells(staffing.cells)
     } finally {
       if (isFirstLoad) setLoading(false);
       setIsFirstLoad(false);
@@ -520,10 +530,74 @@ export default function App() {
     if (error) showToast('error', 'Aviso de Sincronização', 'Falha ao deletar Hora Extra.');
   };
 
+  // ── Staffing Board CRUD ───────────────────────────────────
+  const saveBoardRecord = async (board: StaffingBoard) => {
+    setStaffingBoards(prev => {
+      const idx = prev.findIndex(b => b.id === board.id);
+      if (idx !== -1) return prev.map(b => b.id === board.id ? board : b);
+      return [...prev, board];
+    });
+    const { error } = await dbService.saveStaffingBoard(board);
+    if (error) showToast('error', 'Erro', 'Falha ao salvar quadro de pessoal.');
+  };
+
+  const deleteBoardRecord = async (id: string) => {
+    setStaffingBoards(prev => prev.filter(b => b.id !== id));
+    setStaffingColumns(prev => prev.filter(c => c.boardId !== id));
+    setStaffingRows(prev => prev.filter(r => r.boardId !== id));
+    const { error } = await dbService.deleteStaffingBoard(id);
+    if (error) showToast('error', 'Erro', 'Falha ao deletar quadro de pessoal.');
+  };
+
+  const saveColumnRecord = async (column: StaffingColumn) => {
+    setStaffingColumns(prev => {
+      const idx = prev.findIndex(c => c.id === column.id);
+      if (idx !== -1) return prev.map(c => c.id === column.id ? column : c);
+      return [...prev, column];
+    });
+    const { error } = await dbService.saveStaffingColumn(column);
+    if (error) showToast('error', 'Erro', 'Falha ao salvar coluna de cenário.');
+  };
+
+  const deleteColumnRecord = async (id: string) => {
+    setStaffingColumns(prev => prev.filter(c => c.id !== id));
+    setStaffingCells(prev => prev.filter(cell => cell.columnId !== id));
+    const { error } = await dbService.deleteStaffingColumn(id);
+    if (error) showToast('error', 'Erro', 'Falha ao deletar coluna de cenário.');
+  };
+
+  const saveRowRecord = async (row: StaffingRow) => {
+    setStaffingRows(prev => {
+      const idx = prev.findIndex(r => r.id === row.id);
+      if (idx !== -1) return prev.map(r => r.id === row.id ? row : r);
+      return [...prev, row];
+    });
+    const { error } = await dbService.saveStaffingRow(row);
+    if (error) showToast('error', 'Erro', 'Falha ao salvar linha de cargo.');
+  };
+
+  const deleteRowRecord = async (id: string) => {
+    setStaffingRows(prev => prev.filter(r => r.id !== id));
+    setStaffingCells(prev => prev.filter(cell => cell.rowId !== id));
+    const { error } = await dbService.deleteStaffingRow(id);
+    if (error) showToast('error', 'Erro', 'Falha ao deletar linha de cargo.');
+  };
+
+  const saveCellRecord = async (cell: StaffingCell) => {
+    setStaffingCells(prev => {
+      const idx = prev.findIndex(c => c.rowId === cell.rowId && c.columnId === cell.columnId);
+      if (idx !== -1) return prev.map(c => c.rowId === cell.rowId && c.columnId === cell.columnId ? cell : c);
+      return [...prev, cell];
+    });
+    const { error } = await dbService.saveStaffingCell(cell);
+    if (error) showToast('error', 'Erro', 'Falha ao salvar célula do quadro.');
+  };
+
   const navItemsRaw: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'kanban',     label: 'Programação', icon: <Kanban size={20} /> },
     { key: 'atividades', label: 'Atividades',  icon: <ListTodo size={20} /> },
     { key: 'dashboard',  label: 'Dashboard',   icon: <LayoutDashboard size={20} /> },
+    { key: 'quadroPessoal', label: 'Quadro de Pessoal', icon: <Users size={20} /> },
     { key: 'absenteismo',label: 'Absenteísmo', icon: <UserCheck size={20} /> },
     { key: 'henkatens',  label: 'Henkatens',   icon: <Calendar size={20} /> },
     { key: 'conhecimento', label: 'Conhecimento', icon: <BookOpen size={20} /> },
@@ -542,6 +616,7 @@ export default function App() {
     if (item.key === 'logs') return false; // Somente Admin (já coberto acima)
     if (item.key === 'conhecimento') return (p?.conhecimentoTP?.view || p?.conhecimentoProj?.view) ?? (currentUser.role === 'Gestão');
     if (item.key === 'absenteismo') return p?.absenteismo?.view ?? false;
+    if (item.key === 'quadroPessoal') return p?.quadroPessoal?.view ?? false;
 
     return true;
   })
@@ -753,6 +828,22 @@ export default function App() {
             onDeleteEmployee={deleteEmployeeRecord}
             onSaveOvertime={saveOvertimeRecord}
             onDeleteOvertime={deleteOvertimeRecord}
+          />
+        )}
+        {activeTab === 'quadroPessoal' && (
+          <QuadroPessoalTab
+            currentUser={currentUser}
+            boards={staffingBoards}
+            columns={staffingColumns}
+            rows={staffingRows}
+            cells={staffingCells}
+            onSaveBoard={saveBoardRecord}
+            onDeleteBoard={deleteBoardRecord}
+            onSaveColumn={saveColumnRecord}
+            onDeleteColumn={deleteColumnRecord}
+            onSaveRow={saveRowRecord}
+            onDeleteRow={deleteRowRecord}
+            onSaveCell={saveCellRecord}
           />
         )}
         {activeTab === 'logs' && (
