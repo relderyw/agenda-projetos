@@ -49,6 +49,18 @@ export function getNotificationPermission(): NotificationPermission | 'unsupport
 
 // ─── Core logic ───────────────────────────────────────────
 
+function getWeekOfMonthString(date: Date): string {
+  const y = date.getFullYear();
+  const m = date.getMonth();
+  const d = date.getDate();
+  const firstDay = new Date(y, m, 1);
+  const firstDayOfWeek = firstDay.getDay();
+  const offset = (firstDayOfWeek + 6) % 7;
+  const weekNum = Math.ceil((d + offset) / 7);
+  const ptMonths = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return `W${weekNum > 5 ? 5 : weekNum} - ${ptMonths[m]}`;
+}
+
 export interface OverdueActivity {
   activity: Activity;
   responsible: User | undefined;
@@ -59,11 +71,16 @@ export interface OverdueActivity {
 export function getOverdueActivities(activities: Activity[], users: User[]): OverdueActivity[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const currentWeekLabel = getWeekOfMonthString(today);
 
   return activities
     .filter(a => {
       if (!a.dataPrevistaFinalizacao) return false;
       if (a.status === 'FINALIZADA' || a.status === 'CANCELADA') return false;
+
+      // Filter: only display delays of the current week
+      const actWeek = a.week || (a.planejamento ? getWeekOfMonthString(new Date(a.planejamento + 'T00:00:00')) : '');
+      if (actWeek !== currentWeekLabel) return false;
 
       const due = new Date(a.dataPrevistaFinalizacao + 'T00:00:00');
       return due < today;
