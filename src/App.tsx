@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2, UserCheck, Users } from 'lucide-react'
+import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2, UserCheck, Users, AlertTriangle, Bell, BellOff } from 'lucide-react'
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from './data'
 import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday, AbsenteeismRecord, Employee, OvertimeRecord } from './types'
 import type { StaffingBoard, StaffingColumn, StaffingRow, StaffingCell } from './types'
@@ -14,6 +14,7 @@ import AbsenteismoTab from './components/AbsenteismoTab'
 import QuadroPessoalTab from './components/QuadroPessoalTab'
 import Login from './components/Login'
 import { dbService } from './services/db'
+import { requestNotificationPermission, getNotificationPermission, fireOverdueNotifications, getOverdueActivities } from './services/notificationService'
 import { supabase } from './lib/supabase'
 import './App.css'
 
@@ -54,6 +55,8 @@ export default function App() {
     return (localStorage.getItem('theme') as ThemeMode) || 'light'
   });
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<'granted' | 'denied' | 'default' | 'unsupported'>('default');
 
   const showToast = useCallback((type: Toast['type'], title: string, msg: string) => {
     const id = crypto.randomUUID();
@@ -248,6 +251,31 @@ export default function App() {
       migrateWeeks();
     }
   }, [activities.length, currentUser, migrateWeeks]);
+
+  // ── Overdue Notifications ─────────────────────────────────
+  useEffect(() => {
+    if (!currentUser || activities.length === 0 || users.length === 0) return;
+
+    const perm = getNotificationPermission();
+    setNotifPermission(perm as any);
+
+    if (perm === 'default') {
+      // Ask permission after a short delay (less intrusive)
+      const timer = setTimeout(async () => {
+        const granted = await requestNotificationPermission();
+        setNotifPermission(granted ? 'granted' : 'denied');
+        if (granted) {
+          fireOverdueNotifications(activities, users);
+        }
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+
+    if (perm === 'granted') {
+      fireOverdueNotifications(activities, users);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id, activities.length, users.length]);
 
   // ── Activities CRUD ──────────────────────────────────────
   const addActivity = async (a: Activity) => {
@@ -747,6 +775,77 @@ export default function App() {
           </div>
         </div>
       </aside>
+
+      {/* ── Overdue Alert Banner ── */}
+      {(() => {
+        if (!currentUser || bannerDismissed) return null;
+        const overdue = getOverdueActivities(activities, users);
+        if (overdue.length === 0) return null;
+
+        // Count only MY activities if not admin/gestão
+        const isManager = currentUser.role === 'Administrador' || currentUser.role === 'Gestão';
+        const myOverdue = isManager
+          ? overdue
+          : overdue.filter(o => o.activity.responsavel === currentUser.id);
+        if (myOverdue.length === 0) return null;
+
+        const mostLate = myOverdue[0];
+
+        return (
+          <div className="overdue-banner">
+            <div className="overdue-banner-left">
+              <AlertTriangle size={18} className="overdue-banner-icon" />
+              <div>
+                <strong>
+                  {myOverdue.length} atividade{myOverdue.length > 1 ? 's' : ''} atrasada{myOverdue.length > 1 ? 's' : ''}
+                </strong>
+                <span className="overdue-banner-detail">
+                  &nbsp;— mais antiga: <em>{mostLate.activity.descricao.substring(0, 40)}{mostLate.activity.descricao.length > 40 ? '…' : ''}</em>
+                  &nbsp;({mostLate.daysLate} dia{mostLate.daysLate > 1 ? 's' : ''} de atraso)
+                </span>
+              </div>
+            </div>
+            <div className="overdue-banner-actions">
+              <button
+                className="overdue-banner-btn"
+                onClick={() => setActiveTab('atividades')}
+              >
+                Ver atividades →
+              </button>
+              {notifPermission === 'default' && (
+                <button
+                  className="overdue-banner-btn ghost"
+                  title="Ativar notificações Windows"
+                  onClick={async () => {
+                    const granted = await requestNotificationPermission();
+                    setNotifPermission(granted ? 'granted' : 'denied');
+                    if (granted) fireOverdueNotifications(activities, users);
+                  }}
+                >
+                  <Bell size={14} /> Ativar alertas Windows
+                </button>
+              )}
+              {notifPermission === 'denied' && (
+                <span className="overdue-banner-hint" title="Permissão de notificação bloqueada no navegador">
+                  <BellOff size={13} /> Notificações bloqueadas
+                </span>
+              )}
+              {notifPermission === 'granted' && (
+                <span className="overdue-banner-hint" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  <Bell size={13} /> Notificações Windows ativas
+                </span>
+              )}
+              <button
+                className="overdue-banner-close"
+                onClick={() => setBannerDismissed(true)}
+                title="Fechar banner"
+              >
+                <IconX size={16} />
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Main ── */}
       <main className="main-content">

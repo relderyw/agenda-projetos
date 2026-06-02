@@ -4494,3 +4494,139 @@
 .custom-checkbox:active {
   transform: scale(0.95);
 }
+
+/* ══════════════════════════════════════════════════
+   OVERDUE ALERT BANNER
+══════════════════════════════════════════════════ */
+.overdue-banner {
+  position: fixed;
+  top: 0;
+  left: 240px; /* same as sidebar width */
+  right: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 1.25rem;
+  background: linear-gradient(90deg, #b45309 0%, #d97706 50%, #b45309 100%);
+  background-size: 200% 100%;
+  animation: bannerSlideDown 0.4s cubic-bezier(0.34,1.56,0.64,1) both,
+             bannerShimmer 4s ease-in-out infinite 0.5s;
+  color: #fff;
+  font-size: 0.82rem;
+  box-shadow: 0 4px 18px rgba(180, 83, 9, 0.4);
+  flex-wrap: wrap;
+}
+
+@keyframes bannerSlideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes bannerShimmer {
+  0%   { background-position: 200% 0; }
+  50%  { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.overdue-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.overdue-banner-icon {
+  flex-shrink: 0;
+  animation: bannerPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes bannerPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.7; transform: scale(1.15); }
+}
+
+.overdue-banner-detail {
+  opacity: 0.85;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.overdue-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.overdue-banner-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 6px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.overdue-banner-btn:hover {
+  background: rgba(255, 255, 255, 0.32);
+  transform: translateY(-1px);
+}
+
+.overdue-banner-btn.ghost {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.overdue-banner-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.73rem;
+  opacity: 0.65;
+  white-space: nowrap;
+}
+
+.overdue-banner-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.overdue-banner-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Push down main content when banner is visible */
+.overdue-banner ~ .main-content {
+  padding-top: calc(var(--banner-h, 42px));
+}
+
+/* Mobile: banner spans full width */
+@media (max-width: 768px) {
+  .overdue-banner {
+    left: 0;
+    top: 56px; /* below mobile header */
+  }
+  .overdue-banner-detail {
+    display: none;
+  }
+}
