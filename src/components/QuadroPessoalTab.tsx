@@ -415,6 +415,15 @@ export default function QuadroPessoalTab({
     await onSaveColumn(updated);
   };
 
+  const handleUpdateRowMeta = async (row: StaffingRow, field: 'cargo' | 'setor', value: string) => {
+    if (!canEdit) return;
+    const updated = {
+      ...row,
+      [field]: value
+    };
+    await onSaveRow(updated);
+  };
+
   const handleExportCSV = () => {
     if (boardColumns.length === 0) return;
     const activeBoard = boards.find(b => b.id === activeBoardId);
@@ -575,38 +584,36 @@ export default function QuadroPessoalTab({
       </div>
 
       {/* ── LEGENDA E RESUMO ── */}
-      <div className="table-card" style={{ padding: '1rem', margin: '0.75rem 0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div>
-          <h3 style={{ fontSize: '0.85rem', marginBottom: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>LEGENDA:</h3>
-          <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>NOME PRETO</span>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>— COLABORADOR REGULAR/ATIVO</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#ef4444' }}>NOME VERMELHO</span>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>— TRANSFERIDO OUTRO SETOR / DESLIGADO</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#f97316' }}>NOME LARANJA</span>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>— AFASTADO INSS</span>
-            </div>
+      <div className="table-card" style={{ padding: '0.85rem 1rem', margin: '0.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+        {/* Legend badges */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>LEGENDA:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: 'var(--text-primary)', flexShrink: 0 }} />
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Ativo / Regular</span>
           </div>
-        </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: '#ef4444', flexShrink: 0 }} />
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Transferido / Desligado</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: '#f97316', flexShrink: 0 }} />
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Afastado INSS</span>
+          </div>
 
-        {Object.keys(sectorCounts).length > 0 && (
-          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
-            <h3 style={{ fontSize: '0.85rem', marginBottom: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Resumo de Colaboradores Ativos (Headcount Único):</h3>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          {/* Sector headcount counters */}
+          {Object.keys(sectorCounts).length > 0 && (
+            <>
+              <span style={{ width: 1, height: 20, background: 'var(--border-color)', display: 'inline-block', marginLeft: '0.25rem' }} />
               {Object.entries(sectorCounts).map(([sector, count]) => (
-                <div key={sector} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-layer)', padding: '0.4rem 0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{sector}:</span>
-                  <span style={{ fontSize: '1rem', fontWeight: 800, color: '#10b981' }}>{count}</span>
+                <div key={sector} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(16,185,129,0.08)', padding: '0.25rem 0.65rem', borderRadius: '20px', border: '1px solid rgba(16,185,129,0.25)' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{sector}</span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981', lineHeight: 1 }}>{count}</span>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* ── GRID TABLE ── */}
@@ -616,17 +623,17 @@ export default function QuadroPessoalTab({
             Nenhum cenário cadastrado para este quadro. Clique em "Novo Cenário" para criar a primeira coluna.
           </div>
         ) : (
-          <div className="table-scroll custom-scroll" style={{ flex: 1, borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-            <table className="data-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: '900px' }}>
+          <div className="table-scroll custom-scroll" style={{ flex: 1, borderRadius: '8px', border: '1px solid var(--border-color)', overflowX: 'auto' }}>
+            <table className="data-table" style={{ borderCollapse: 'collapse', width: '100%', tableLayout: 'fixed' }}>
               <thead>
                 {/* 1. Columns headers */}
                 <tr style={{ background: 'var(--bg-layer)' }}>
-                  <th style={{ width: '220px', position: 'sticky', left: 0, zIndex: 10, background: 'var(--bg-card)', borderRight: '2px solid var(--border-color)', fontWeight: 800 }}>
+                  <th style={{ width: '180px', minWidth: '180px', position: 'sticky', left: 0, zIndex: 10, background: 'var(--bg-card)', borderRight: '2px solid var(--border-color)', fontWeight: 800, fontSize: '0.8rem' }}>
                     CARGO
                   </th>
                   {boardColumns.map(c => (
-                    <th key={c.id} style={{ textAlign: 'center', padding: '0.75rem', position: 'relative' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                    <th key={c.id} style={{ width: '130px', minWidth: '110px', maxWidth: '150px', textAlign: 'center', padding: '0.5rem 0.4rem', position: 'relative', overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.2rem' }}>
                         {canEdit ? (
                           <input
                             type="text"
@@ -636,29 +643,30 @@ export default function QuadroPessoalTab({
                               background: 'transparent',
                               border: 'none',
                               color: 'var(--text-primary)',
-                              fontWeight: 800,
+                              fontWeight: 700,
                               textAlign: 'center',
                               width: '100%',
                               outline: 'none',
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              fontSize: '0.75rem'
                             }}
                           />
                         ) : (
-                          <span>{c.name}</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '110px' }}>{c.name}</span>
                         )}
                         {canDelete && (
                           <button
                             onClick={() => handleDeleteColumn(c.id)}
-                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(239, 68, 68, 0.4)' }}
+                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(239, 68, 68, 0.4)', flexShrink: 0 }}
                             title="Deletar cenário"
                           >
-                            <X size={12} />
+                            <X size={11} />
                           </button>
                         )}
                       </div>
                     </th>
                   ))}
-                  <th style={{ width: '110px', textAlign: 'center', fontWeight: 800 }}>SETOR</th>
+                  <th style={{ width: '100px', minWidth: '90px', textAlign: 'center', fontWeight: 800, fontSize: '0.8rem' }}>SETOR</th>
                 </tr>
 
                 {/* 2. ORÇADO Row */}
@@ -695,7 +703,7 @@ export default function QuadroPessoalTab({
 
                 {/* 3. QTD REAL Row */}
                 <tr style={{ borderBottom: '2px solid var(--border-color)', background: 'rgba(255, 255, 255, 0.02)' }}>
-                  <td style={{ position: 'sticky', left: 0, zIndex: 10, background: 'var(--bg-card)', borderRight: '2px solid var(--border-color)', fontWeight: 700, padding: '0.5rem 1rem' }}>
+                  <td style={{ position: 'sticky', left: 0, zIndex: 10, background: 'var(--bg-card)', borderRight: '2px solid var(--border-color)', fontWeight: 700, padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
                     QTD REAL
                   </td>
                   {boardColumns.map(c => {
@@ -709,13 +717,13 @@ export default function QuadroPessoalTab({
                     }, 0);
 
                     return (
-                      <td key={c.id} style={{ textAlign: 'center', padding: '0.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      <td key={c.id} style={{ textAlign: 'center', padding: '0.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                         <span style={{
                           background: activeCount > c.orcado ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
                           color: activeCount > c.orcado ? '#ef4444' : '#10b981',
-                          padding: '2px 8px',
+                          padding: '2px 6px',
                           borderRadius: '12px',
-                          fontSize: '0.85rem'
+                          fontSize: '0.8rem'
                         }}>
                           {activeCount}
                         </span>
@@ -773,23 +781,51 @@ export default function QuadroPessoalTab({
                             style={{
                               textAlign: 'center',
                               cursor: canEdit ? 'pointer' : 'default',
-                              padding: '0.5rem',
+                              padding: '0.4rem 0.3rem',
                               fontWeight: textVal !== '-' ? 700 : 400,
                               color: getCellColor(status),
                               borderRight: '1px solid var(--border-color)',
                               background: textVal !== '-' ? 'rgba(255, 255, 255, 0.01)' : 'transparent',
-                              transition: 'all 0.2s'
+                              transition: 'all 0.2s',
+                              fontSize: '0.8rem',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: '130px'
                             }}
                             className="staff-grid-cell"
+                            title={textVal !== '-' ? textVal : undefined}
                           >
                             {textVal}
                           </td>
                         );
                       })}
 
-                      {/* Setor column */}
-                      <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--text-secondary)', padding: '0.6rem' }}>
-                        {r.setor}
+                      {/* Setor column — inline editable */}
+                      <td style={{ textAlign: 'center', padding: '0.3rem 0.4rem' }}>
+                        {canEdit ? (
+                          <select
+                            value={r.setor}
+                            onChange={e => handleUpdateRowMeta(r, 'setor', e.target.value)}
+                            style={{
+                              background: 'var(--bg-layer)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '4px',
+                              color: 'var(--text-secondary)',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              padding: '2px 4px',
+                              width: '100%',
+                              cursor: 'pointer',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <option value="Projetos">Projetos</option>
+                            <option value="T&P">T&P</option>
+                          </select>
+                        ) : (
+                          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{r.setor}</span>
+                        )}
                       </td>
                     </tr>
                   ))
