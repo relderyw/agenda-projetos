@@ -2,15 +2,13 @@
 // Proxy server-side para enviar webhooks com Content-Type application/json
 // Resolve o bloqueio de CORS do Power Automate (Teams) quando chamado direto do browser.
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-
-const corsHeaders = {
+const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -75,10 +73,6 @@ serve(async (req: Request) => {
       });
     } else if (type === 'slack') {
       body = JSON.stringify({ text: message });
-    } else if (type === 'telegram') {
-      const { telegramToken, telegramChatId } = await req.json().catch(() => ({}));
-      // Telegram handled client-side; shouldn't reach here
-      body = JSON.stringify({ chat_id: telegramChatId, text: message, parse_mode: 'HTML' });
     } else {
       return new Response(
         JSON.stringify({ ok: false, error: `Tipo desconhecido: ${type}` }),
