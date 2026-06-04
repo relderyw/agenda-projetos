@@ -579,10 +579,15 @@ function WebhookConfigForm() {
     setTestResult(null);
     try {
       const ok = await sendWebhookNotification(
-        `🧪 <b>Teste de Conectividade</b>\nO webhook foi configurado corretamente no sistema <b>Agenda Projetos 103Ki</b>!`
+        `🧪 Teste de Conectividade\nO webhook foi configurado no sistema Agenda Projetos 103Ki! Verifique se esta mensagem chegou ao canal.`
       );
       if (ok) {
-        setTestResult({ success: true, msg: "Mensagem de teste enviada com sucesso!" });
+        setTestResult({
+          success: true,
+          msg: config.type === 'teams'
+            ? '✅ Request enviado! Verifique se a mensagem chegou no canal do Teams (não conseguimos confirmar por limitações de CORS do browser).'
+            : 'Mensagem de teste enviada com sucesso!'
+        });
       } else {
         setTestResult({ success: false, msg: "Falha ao enviar mensagem de teste. Verifique a URL ou parâmetros." });
       }

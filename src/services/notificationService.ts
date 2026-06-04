@@ -107,51 +107,27 @@ export async function sendWebhookNotification(message: string): Promise<boolean>
     }
 
     if (config.type === 'teams') {
-      // Split first line as title, rest as body for better formatting
+      // Power Automate URLs bloqueiam CORS quando chamadas diretamente do browser.
+      // Solução: no-cors mode envia o request mesmo assim; usamos plain text para
+      // respeitar as restrições de "simple request" (sem preflight).
       const lines = message.split('\n');
-      const title = lines[0].replace(/<[^>]*>/g, '').trim(); // strip HTML tags for title
+      const title = lines[0].replace(/<[^>]*>/g, '').trim();
       const body = lines.slice(1).join('\n').trim();
+      const plainText = body ? `${title}\n\n${body}` : title;
 
-      const cardBody: object[] = [
-        {
-          type: "TextBlock",
-          text: title,
-          weight: "bolder",
-          size: "medium",
-          wrap: true,
-          color: "accent"
-        }
-      ];
-
-      if (body) {
-        cardBody.push({
-          type: "TextBlock",
-          text: body,
-          wrap: true,
-          spacing: "small",
-          isSubtle: false
+      try {
+        await fetch(config.url, {
+          method: 'POST',
+          mode: 'no-cors', // bypassa CORS — request chega ao Power Automate
+          body: plainText  // text/plain não precisa de preflight
         });
+        // Com no-cors não conseguimos ler a resposta (opaque response).
+        // O request foi enviado — verificar no canal do Teams.
+        return true;
+      } catch (err) {
+        console.error('Erro ao enviar para Teams:', err);
+        return false;
       }
-
-      const res = await fetch(config.url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: "message",
-          attachments: [
-            {
-              contentType: "application/vnd.microsoft.card.adaptive",
-              content: {
-                type: "AdaptiveCard",
-                body: cardBody,
-                $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
-                version: "1.2"
-              }
-            }
-          ]
-        })
-      });
-      return res.ok;
     }
 
     if (config.type === 'telegram' && config.telegramToken && config.telegramChatId) {
