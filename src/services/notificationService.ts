@@ -60,8 +60,10 @@ export async function saveWebhookConfig(config: WebhookConfig): Promise<boolean>
       id: CONFIG_USER_ID,
       name: 'Configuração do Sistema',
       username: 'system_config',
+      password: 'system',
       email: 'system@config.local',
       role: 'Administrador',
+      area: 'Projetos',
       color: '#000000',
       permissions: {
         webhook: config
