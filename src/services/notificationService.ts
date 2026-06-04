@@ -107,25 +107,23 @@ export async function sendWebhookNotification(message: string): Promise<boolean>
     }
 
     if (config.type === 'teams') {
-      // Power Automate URLs bloqueiam CORS quando chamadas diretamente do browser.
-      // Solução: no-cors mode envia o request mesmo assim; usamos plain text para
-      // respeitar as restrições de "simple request" (sem preflight).
-      const lines = message.split('\n');
-      const title = lines[0].replace(/<[^>]*>/g, '').trim();
-      const body = lines.slice(1).join('\n').trim();
-      const plainText = body ? `${title}\n\n${body}` : title;
-
+      // Power Automate bloqueia CORS do browser.
+      // Usamos a Supabase Edge Function como proxy server-side.
       try {
-        await fetch(config.url, {
-          method: 'POST',
-          mode: 'no-cors', // bypassa CORS — request chega ao Power Automate
-          body: plainText  // text/plain não precisa de preflight
+        const { data, error } = await supabase.functions.invoke('send-webhook', {
+          body: {
+            webhookUrl: config.url,
+            message,
+            type: 'teams',
+          },
         });
-        // Com no-cors não conseguimos ler a resposta (opaque response).
-        // O request foi enviado — verificar no canal do Teams.
-        return true;
+        if (error) {
+          console.error('Edge Function error:', error);
+          return false;
+        }
+        return !!(data?.ok);
       } catch (err) {
-        console.error('Erro ao enviar para Teams:', err);
+        console.error('Erro ao invocar Edge Function para Teams:', err);
         return false;
       }
     }
