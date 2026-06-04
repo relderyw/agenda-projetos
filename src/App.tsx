@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2, UserCheck, Users, AlertTriangle, Bell, BellOff } from 'lucide-react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, ChevronDown, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2, UserCheck, Users, AlertTriangle, Bell, BellOff } from 'lucide-react'
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from './data'
-import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday, AbsenteeismRecord, Employee, OvertimeRecord } from './types'
+import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday, AbsenteeismRecord, Employee, OvertimeRecord, Status } from './types'
 import type { StaffingBoard, StaffingColumn, StaffingRow, StaffingCell } from './types'
 import AtividadesTab from './components/AtividadesTab'
 import DashboardTab from './components/DashboardTab'
@@ -14,7 +14,7 @@ import AbsenteismoTab from './components/AbsenteismoTab'
 import QuadroPessoalTab from './components/QuadroPessoalTab'
 import Login from './components/Login'
 import { dbService } from './services/db'
-import { requestNotificationPermission, getNotificationPermission, fireOverdueNotifications, getOverdueActivities } from './services/notificationService'
+import { requestNotificationPermission, getNotificationPermission, fireOverdueNotifications, getOverdueActivities, sendWebhookNotification } from './services/notificationService'
 import { supabase } from './lib/supabase'
 import './App.css'
 
@@ -57,6 +57,12 @@ export default function App() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [notifPermission, setNotifPermission] = useState<'granted' | 'denied' | 'default' | 'unsupported'>('default');
+  const [isClosureModalOpen, setIsClosureModalOpen] = useState(false);
+  const [isAgendaClosedToday, setIsAgendaClosedToday] = useState(() => {
+    const today = new Date().toLocaleDateString('en-CA');
+    return localStorage.getItem('agenda_closed_date') === today;
+  });
+
 
   const showToast = useCallback((type: Toast['type'], title: string, msg: string) => {
     const id = crypto.randomUUID();
@@ -86,6 +92,34 @@ export default function App() {
   }, [themeMode])
 
   const toggleTheme = () => setThemeMode(prev => prev === 'dark' ? 'light' : 'dark')
+
+  const getMyPendingCount = useCallback(() => {
+    if (!currentUser) return 0;
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    return activities.filter(a => {
+      if (a.responsavel !== currentUser.id) return false;
+      if (a.status === 'FINALIZADA' || a.status === 'CANCELADA') return false;
+      return a.planejamento <= todayStr;
+    }).length;
+  }, [activities, currentUser]);
+
+  useEffect(() => {
+    if (!currentUser || currentUser.role !== 'Analista' || isAgendaClosedToday) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const now = new Date();
+      const hours = now.getHours();
+      if (hours >= 15 && getMyPendingCount() > 0) {
+        e.preventDefault();
+        e.returnValue = 'Você tem atividades pendentes na agenda hoje. Por favor, faça o Fechamento de Turno antes de sair.';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [currentUser, isAgendaClosedToday, getMyPendingCount]);
+
 
   const loadData = useCallback(async () => {
     // Only show the central spinner on the very first app load
@@ -667,6 +701,15 @@ export default function App() {
   }
 
   const handleLogout = () => {
+    if (currentUser?.role === 'Analista' && !isAgendaClosedToday && getMyPendingCount() > 0) {
+      const now = new Date();
+      if (now.getHours() >= 15) {
+        if (!confirm('Atenção: Você ainda não realizou o Fechamento de Turno hoje! Deseja mesmo sair sem atualizar sua agenda?')) {
+          setIsClosureModalOpen(true);
+          return;
+        }
+      }
+    }
     if (confirm('Tem certeza que deseja sair?')) {
       setCurrentUser(null)
     }
@@ -847,6 +890,77 @@ export default function App() {
         );
       })()}
 
+      {/* ── Closure Checklist Banner ── */}
+      {(() => {
+        if (!currentUser || currentUser.role !== 'Analista' || isAgendaClosedToday) return null;
+        
+        // Show after 15:00
+        const now = new Date();
+        if (now.getHours() < 15) return null;
+
+        const pendingCount = getMyPendingCount();
+        return (
+          <div className="closure-banner">
+            <div className="closure-banner-left">
+              <CheckCircle2 size={18} className="closure-banner-icon animate-pulse" />
+              <div>
+                <strong>Atenção: Fechamento de Turno pendente!</strong>
+                <span className="closure-banner-detail">
+                  &nbsp;Você possui {pendingCount} atividade{pendingCount !== 1 ? 's' : ''} pendente{pendingCount !== 1 ? 's' : ''} ou atrasada{pendingCount !== 1 ? 's' : ''} hoje. Por favor, atualize e confirme o encerramento do dia.
+                </span>
+              </div>
+            </div>
+            <button 
+              className="closure-banner-btn"
+              onClick={() => setIsClosureModalOpen(true)}
+            >
+              Realizar Fechamento da Agenda
+            </button>
+          </div>
+        );
+      })()}
+
+      {/* ── Closure Checklist Modal ── */}
+      {isClosureModalOpen && (
+        <ClosureChecklistModal
+          currentUser={currentUser}
+          activities={activities}
+          themes={themes}
+          onUpdateActivity={updateActivity}
+          onClose={() => setIsClosureModalOpen(false)}
+          onConfirmClosure={async (finalizedCount: number, pendingCount: number) => {
+            const todayStr = new Date().toLocaleDateString('en-CA');
+            
+            // 1. Save closure log
+            const logMsg = `${finalizedCount} concluídas, ${pendingCount} pendentes`;
+            const newLog = {
+              userId: currentUser.id,
+              userName: currentUser.name,
+              action: 'Fechamento de Agenda',
+              target: logMsg,
+              timestamp: new Date().toISOString(),
+              id: crypto.randomUUID()
+            };
+            setLogs(prev => [newLog, ...prev.slice(0, 49)]);
+            await dbService.saveLog(newLog);
+
+            // 2. Disparar Webhook
+            const todayFmt = todayStr.split('-').reverse().join('/');
+            const groupMsg = `📢 <b>${currentUser.name}</b> encerrou a agenda de hoje (${todayFmt})!\n` +
+                             `• Atividades concluídas/atualizadas: <b>${finalizedCount}</b>\n` +
+                             `• Atividades que restaram pendentes: <b>${pendingCount}</b>\n` +
+                             `<i>Agenda atualizada e confirmada no sistema.</i>`;
+            await sendWebhookNotification(groupMsg);
+
+            // 3. Update states
+            localStorage.setItem('agenda_closed_date', todayStr);
+            setIsAgendaClosedToday(true);
+            setIsClosureModalOpen(false);
+            showToast('success', 'Sucesso', 'Fechamento de turno registrado e notificado!');
+          }}
+        />
+      )}
+
       {/* ── Main ── */}
       <main className="main-content">
         {activeTab === 'atividades' && (
@@ -977,3 +1091,243 @@ export default function App() {
     </div>
   )
 }
+
+interface ClosureModalProps {
+  currentUser: User;
+  activities: Activity[];
+  themes: Theme[];
+  onUpdateActivity: (a: Activity) => Promise<void>;
+  onClose: () => void;
+  onConfirmClosure: (finalizedCount: number, pendingCount: number) => Promise<void>;
+}
+
+function ClosureChecklistModal({ currentUser, activities, themes, onUpdateActivity, onClose, onConfirmClosure }: ClosureModalProps) {
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  
+  // Filter only activities assigned to current user, scheduled for today or overdue
+  const myTasks = useMemo(() => {
+    return activities.filter((a: Activity) => {
+      if (a.responsavel !== currentUser.id) return false;
+      return a.planejamento <= todayStr;
+    });
+  }, [activities, currentUser.id, todayStr]);
+
+  const pendingTasks = useMemo(() => {
+    return myTasks.filter((a: Activity) => a.status !== 'FINALIZADA' && a.status !== 'CANCELADA');
+  }, [myTasks]);
+
+  const [saving, setSaving] = useState(false);
+  const [comments, setComments] = useState<Record<string, string>>({});
+  const [statuses, setStatuses] = useState<Record<string, Status>>({});
+  const [progresses, setProgresses] = useState<Record<string, number>>({});
+
+  const getThemeName = (themeId: string) => {
+    return themes.find(t => t.id === themeId)?.name || 'Sem Tema';
+  };
+
+  const handleQuickFinalize = async (task: Activity) => {
+    setSaving(true);
+    const updated = {
+      ...task,
+      status: 'FINALIZADA' as Status,
+      percentualAndamento: 100,
+      dataFinalizada: todayStr,
+      comentario: comments[task.id] || task.comentario || 'Finalizado no encerramento de turno.',
+      dataComentario: new Date().toLocaleString('pt-BR')
+    };
+    await onUpdateActivity(updated);
+    setSaving(false);
+  };
+
+  const handleUpdateTask = async (task: Activity, status: Status, percent: number) => {
+    setSaving(true);
+    const updated = {
+      ...task,
+      status,
+      percentualAndamento: percent,
+      dataFinalizada: status === 'FINALIZADA' ? todayStr : task.dataFinalizada,
+      comentario: comments[task.id] || task.comentario,
+      dataComentario: comments[task.id] ? new Date().toLocaleString('pt-BR') : task.dataComentario
+    };
+    await onUpdateActivity(updated);
+    setSaving(false);
+  };
+
+  const handleFinishDay = async () => {
+    const remainingCount = pendingTasks.length;
+    if (remainingCount > 0) {
+      if (!confirm(`Você ainda possui ${remainingCount} atividades pendentes para hoje. Deseja encerrar a agenda com pendências?`)) {
+        return;
+      }
+    }
+    
+    setSaving(true);
+    const finalizedCount = myTasks.filter((a: Activity) => a.status === 'FINALIZADA' || a.status === 'CANCELADA').length;
+    await onConfirmClosure(finalizedCount, remainingCount);
+    setSaving(false);
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-box closure-modal" style={{ maxWidth: '750px', width: '90%' }}>
+        <div className="modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CheckCircle2 size={24} style={{ color: '#10b981' }} />
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-primary)' }}>Fechamento de Turno - Agenda</h2>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Olá {currentUser.name}, atualize suas atividades pendentes e finalize seu dia.</p>
+            </div>
+          </div>
+          <button className="modal-close" onClick={onClose}><IconX size={20} /></button>
+        </div>
+
+        <div className="modal-body custom-scroll" style={{ maxHeight: '60vh', overflowY: 'auto', padding: '1rem 0' }}>
+          {myTasks.length === 0 ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              🎉 Você não tem atividades planejadas para hoje ou atrasadas!
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              
+              {pendingTasks.length > 0 ? (
+                <div className="alert-box warning" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', padding: '10px 14px', borderRadius: '8px', color: '#f59e0b', fontSize: '0.8rem', fontWeight: 500 }}>
+                  ⚠️ Você tem {pendingTasks.length} atividades que ainda não foram marcadas como FINALIZADA ou CANCELADA.
+                </div>
+              ) : (
+                <div className="alert-box success" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', padding: '10px 14px', borderRadius: '8px', color: '#10b981', fontSize: '0.8rem', fontWeight: 500 }}>
+                  ✅ Tudo atualizado! Excelente trabalho, todas as atividades planejadas para hoje foram concluídas.
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {myTasks.map((task: Activity) => {
+                  const isDone = task.status === 'FINALIZADA' || task.status === 'CANCELADA';
+                  const taskStatus = statuses[task.id] || task.status;
+                  const taskPercent = progresses[task.id] !== undefined ? progresses[task.id] : task.percentualAndamento;
+                  const commentText = comments[task.id] !== undefined ? comments[task.id] : (task.comentario || '');
+
+                  return (
+                    <div 
+                      key={task.id} 
+                      className={`closure-task-card ${isDone ? 'done' : 'pending'}`}
+                      style={{
+                        padding: '1.25rem',
+                        borderRadius: '12px',
+                        border: '1px solid var(--border-color)',
+                        background: isDone ? 'rgba(16,185,129,0.03)' : 'var(--bg-card)',
+                        boxShadow: 'var(--card-shadow)',
+                        opacity: isDone ? 0.75 : 1
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '10px' }}>
+                        <div>
+                          <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                            {getThemeName(task.tema)}
+                          </span>
+                          <h4 style={{ margin: '4px 0', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {task.descricao}
+                          </h4>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                            Planejado: {task.planejamento.split('-').reverse().join('/')} | Previsto: {task.dataPrevistaFinalizacao.split('-').reverse().join('/')}
+                          </span>
+                        </div>
+                        
+                        {!isDone && (
+                          <button 
+                            className="btn-primary"
+                            onClick={() => handleQuickFinalize(task)}
+                            disabled={saving}
+                            style={{ padding: '6px 12px', fontSize: '0.75rem', background: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            <CheckCircle2 size={12} /> Concluir Rápido
+                          </button>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '12px' }}>
+                        <div className="form-group">
+                          <label style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', display: 'block', color: 'var(--text-secondary)' }}>Status</label>
+                          <div className="select-wrap full-w" style={{ height: '34px' }}>
+                            <select 
+                              value={taskStatus} 
+                              disabled={saving}
+                              onChange={e => {
+                                const newStatus = e.target.value as Status;
+                                const newPercent = newStatus === 'FINALIZADA' ? 100 : (newStatus === 'PENDENTE' ? 0 : taskPercent);
+                                setStatuses(prev => ({ ...prev, [task.id]: newStatus }));
+                                setProgresses(prev => ({ ...prev, [task.id]: newPercent }));
+                                handleUpdateTask(task, newStatus, newPercent);
+                              }}
+                            >
+                              <option value="PENDENTE">PENDENTE</option>
+                              <option value="EM ANDAMENTO">EM ANDAMENTO</option>
+                              <option value="FINALIZADA">FINALIZADA</option>
+                              <option value="POSTERGADA">POSTERGADA</option>
+                              <option value="CANCELADA">CANCELADA</option>
+                            </select>
+                            <ChevronDown size={12} className="sel-icon" />
+                          </div>
+                        </div>
+
+                        <div className="form-group">
+                          <label style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', display: 'block', color: 'var(--text-secondary)' }}>% Andamento</label>
+                          <input 
+                            type="number" 
+                            min="0" 
+                            max="100" 
+                            value={taskPercent}
+                            disabled={saving || taskStatus === 'FINALIZADA'}
+                            onChange={e => {
+                              const val = Number(e.target.value);
+                              setProgresses(prev => ({ ...prev, [task.id]: val }));
+                            }}
+                            onBlur={() => {
+                              const p = progresses[task.id] ?? task.percentualAndamento;
+                              handleUpdateTask(task, taskStatus, p);
+                            }}
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', width: '100%', fontSize: '0.8rem', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="form-group" style={{ marginTop: '10px' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', display: 'block', color: 'var(--text-secondary)' }}>Comentário / Justificativa</label>
+                        <textarea 
+                          rows={2}
+                          value={commentText}
+                          disabled={saving}
+                          placeholder="Adicione observações sobre o andamento..."
+                          onChange={e => setComments(prev => ({ ...prev, [task.id]: e.target.value }))}
+                          onBlur={() => {
+                            if (comments[task.id] !== undefined) {
+                              handleUpdateTask(task, taskStatus, taskPercent);
+                            }
+                          }}
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '0.8rem' }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', display: 'flex', justifyContent: 'space-between' }}>
+          <button className="btn-ghost" onClick={onClose} disabled={saving}>Voltar depois</button>
+          <button 
+            className="btn-primary" 
+            onClick={handleFinishDay} 
+            disabled={saving}
+            style={{ padding: '10px 24px', background: '#10b981', display: 'flex', alignItems: 'center', gap: '8px', border: 'none', color: '#fff', cursor: 'pointer' }}
+          >
+            {saving ? <RefreshCw size={16} className="spinner" /> : <CheckCircle2 size={16} />}
+            Confirmar Encerramento do Dia
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+

@@ -1,7 +1,177 @@
 import type { Activity, User } from '../types';
+import { supabase } from '../lib/supabase';
 
 const NOTIFIED_KEY = 'overdue_notified_ids';
 const NOTIFIED_DATE_KEY = 'overdue_notified_date';
+
+// ─── Webhook Configuration ───────────────────────────────
+
+export interface WebhookConfig {
+  enabled: boolean;
+  type: 'discord' | 'slack' | 'teams' | 'telegram' | 'none';
+  url: string;
+  telegramToken?: string;
+  telegramChatId?: string;
+}
+
+export const CONFIG_USER_ID = '00000000-0000-0000-0000-000000000000';
+const LOCAL_WEBHOOK_KEY = 'settings_webhook_config';
+
+export async function getWebhookConfig(): Promise<WebhookConfig> {
+  const localVal = localStorage.getItem(LOCAL_WEBHOOK_KEY);
+  let config: WebhookConfig = { enabled: false, type: 'none', url: '' };
+  
+  if (localVal) {
+    try {
+      config = JSON.parse(localVal);
+    } catch {}
+  }
+
+  const isCloudEnabled = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+  if (!isCloudEnabled) return config;
+
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('permissions')
+      .eq('id', CONFIG_USER_ID)
+      .single();
+      
+    if (data && data.permissions && (data.permissions as any).webhook) {
+      const dbConfig = (data.permissions as any).webhook as WebhookConfig;
+      localStorage.setItem(LOCAL_WEBHOOK_KEY, JSON.stringify(dbConfig));
+      return dbConfig;
+    }
+  } catch (err) {
+    console.error('Error fetching webhook config from DB:', err);
+  }
+  
+  return config;
+}
+
+export async function saveWebhookConfig(config: WebhookConfig): Promise<boolean> {
+  localStorage.setItem(LOCAL_WEBHOOK_KEY, JSON.stringify(config));
+  
+  const isCloudEnabled = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+  if (!isCloudEnabled) return true;
+
+  try {
+    const payload = {
+      id: CONFIG_USER_ID,
+      name: 'Configuração do Sistema',
+      username: 'system_config',
+      email: 'system@config.local',
+      role: 'Administrador',
+      color: '#000000',
+      permissions: {
+        webhook: config
+      }
+    };
+    
+    const { error } = await supabase.from('users').upsert(payload);
+    if (error) {
+      console.error('Error saving webhook config to DB:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Error in saveWebhookConfig:', err);
+    return false;
+  }
+}
+
+export async function sendWebhookNotification(message: string): Promise<boolean> {
+  const config = await getWebhookConfig();
+  if (!config.enabled || config.type === 'none' || (!config.url && config.type !== 'telegram')) return false;
+
+  try {
+    if (config.type === 'discord') {
+      const res = await fetch(config.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: message,
+          username: 'Agenda 103Ki',
+          avatar_url: 'https://costalog.com.br/wp-content/uploads/2024/12/lsl-transportes.webp'
+        })
+      });
+      return res.ok;
+    }
+    
+    if (config.type === 'slack') {
+      const res = await fetch(config.url, {
+        method: 'POST',
+        body: JSON.stringify({ text: message })
+      });
+      return res.ok;
+    }
+
+    if (config.type === 'teams') {
+      // Split first line as title, rest as body for better formatting
+      const lines = message.split('\n');
+      const title = lines[0].replace(/<[^>]*>/g, '').trim(); // strip HTML tags for title
+      const body = lines.slice(1).join('\n').trim();
+
+      const cardBody: object[] = [
+        {
+          type: "TextBlock",
+          text: title,
+          weight: "bolder",
+          size: "medium",
+          wrap: true,
+          color: "accent"
+        }
+      ];
+
+      if (body) {
+        cardBody.push({
+          type: "TextBlock",
+          text: body,
+          wrap: true,
+          spacing: "small",
+          isSubtle: false
+        });
+      }
+
+      const res = await fetch(config.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: "message",
+          attachments: [
+            {
+              contentType: "application/vnd.microsoft.card.adaptive",
+              content: {
+                type: "AdaptiveCard",
+                body: cardBody,
+                $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+                version: "1.2"
+              }
+            }
+          ]
+        })
+      });
+      return res.ok;
+    }
+
+    if (config.type === 'telegram' && config.telegramToken && config.telegramChatId) {
+      const res = await fetch(`https://api.telegram.org/bot${config.telegramToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: config.telegramChatId,
+          text: message,
+          parse_mode: 'HTML'
+        })
+      });
+      return res.ok;
+    }
+  } catch (err) {
+    console.error('Error sending webhook notification:', err);
+  }
+  return false;
+}
+
 
 // ─── Helpers ──────────────────────────────────────────────
 

@@ -1,8 +1,11 @@
-import { useState } from 'react';
-import { Plus, Edit2, Trash2, X, Save, Tag, Users, ChevronDown, CloudUpload, RefreshCw, Calendar, MinusCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, X, Save, Tag, Users, ChevronDown, CloudUpload, RefreshCw, Calendar, MinusCircle, Bell } from 'lucide-react';
 import type { Theme, User, UserPermissions, Activity, HenkatenEvent, Holiday } from '../types';
 import { dbService } from '../services/db';
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from '../data';
+import { getWebhookConfig, saveWebhookConfig, sendWebhookNotification } from '../services/notificationService';
+import type { WebhookConfig } from '../services/notificationService';
+
 
 interface Props {
   currentUser: User | null;
@@ -63,7 +66,7 @@ export default function CadastrosTab({
   const canEditUsers = currentUser?.permissions?.usuarios.edit ?? false;
   const canDeleteUsers = currentUser?.permissions?.usuarios.delete ?? false;
 
-  const [section, setSection] = useState<'temas' | 'usuarios' | 'holidays'>(() => canViewThemes ? 'temas' : 'usuarios');
+  const [section, setSection] = useState<'temas' | 'usuarios' | 'holidays' | 'notifications'>(() => canViewThemes ? 'temas' : 'usuarios');
 
   // Theme modal
   const [tModal, setTModal] = useState<{ open: boolean; editing: Theme | null }>({ open: false, editing: null });
@@ -217,6 +220,11 @@ export default function CadastrosTab({
             <Calendar size={16} /> Dias sem Expediente
           </button>
         )}
+        {currentUser?.role === 'Administrador' && (
+          <button className={`sec-tab ${section === 'notifications' ? 'sec-active' : ''}`} onClick={() => setSection('notifications')}>
+            <Bell size={16} /> Notificações Webhook
+          </button>
+        )}
       </div>
 
       {/* ── TEMAS ── */}
@@ -306,6 +314,11 @@ export default function CadastrosTab({
             )}
           </div>
         </div>
+      )}
+
+      {/* ── NOTIFICAÇÕES ── */}
+      {section === 'notifications' && (
+        <WebhookConfigForm />
       )}
 
       {/* Modal Holiday */}
@@ -525,3 +538,192 @@ export default function CadastrosTab({
     </div>
   );
 }
+
+function WebhookConfigForm() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [config, setConfig] = useState<WebhookConfig>({
+    enabled: false,
+    type: 'none',
+    url: '',
+    telegramToken: '',
+    telegramChatId: ''
+  });
+  const [testResult, setTestResult] = useState<{ success: boolean; msg: string } | null>(null);
+
+  useEffect(() => {
+    getWebhookConfig().then(cfg => {
+      setConfig(cfg);
+      setLoading(false);
+    });
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const success = await saveWebhookConfig(config);
+    setSaving(false);
+    if (success) {
+      alert("Configurações de notificação salvas com sucesso!");
+    } else {
+      alert("Erro ao salvar configurações de notificação.");
+    }
+  };
+
+  const handleTest = async () => {
+    if (!config.enabled) {
+      alert("Ative as notificações antes de testar.");
+      return;
+    }
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const ok = await sendWebhookNotification(
+        `🧪 <b>Teste de Conectividade</b>\nO webhook foi configurado corretamente no sistema <b>Agenda Projetos 103Ki</b>!`
+      );
+      if (ok) {
+        setTestResult({ success: true, msg: "Mensagem de teste enviada com sucesso!" });
+      } else {
+        setTestResult({ success: false, msg: "Falha ao enviar mensagem de teste. Verifique a URL ou parâmetros." });
+      }
+    } catch (err: any) {
+      setTestResult({ success: false, msg: err.message || "Erro de rede ao disparar webhook." });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  if (loading) {
+    return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Carregando configurações...</div>;
+  }
+
+  return (
+    <div className="webhook-config-form dash-card" style={{ maxWidth: '600px', margin: '1rem auto 0 auto', padding: '2rem', borderRadius: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+        <Bell size={24} style={{ color: 'var(--accent-color)' }} />
+        <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-primary)' }}>Configuração de Webhook Coletivo</h3>
+      </div>
+      
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: '1.4' }}>
+        Envie alertas em tempo real sobre o encerramento da agenda e pendências diárias diretamente para um canal do Discord, Teams, Slack ou Telegram.
+        <br />
+        <span style={{ color: '#f59e0b', fontWeight: 600 }}>⚠️ Microsoft Teams:</span>{' '}
+        Use o novo sistema <strong>Power Automate Workflows</strong> (o conector antigo foi descontinuado em 2025).
+        No canal Teams: clique em <strong>... → Workflows → "Post to a channel when a webhook request is received"</strong>.
+      </p>
+
+      <div className="form-group full" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <input 
+          type="checkbox" 
+          id="webhook-enabled" 
+          className="custom-checkbox"
+          checked={config.enabled}
+          onChange={e => setConfig(c => ({ ...c, enabled: e.target.checked }))} 
+        />
+        <label htmlFor="webhook-enabled" style={{ fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', color: 'var(--text-primary)' }}>
+          Ativar integrações de notificação
+        </label>
+      </div>
+
+      {config.enabled && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div className="form-group full">
+            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.85rem' }}>Canal de Integração</label>
+            <div className="select-wrap full-w">
+              <select 
+                value={config.type} 
+                onChange={e => setConfig(c => ({ ...c, type: e.target.value as any, url: '' }))}
+              >
+                <option value="none">Selecione um canal...</option>
+                <option value="discord">Discord (Webhook)</option>
+                <option value="slack">Slack (Webhook)</option>
+                <option value="teams">Microsoft Teams (Power Automate Workflows)</option>
+                <option value="telegram">Telegram (Bot Api)</option>
+              </select>
+              <ChevronDown size={14} className="sel-icon" />
+            </div>
+          </div>
+
+          {config.type !== 'none' && config.type !== 'telegram' && (
+            <div className="form-group full">
+              <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.85rem' }}>
+                URL do Webhook {config.type === 'teams' ? '(Power Automate)' : ''} *
+              </label>
+              <input 
+                type="text" 
+                placeholder="https://..."
+                value={config.url}
+                onChange={e => setConfig(c => ({ ...c, url: e.target.value }))}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+              />
+            </div>
+          )}
+
+          {config.type === 'telegram' && (
+            <>
+              <div className="form-group full">
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.85rem' }}>
+                  Bot API Token *
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="ex: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
+                  value={config.telegramToken || ''}
+                  onChange={e => setConfig(c => ({ ...c, telegramToken: e.target.value }))}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                />
+              </div>
+              <div className="form-group full">
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.85rem' }}>
+                  ID do Chat / Canal *
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="ex: -100123456789 ou 123456789"
+                  value={config.telegramChatId || ''}
+                  onChange={e => setConfig(c => ({ ...c, telegramChatId: e.target.value }))}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                />
+              </div>
+            </>
+          )}
+
+          {testResult && (
+            <div style={{ 
+              padding: '10px 14px', 
+              borderRadius: '8px', 
+              fontSize: '0.8rem',
+              background: testResult.success ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+              color: testResult.success ? '#10b981' : '#ef4444',
+              border: `1px solid ${testResult.success ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`
+            }}>
+              {testResult.msg}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: '12px', marginTop: '2rem', justifyContent: 'flex-end' }}>
+        {config.enabled && config.type !== 'none' && (
+          <button 
+            className="btn-ghost" 
+            onClick={handleTest} 
+            disabled={testing || saving}
+            style={{ padding: '10px 20px' }}
+          >
+            {testing ? "Testando..." : "Testar Conexão"}
+          </button>
+        )}
+        <button 
+          className="btn-primary" 
+          onClick={handleSave} 
+          disabled={saving || testing}
+          style={{ padding: '10px 24px' }}
+        >
+          {saving ? "Salvando..." : "Salvar Configurações"}
+        </button>
+      </div>
+    </div>
+  );
+}
+

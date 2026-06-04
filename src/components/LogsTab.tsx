@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { ShieldAlert, UserCheck, UserX, Activity as ActivityIcon, Clock } from 'lucide-react';
+import { ShieldAlert, UserCheck, UserX, Activity as ActivityIcon, Clock, Bell, RefreshCw } from 'lucide-react';
 import type { Activity, User, LogEntry } from '../types';
 import { supabase } from '../lib/supabase';
+import { sendWebhookNotification } from '../services/notificationService';
 
 interface Props {
   currentUser: User | null;
@@ -17,6 +18,60 @@ export default function LogsTab({ currentUser, users, activities, logs, onlineUs
   const localToday = new Date().toLocaleDateString('en-CA'); // 'en-CA' produz YYYY-MM-DD
   
   const analysts = useMemo(() => users.filter(u => u.role === 'Analista'), [users]);
+  
+  const [isSending, setIsSending] = useState(false);
+
+  const getPendingCountForUser = (userId: string) => {
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    return activities.filter(a => {
+      if (a.responsavel !== userId) return false;
+      if (a.status === 'FINALIZADA' || a.status === 'CANCELADA') return false;
+      return a.planejamento <= todayStr;
+    }).length;
+  };
+
+  const handleSendCobranca = async () => {
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    
+    const pendingAnalysts = analysts.map(analyst => {
+      const closed = logs.some(l => {
+        const logDate = new Date(l.timestamp).toLocaleDateString('en-CA');
+        return l.userId === analyst.id && l.action === 'Fechamento de Agenda' && logDate === todayStr;
+      });
+      const pendingCount = getPendingCountForUser(analyst.id);
+      return { analyst, closed, pendingCount };
+    }).filter(item => !item.closed);
+
+    if (pendingAnalysts.length === 0) {
+      alert("Todos os analistas realizaram o fechamento de agenda hoje! 🎉");
+      return;
+    }
+
+    if (!confirm(`Deseja disparar um alerta de cobrança no canal da equipe cobrando a agenda de ${pendingAnalysts.length} analista(s)?`)) return;
+
+    let msg = `⚠️ <b>Cobrança de Agenda - LSL Projetos 103Ki</b>\n`;
+    msg += `Os seguintes analistas ainda não finalizaram o fechamento de agenda de hoje (<b>${todayStr.split('-').reverse().join('/')}</b>):\n\n`;
+    
+    pendingAnalysts.forEach(item => {
+      msg += `• <b>${item.analyst.name}</b> - <i>${item.pendingCount} atividade(s) pendente(s) hoje</i>\n`;
+    });
+    
+    msg += `\nFavor acessar o sistema para atualizar suas atividades pendentes e clicar em <b>"Confirmar Encerramento do Dia"</b>.`;
+
+    setIsSending(true);
+    try {
+      const ok = await sendWebhookNotification(msg);
+      if (ok) {
+        alert("Cobrança de agenda enviada com sucesso no grupo!");
+      } else {
+        alert("Não foi possível enviar a cobrança. Certifique-se de que o Webhook está configurado na aba Cadastros.");
+      }
+    } catch (err: any) {
+      alert("Erro ao disparar webhook: " + err.message);
+    } finally {
+      setIsSending(false);
+    }
+  };
   
   const analystsUpdateStatus = useMemo(() => {
     return analysts.map(analyst => {
@@ -60,17 +115,38 @@ export default function LogsTab({ currentUser, users, activities, logs, onlineUs
           <h1 className="tab-title">Relatório de Atividade Real</h1>
           <p className="tab-subtitle">Resumo de quem realmente interagiu com o sistema no dia de hoje.</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button 
+            className="btn-danger" 
+            onClick={handleSendCobranca} 
+            disabled={isSending}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              padding: '8px 16px', 
+              borderRadius: '8px', 
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              background: '#ef4444',
+              color: '#fff',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            {isSending ? <RefreshCw size={14} className="spinner" /> : <Bell size={14} />}
+            Cobrar Agenda no Canal
+          </button>
           {realtimeStatus === 'connected' ? (
-            <span style={{ fontSize: '0.7rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(16,185,129,0.1)', padding: '4px 8px', borderRadius: '6px' }}>
+            <span style={{ fontSize: '0.7rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(16,185,129,0.1)', padding: '8px 12px', borderRadius: '6px' }}>
               <div className="cloud-dot pulse" style={{ width: 6, height: 6 }} /> Monitoramento Ativo
             </span>
           ) : realtimeStatus === 'error' ? (
-            <span style={{ fontSize: '0.7rem', color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '4px 8px', borderRadius: '6px' }}>
+            <span style={{ fontSize: '0.7rem', color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '8px 12px', borderRadius: '6px' }}>
               Falha no Sincronismo
             </span>
           ) : (
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--bg-input)', padding: '4px 8px', borderRadius: '6px' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--bg-input)', padding: '8px 12px', borderRadius: '6px' }}>
               Sincronizando...
             </span>
           )}
