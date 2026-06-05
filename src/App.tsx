@@ -299,14 +299,14 @@ export default function App() {
         const granted = await requestNotificationPermission();
         setNotifPermission(granted ? 'granted' : 'denied');
         if (granted) {
-          fireOverdueNotifications(activities, users);
+          fireOverdueNotifications(activities.filter(a => a.responsavel === currentUser.id), users);
         }
       }, 3000);
       return () => clearTimeout(timer);
     }
 
     if (perm === 'granted') {
-      fireOverdueNotifications(activities, users);
+      fireOverdueNotifications(activities.filter(a => a.responsavel === currentUser.id), users);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id, activities.length, users.length]);
@@ -862,7 +862,7 @@ export default function App() {
                   onClick={async () => {
                     const granted = await requestNotificationPermission();
                     setNotifPermission(granted ? 'granted' : 'denied');
-                    if (granted) fireOverdueNotifications(activities, users);
+                    if (granted) fireOverdueNotifications(activities.filter(a => a.responsavel === currentUser.id), users);
                   }}
                 >
                   <Bell size={14} /> Ativar alertas Windows
@@ -899,6 +899,8 @@ export default function App() {
         if (now.getHours() < 15) return null;
 
         const pendingCount = getMyPendingCount();
+        if (pendingCount === 0) return null;
+
         return (
           <div className="closure-banner">
             <div className="closure-banner-left">
@@ -950,7 +952,7 @@ export default function App() {
                              `• Atividades concluídas/atualizadas: <b>${finalizedCount}</b>\n` +
                              `• Atividades que restaram pendentes: <b>${pendingCount}</b>\n` +
                              `<i>Agenda atualizada e confirmada no sistema.</i>`;
-            await sendWebhookNotification(groupMsg);
+            await sendWebhookNotification(groupMsg, currentUser.email);
 
             // 3. Update states
             localStorage.setItem('agenda_closed_date', todayStr);
@@ -1117,6 +1119,7 @@ function ClosureChecklistModal({ currentUser, activities, themes, onUpdateActivi
   }, [myTasks]);
 
   const [saving, setSaving] = useState(false);
+  const [hasMadeChanges, setHasMadeChanges] = useState(false);
   const [comments, setComments] = useState<Record<string, string>>({});
   const [statuses, setStatuses] = useState<Record<string, Status>>({});
   const [progresses, setProgresses] = useState<Record<string, number>>({});
@@ -1127,6 +1130,7 @@ function ClosureChecklistModal({ currentUser, activities, themes, onUpdateActivi
 
   const handleQuickFinalize = async (task: Activity) => {
     setSaving(true);
+    setHasMadeChanges(true);
     const updated = {
       ...task,
       status: 'FINALIZADA' as Status,
@@ -1141,6 +1145,7 @@ function ClosureChecklistModal({ currentUser, activities, themes, onUpdateActivi
 
   const handleUpdateTask = async (task: Activity, status: Status, percent: number) => {
     setSaving(true);
+    setHasMadeChanges(true);
     const updated = {
       ...task,
       status,
@@ -1154,6 +1159,30 @@ function ClosureChecklistModal({ currentUser, activities, themes, onUpdateActivi
   };
 
   const handleFinishDay = async () => {
+    // Validar se todas as tarefas pendentes tiveram alguma alteração (status, % ou comentário)
+    const unupdatedTasks = pendingTasks.filter(task => {
+      const currentStatus = statuses[task.id] || task.status;
+      const currentPercent = progresses[task.id] !== undefined ? progresses[task.id] : task.percentualAndamento;
+      const currentComment = comments[task.id] !== undefined ? comments[task.id] : (task.comentario || '');
+      
+      const statusChanged = currentStatus !== task.status;
+      const percentChanged = currentPercent !== task.percentualAndamento;
+      const commentChanged = currentComment !== (task.comentario || '');
+
+      // Se não mudou absolutamente nada, reprova
+      if (!statusChanged && !percentChanged && !commentChanged) return true;
+      
+      // Se está em andamento, obriga a mudar o % ou colocar um comentário novo
+      if (currentStatus === 'EM ANDAMENTO' && !percentChanged && !commentChanged) return true;
+
+      return false;
+    });
+
+    if (unupdatedTasks.length > 0) {
+      alert(`Você tem ${unupdatedTasks.length} atividade(s) pendente(s) que não sofreram atualização. É obrigatório atualizar o status, % de andamento ou adicionar um comentário novo nas atividades para encerrar o dia.`);
+      return;
+    }
+
     const remainingCount = pendingTasks.length;
     if (remainingCount > 0) {
       if (!confirm(`Você ainda possui ${remainingCount} atividades pendentes para hoje. Deseja encerrar a agenda com pendências?`)) {

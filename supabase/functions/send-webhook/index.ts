@@ -15,7 +15,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { webhookUrl, message, type } = await req.json();
+    const { webhookUrl, message, type, email } = await req.json();
 
     if (!webhookUrl || !message || !type) {
       return new Response(
@@ -54,6 +54,7 @@ Deno.serve(async (req: Request) => {
 
       body = JSON.stringify({
         type: 'message',
+        email: email,
         attachments: [
           {
             contentType: 'application/vnd.microsoft.card.adaptive',

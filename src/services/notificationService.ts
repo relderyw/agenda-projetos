@@ -82,7 +82,7 @@ export async function saveWebhookConfig(config: WebhookConfig): Promise<boolean>
   }
 }
 
-export async function sendWebhookNotification(message: string): Promise<boolean> {
+export async function sendWebhookNotification(message: string, email?: string): Promise<boolean> {
   const config = await getWebhookConfig();
   if (!config.enabled || config.type === 'none' || (!config.url && config.type !== 'telegram')) return false;
 
@@ -94,7 +94,8 @@ export async function sendWebhookNotification(message: string): Promise<boolean>
         body: JSON.stringify({
           content: message,
           username: 'Agenda 103Ki',
-          avatar_url: 'https://costalog.com.br/wp-content/uploads/2024/12/lsl-transportes.webp'
+          avatar_url: 'https://costalog.com.br/wp-content/uploads/2024/12/lsl-transportes.webp',
+          email: email
         })
       });
       return res.ok;
@@ -103,7 +104,7 @@ export async function sendWebhookNotification(message: string): Promise<boolean>
     if (config.type === 'slack') {
       const res = await fetch(config.url, {
         method: 'POST',
-        body: JSON.stringify({ text: message })
+        body: JSON.stringify({ text: message, email })
       });
       return res.ok;
     }
@@ -117,6 +118,7 @@ export async function sendWebhookNotification(message: string): Promise<boolean>
             webhookUrl: config.url,
             message,
             type: 'teams',
+            email: email,
           },
         });
         if (error) {
