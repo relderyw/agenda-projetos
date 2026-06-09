@@ -99,7 +99,7 @@ export default function App() {
     const todayPt = new Date().toLocaleDateString('pt-BR');
     
     const myTodayActs = activities.filter(a => 
-      a.responsavel === currentUser.id && a.planejamento === todayStr
+      a && a.responsavel === currentUser.id && a.planejamento === todayStr
     );
 
     if (myTodayActs.length === 0) return 0;
@@ -109,8 +109,8 @@ export default function App() {
       if (a.status === 'FINALIZADA' || a.status === 'CANCELADA') return false;
       
       // Teve comentário ou atualização hoje? OK.
-      const commentDate = a.dataComentario ? a.dataComentario.split(' ')[0] : '';
-      const updateDate = a.dataUltimaAtualizacao ? a.dataUltimaAtualizacao.split(' ')[0] : '';
+      const commentDate = (typeof a.dataComentario === 'string') ? a.dataComentario.split(' ')[0] : '';
+      const updateDate = (typeof a.dataUltimaAtualizacao === 'string') ? a.dataUltimaAtualizacao.split(' ')[0] : '';
       
       if (commentDate === todayPt || updateDate === todayPt) return false;
 
@@ -1007,7 +1007,7 @@ export default function App() {
             await dbService.saveLog(newLog);
 
             // 2. Disparar Webhook
-            const todayFmt = todayStr.split('-').reverse().join('/');
+            const todayFmt = (todayStr && todayStr.includes('-')) ? todayStr.split('-').reverse().join('/') : todayStr;
             const groupMsg = `📢 <b>${currentUser.name}</b> encerrou a agenda de hoje (${todayFmt})!\n` +
                              `• Atividades concluídas/atualizadas: <b>${finalizedCount}</b>\n` +
                              `• Atividades que restaram pendentes: <b>${pendingCount}</b>\n` +
@@ -1169,7 +1169,7 @@ function ClosureChecklistModal({ currentUser, activities, themes, onUpdateActivi
   // Filter only activities assigned to current user, scheduled for today or overdue
   const myTasks = useMemo(() => {
     return activities.filter((a: Activity) => {
-      if (a.responsavel !== currentUser.id) return false;
+      if (!a || a.responsavel !== currentUser.id) return false;
       return a.planejamento <= todayStr;
     });
   }, [activities, currentUser.id, todayStr]);
@@ -1318,7 +1318,8 @@ function ClosureChecklistModal({ currentUser, activities, themes, onUpdateActivi
                             {task.descricao}
                           </h4>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                            Planejado: {task.planejamento.split('-').reverse().join('/')} | Previsto: {task.dataPrevistaFinalizacao.split('-').reverse().join('/')}
+                            Planejado: {(typeof task.planejamento === 'string') ? task.planejamento.split('-').reverse().join('/') : '—'} | 
+                            Previsto: {(typeof task.dataPrevistaFinalizacao === 'string') ? task.dataPrevistaFinalizacao.split('-').reverse().join('/') : '—'}
                           </span>
                         </div>
                         

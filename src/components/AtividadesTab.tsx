@@ -655,7 +655,7 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
 }
 
 function fmtDate(d?: string) {
-  if (!d) return '—';
+  if (!d || typeof d !== 'string') return '—';
   const [y, m, day] = d.split('-');
   return `${day}/${m}/${y}`;
 }
