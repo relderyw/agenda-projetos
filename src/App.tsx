@@ -108,11 +108,10 @@ export default function App() {
       // Regra: Somente atividades PENDENTE ou EM ANDAMENTO contam como pendência para o card
       if (a.status !== 'PENDENTE' && a.status !== 'EM ANDAMENTO') return false;
       
-      // Teve comentário ou atualização hoje? OK.
+      // Teve comentário hoje? OK.
       const commentDate = (typeof a.dataComentario === 'string') ? a.dataComentario.split(' ')[0] : '';
-      const updateDate = (typeof a.dataUltimaAtualizacao === 'string') ? a.dataUltimaAtualizacao.split(' ')[0] : '';
       
-      if (commentDate === todayPt || updateDate === todayPt) return false;
+      if (commentDate === todayPt) return false;
 
       return true;
     }).length;
@@ -1214,8 +1213,9 @@ function ClosureChecklistModal({ currentUser, activities, themes, onUpdateActivi
       percentualAndamento: percent,
       dataFinalizada: status === 'FINALIZADA' ? todayStr : task.dataFinalizada,
       comentario: comments[task.id] || task.comentario,
-      dataComentario: comments[task.id] ? new Date().toLocaleString('pt-BR') : task.dataComentario,
-      dataUltimaAtualizacao: new Date().toLocaleString('pt-BR')
+      // Se mudar status ou %, e não tiver comentário novo, 
+      // garantimos que o dataComentario atualize para o monitoramento detectar
+      dataComentario: new Date().toLocaleString('pt-BR')
     };
     await onUpdateActivity(updated);
     setSaving(false);

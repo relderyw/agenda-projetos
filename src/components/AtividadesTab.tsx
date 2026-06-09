@@ -57,8 +57,7 @@ const empty = (): Omit<Activity, 'id'> => ({
   status: 'PENDENTE',
   week: '',
   comentario: '',
-  dataComentario: '',
-  dataUltimaAtualizacao: ''
+  dataComentario: ''
 });
 
 // ── Sortable column header ─────────────────────────────────
@@ -261,8 +260,8 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
         await onAdd(duplicate);
       }
 
-      if (modal.editing) await onUpdate({ ...act, id: modal.editing.id, dataUltimaAtualizacao: new Date().toLocaleString('pt-BR') });
-      else await onAdd({ ...act, id: crypto.randomUUID(), dataUltimaAtualizacao: new Date().toLocaleString('pt-BR') });
+      if (modal.editing) await onUpdate({ ...act, id: modal.editing.id, dataComentario: act.comentario ? new Date().toLocaleString('pt-BR') : modal.editing.dataComentario });
+      else await onAdd({ ...act, id: crypto.randomUUID(), dataComentario: act.comentario ? new Date().toLocaleString('pt-BR') : '' });
       
       closeModal();
     } catch (err) {
