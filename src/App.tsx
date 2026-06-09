@@ -105,8 +105,8 @@ export default function App() {
     if (myTodayActs.length === 0) return 0;
 
     return myTodayActs.filter(a => {
-      // Já está finalizada/cancelada? OK.
-      if (a.status === 'FINALIZADA' || a.status === 'CANCELADA') return false;
+      // Regra: Somente atividades PENDENTE ou EM ANDAMENTO contam como pendência para o card
+      if (a.status !== 'PENDENTE' && a.status !== 'EM ANDAMENTO') return false;
       
       // Teve comentário ou atualização hoje? OK.
       const commentDate = (typeof a.dataComentario === 'string') ? a.dataComentario.split(' ')[0] : '';
@@ -1167,16 +1167,18 @@ function ClosureChecklistModal({ currentUser, activities, themes, onUpdateActivi
   const todayStr = new Date().toLocaleDateString('en-CA');
   
   // Filter only activities assigned to current user, scheduled for today or overdue
+  // Filter criteria: Status must be PENDENTE or EM ANDAMENTO
   const myTasks = useMemo(() => {
     return activities.filter((a: Activity) => {
       if (!a || a.responsavel !== currentUser.id) return false;
+      // Exibir apenas PENDENTE ou EM ANDAMENTO
+      if (a.status !== 'PENDENTE' && a.status !== 'EM ANDAMENTO') return false;
+      // De hoje para trás
       return a.planejamento <= todayStr;
     });
   }, [activities, currentUser.id, todayStr]);
 
-  const pendingTasks = useMemo(() => {
-    return myTasks.filter((a: Activity) => a.status !== 'FINALIZADA' && a.status !== 'CANCELADA');
-  }, [myTasks]);
+  const pendingTasks = myTasks; // myTasks already filtered by PENDENTE/EM ANDAMENTO
 
   const [saving, setSaving] = useState(false);
   const [hasMadeChanges, setHasMadeChanges] = useState(false);
