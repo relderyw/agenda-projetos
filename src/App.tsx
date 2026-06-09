@@ -144,9 +144,13 @@ export default function App() {
 
         const pendingToday = getMyTodayPendingCount();
         if (pendingToday > 0) {
-          const msg = `🔔 <b>Atenção ${currentUser.name}!</b>\n` +
-                      `Sua agenda de hoje ainda possui <b>${pendingToday}</b> atividades sem atualização.\n` +
-                      `Por favor, acesse o sistema e realize o fechamento do turno para evitar atrasos.`;
+          const msg = `━━━━━━━━━━━━━━━━━━━━━━\n` +
+                      `⏰ **COBRANÇA AUTOMÁTICA DE AGENDA**\n` +
+                      `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                      `Olá **${currentUser.name.toUpperCase()}**, identificamos que sua agenda de hoje ainda possui pendências:\n\n` +
+                      `🔴 Atividades sem atualização: **${pendingToday}**\n\n` +
+                      `⚠️ *Por favor, acesse o sistema e realize o fechamento do turno para evitar atrasos na consolidação dos dados.* \n\n` +
+                      `🔗 [Acessar Agenda de Projetos](https://agenda-projetos.vercel.app/)`;
           
           const ok = await sendWebhookNotification(msg, currentUser.email);
           if (ok) {
@@ -1007,10 +1011,14 @@ export default function App() {
 
             // 2. Disparar Webhook
             const todayFmt = (todayStr && todayStr.includes('-')) ? todayStr.split('-').reverse().join('/') : todayStr;
-            const groupMsg = `📢 <b>${currentUser.name}</b> encerrou a agenda de hoje (${todayFmt})!\n` +
-                             `• Atividades concluídas/atualizadas: <b>${finalizedCount}</b>\n` +
-                             `• Atividades que restaram pendentes: <b>${pendingCount}</b>\n` +
-                             `<i>Agenda atualizada e confirmada no sistema.</i>`;
+            const groupMsg = `✅ **FECHAMENTO DE AGENDA CONCLUÍDO**\n` +
+                             `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                             `� Usuário: **${currentUser.name.toUpperCase()}**\n` +
+                             `📅 Data: **${todayFmt}**\n\n` +
+                             `📊 **RESUMO DA ATIVIDADE:**\n` +
+                             `• Concluídas/Atualizadas: **${finalizedCount}**\n` +
+                             `• Restaram Pendentes: **${pendingCount}**\n\n` +
+                             `🟢 *Agenda devidamente atualizada e confirmada no sistema.*`;
             await sendWebhookNotification(groupMsg, currentUser.email);
 
             // 3. Update states
@@ -1346,7 +1354,17 @@ function ClosureChecklistModal({ currentUser, activities, themes, onUpdateActivi
                               disabled={saving}
                               onChange={e => {
                                 const newStatus = e.target.value as Status;
-                                const newPercent = newStatus === 'FINALIZADA' ? 100 : (newStatus === 'PENDENTE' ? 0 : taskPercent);
+                                let newPercent = taskPercent;
+                                
+                                // Regras de sincronização automática
+                                if (newStatus === 'FINALIZADA') {
+                                  newPercent = 100;
+                                } else if (newStatus === 'PENDENTE') {
+                                  newPercent = 0;
+                                } else if (newStatus === 'EM ANDAMENTO' && taskPercent === 0) {
+                                  newPercent = 10; // Início padrão
+                                }
+
                                 setStatuses(prev => ({ ...prev, [task.id]: newStatus }));
                                 setProgresses(prev => ({ ...prev, [task.id]: newPercent }));
                                 handleUpdateTask(task, newStatus, newPercent);
@@ -1372,11 +1390,26 @@ function ClosureChecklistModal({ currentUser, activities, themes, onUpdateActivi
                             disabled={saving || taskStatus === 'FINALIZADA'}
                             onChange={e => {
                               const val = Number(e.target.value);
-                              setProgresses(prev => ({ ...prev, [task.id]: val }));
+                              const limitedVal = Math.min(100, Math.max(0, val));
+                              
+                              let newStatus = taskStatus;
+                              if (limitedVal === 100) {
+                                newStatus = 'FINALIZADA';
+                              } else if (limitedVal > 0 && taskStatus === 'PENDENTE') {
+                                newStatus = 'EM ANDAMENTO';
+                              } else if (limitedVal === 0 && taskStatus === 'EM ANDAMENTO') {
+                                newStatus = 'PENDENTE';
+                              }
+
+                              setProgresses(prev => ({ ...prev, [task.id]: limitedVal }));
+                              if (newStatus !== taskStatus) {
+                                setStatuses(prev => ({ ...prev, [task.id]: newStatus }));
+                              }
                             }}
                             onBlur={() => {
-                              const p = progresses[task.id] ?? task.percentualAndamento;
-                              handleUpdateTask(task, taskStatus, p);
+                              const p = progresses[task.id] !== undefined ? progresses[task.id] : task.percentualAndamento;
+                              const s = statuses[task.id] || task.status;
+                              handleUpdateTask(task, s, p);
                             }}
                             style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', width: '100%', fontSize: '0.8rem', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
                           />

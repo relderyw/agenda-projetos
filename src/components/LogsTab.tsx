@@ -49,14 +49,16 @@ export default function LogsTab({ currentUser, users, activities, logs, onlineUs
 
     if (!confirm(`Deseja disparar um alerta de cobrança no canal da equipe cobrando a agenda de ${pendingAnalysts.length} analista(s)?`)) return;
 
-    let msg = `⚠️ <b>Cobrança de Agenda - LSL Projetos 103Ki</b>\n`;
-    msg += `Os seguintes analistas ainda não finalizaram o fechamento de agenda de hoje (<b>${todayStr.split('-').reverse().join('/')}</b>):\n\n`;
+    let msg = `🚨 **COBRANÇA DE AGENDA - LSL PROJETOS 103Ki**\n` +
+              `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+              `Os seguintes analistas ainda **não** finalizaram o fechamento de agenda de hoje (**${todayStr.split('-').reverse().join('/')}**):\n\n`;
     
     pendingAnalysts.forEach(item => {
-      msg += `• <b>${item.analyst.name}</b> - <i>${item.pendingCount} atividade(s) pendente(s) hoje</i>\n`;
+      msg += `• **${item.analyst.name.toUpperCase()}**  (Pendente: ${item.pendingCount})\n`;
     });
     
-    msg += `\nFavor acessar o sistema para atualizar suas atividades pendentes e clicar em <b>"Confirmar Encerramento do Dia"</b>.`;
+    msg += `\n⚠️ *Favor acessar o sistema para atualizar suas atividades pendentes e clicar em **"Confirmar Encerramento do Dia"**.* \n\n` +
+           `🔗 [Acessar Agenda de Projetos](https://agenda-projetos.vercel.app/)`;
 
     setIsSending(true);
     try {

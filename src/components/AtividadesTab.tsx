@@ -560,7 +560,22 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
                 <div className="form-group">
                   <label>Status</label>
                   <div className="select-wrap full-w">
-                    <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as Status }))}>
+                    <select value={form.status} onChange={e => {
+                      const newStatus = e.target.value as Status;
+                      setForm(f => {
+                        let newPercent = f.percentualAndamento;
+                        if (newStatus === 'FINALIZADA') newPercent = 100;
+                        else if (newStatus === 'PENDENTE') newPercent = 0;
+                        else if (newStatus === 'EM ANDAMENTO' && f.percentualAndamento === 0) newPercent = 10;
+
+                        return {
+                          ...f,
+                          status: newStatus,
+                          percentualAndamento: newPercent,
+                          dataFinalizada: newStatus === 'FINALIZADA' ? (f.dataFinalizada || new Date().toISOString().slice(0, 10)) : f.dataFinalizada
+                        };
+                      });
+                    }}>
                       {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                     <ChevronDown size={14} className="sel-icon" />
@@ -572,13 +587,21 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
                   <input type="number" min={0} max={100} value={form.percentualAndamento}
                     onChange={e => {
                       const val = Number(e.target.value);
-                      setForm(f => ({ 
-                        ...f, 
-                        percentualAndamento: val,
-                        // Se for 100% e não tiver data, coloca hoje. E muda status para FINALIZADA.
-                        dataFinalizada: (val === 100 && !f.dataFinalizada) ? new Date().toISOString().slice(0, 10) : f.dataFinalizada,
-                        status: val === 100 ? 'FINALIZADA' : (val > 0 ? 'EM ANDAMENTO' : 'PENDENTE')
-                      }));
+                      const limitedVal = Math.min(100, Math.max(0, val));
+                      
+                      setForm(f => {
+                        let newStatus = f.status;
+                        if (limitedVal === 100) newStatus = 'FINALIZADA';
+                        else if (limitedVal > 0 && f.status === 'PENDENTE') newStatus = 'EM ANDAMENTO';
+                        else if (limitedVal === 0 && f.status === 'EM ANDAMENTO') newStatus = 'PENDENTE';
+
+                        return { 
+                          ...f, 
+                          percentualAndamento: limitedVal,
+                          status: newStatus,
+                          dataFinalizada: limitedVal === 100 ? (f.dataFinalizada || new Date().toISOString().slice(0, 10)) : f.dataFinalizada
+                        };
+                      });
                     }} />
                 </div>
 
@@ -612,10 +635,7 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
                       const date = e.target.value;
                       setForm(f => ({ 
                         ...f, 
-                        dataFinalizada: date,
-                        // Se informou data, assume 100% e status FINALIZADA (se não estiver postergado e nem cancelado)
-                        percentualAndamento: (date && f.status !== 'POSTERGADA' && f.status !== 'CANCELADA') ? 100 : f.percentualAndamento,
-                        status: (date && f.status !== 'POSTERGADA' && f.status !== 'CANCELADA' && f.status !== 'FINALIZADA') ? 'FINALIZADA' : f.status
+                        dataFinalizada: date
                       }));
                     }} />
                   </div>
