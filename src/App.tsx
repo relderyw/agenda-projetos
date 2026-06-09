@@ -93,6 +93,31 @@ export default function App() {
 
   const toggleTheme = () => setThemeMode(prev => prev === 'dark' ? 'light' : 'dark')
 
+  const getMyTodayPendingCount = useCallback(() => {
+    if (!currentUser) return 0;
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    const todayPt = new Date().toLocaleDateString('pt-BR');
+    
+    const myTodayActs = activities.filter(a => 
+      a.responsavel === currentUser.id && a.planejamento === todayStr
+    );
+
+    if (myTodayActs.length === 0) return 0;
+
+    return myTodayActs.filter(a => {
+      // Já está finalizada/cancelada? OK.
+      if (a.status === 'FINALIZADA' || a.status === 'CANCELADA') return false;
+      
+      // Teve comentário ou atualização hoje? OK.
+      const commentDate = a.dataComentario ? a.dataComentario.split(' ')[0] : '';
+      const updateDate = a.dataUltimaAtualizacao ? a.dataUltimaAtualizacao.split(' ')[0] : '';
+      
+      if (commentDate === todayPt || updateDate === todayPt) return false;
+
+      return true;
+    }).length;
+  }, [activities, currentUser]);
+
   const getMyPendingCount = useCallback(() => {
     if (!currentUser) return 0;
     const todayStr = new Date().toLocaleDateString('en-CA');
@@ -102,6 +127,40 @@ export default function App() {
       return a.planejamento <= todayStr;
     }).length;
   }, [activities, currentUser]);
+
+  // ── Teams Notification Effect (16:05) ──
+  useEffect(() => {
+    if (!currentUser || currentUser.role !== 'Analista') return;
+
+    const checkTimeAndNotify = async () => {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const todayStr = now.toLocaleDateString('en-CA');
+      
+      // Only at 16:05 (allow a small window)
+      if (hours === 16 && minutes >= 5 && minutes <= 10) {
+        const notifiedToday = localStorage.getItem(`teams_notified_${todayStr}`);
+        if (notifiedToday) return;
+
+        const pendingToday = getMyTodayPendingCount();
+        if (pendingToday > 0) {
+          const msg = `🔔 <b>Atenção ${currentUser.name}!</b>\n` +
+                      `Sua agenda de hoje ainda possui <b>${pendingToday}</b> atividades sem atualização.\n` +
+                      `Por favor, acesse o sistema e realize o fechamento do turno para evitar atrasos.`;
+          
+          const ok = await sendWebhookNotification(msg, currentUser.email);
+          if (ok) {
+            localStorage.setItem(`teams_notified_${todayStr}`, 'true');
+            console.log('[Teams] Notificação de pendência enviada.');
+          }
+        }
+      }
+    };
+
+    const interval = setInterval(checkTimeAndNotify, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [currentUser, getMyTodayPendingCount]);
 
   useEffect(() => {
     if (!currentUser || currentUser.role !== 'Analista' || isAgendaClosedToday) return;
@@ -890,34 +949,35 @@ export default function App() {
         );
       })()}
 
-      {/* ── Closure Checklist Banner ── */}
+      {/* ── Closure Checklist Floating Notification ── */}
       {(() => {
         if (!currentUser || currentUser.role !== 'Analista' || isAgendaClosedToday) return null;
         
-        // Show after 15:00
         const now = new Date();
-        if (now.getHours() < 15) return null;
+        // Show only if it's after 15:00 OR if there are pending today acts
+        const pendingToday = getMyTodayPendingCount();
+        if (pendingToday === 0) return null;
 
-        const pendingCount = getMyPendingCount();
-        if (pendingCount === 0) return null;
+        // If it's early, maybe don't show it yet? The user said "se ele acessar a pagina da agenda ele receba uma notificação se não atualizou a agenda"
+        // So I should show it anytime if it's not updated.
 
         return (
-          <div className="closure-banner">
-            <div className="closure-banner-left">
-              <CheckCircle2 size={18} className="closure-banner-icon animate-pulse" />
-              <div>
-                <strong>Atenção: Fechamento de Turno pendente!</strong>
-                <span className="closure-banner-detail">
-                  &nbsp;Você possui {pendingCount} atividade{pendingCount !== 1 ? 's' : ''} pendente{pendingCount !== 1 ? 's' : ''} ou atrasada{pendingCount !== 1 ? 's' : ''} hoje. Por favor, atualize e confirme o encerramento do dia.
-                </span>
-              </div>
+          <div className="closure-floating-card">
+            <div className="cfc-icon">
+              <AlertTriangle size={20} />
             </div>
-            <button 
-              className="closure-banner-btn"
-              onClick={() => setIsClosureModalOpen(true)}
-            >
-              Realizar Fechamento da Agenda
-            </button>
+            <div className="cfc-content">
+              <div className="cfc-title">Agenda Pendente</div>
+              <div className="cfc-text">
+                Você possui {pendingToday} atividade{pendingToday !== 1 ? 's' : ''} sem atualização hoje.
+              </div>
+              <button 
+                className="cfc-btn"
+                onClick={() => setIsClosureModalOpen(true)}
+              >
+                Atualizar Agora
+              </button>
+            </div>
           </div>
         );
       })()}
@@ -1152,7 +1212,8 @@ function ClosureChecklistModal({ currentUser, activities, themes, onUpdateActivi
       percentualAndamento: percent,
       dataFinalizada: status === 'FINALIZADA' ? todayStr : task.dataFinalizada,
       comentario: comments[task.id] || task.comentario,
-      dataComentario: comments[task.id] ? new Date().toLocaleString('pt-BR') : task.dataComentario
+      dataComentario: comments[task.id] ? new Date().toLocaleString('pt-BR') : task.dataComentario,
+      dataUltimaAtualizacao: new Date().toLocaleString('pt-BR')
     };
     await onUpdateActivity(updated);
     setSaving(false);

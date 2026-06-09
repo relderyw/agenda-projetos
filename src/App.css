@@ -4631,87 +4631,86 @@
   }
 }
 
-/* ── Closure Banner (Fim de Turno) ── */
-.closure-banner {
-  background: linear-gradient(135deg, #0f766e, #0d9488);
-  color: #fff;
-  padding: 0.65rem 1.25rem;
+/* ── Closure Floating Card ── */
+.closure-floating-card {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  width: 320px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  z-index: 1000;
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  border-left: 4px solid #f59e0b;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.cfc-icon {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 15px rgba(13, 148, 136, 0.15);
-  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  position: relative;
-  z-index: 100;
-}
-
-@keyframes slideDown {
-  from { transform: translateY(-100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-.closure-banner-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.85rem;
-  min-width: 0;
-}
-
-.closure-banner-icon {
-  color: #2dd4bf;
+  justify-content: center;
   flex-shrink: 0;
 }
 
-.closure-banner-detail {
-  opacity: 0.9;
-  font-size: 0.8rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.cfc-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
-.closure-banner-btn {
-  background: #fff;
-  color: #0f766e;
+.cfc-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.cfc-text {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+}
+
+.cfc-btn {
+  background: #f59e0b;
+  color: white;
   border: none;
   border-radius: 8px;
-  padding: 0.4rem 1rem;
-  font-size: 0.8rem;
-  font-weight: 700;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  white-space: nowrap;
+  transition: all 0.2s;
+  align-self: flex-start;
 }
 
-.closure-banner-btn:hover {
-  background: #f0fdfa;
+.cfc-btn:hover {
+  background: #d97706;
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-}
-
-.closure-banner-btn:active {
-  transform: translateY(0);
-}
-
-/* Adjust layout spacing when banner is present */
-.closure-banner ~ .main-content {
-  padding-top: calc(var(--banner-h, 42px));
 }
 
 @media (max-width: 768px) {
-  .closure-banner {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-  }
-  .closure-banner-btn {
-    width: 100%;
-    text-align: center;
+  .closure-floating-card {
+    bottom: 1rem;
+    right: 1rem;
+    left: 1rem;
+    width: auto;
   }
 }
 

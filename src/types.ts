@@ -86,6 +86,7 @@ export interface Activity {
   week: string;               // ex: "W2 - Mar"
   comentario?: string;
   dataComentario?: string;
+  dataUltimaAtualizacao?: string; // Novo campo para rastrear qualquer mudança
 }
 
 // ─── App State ────────────────────────────────────────────
