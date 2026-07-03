@@ -822,6 +822,7 @@ export default function QuadroPessoalTab({
                           >
                             <option value="Projetos">Projetos</option>
                             <option value="T&P">T&P</option>
+                            <option value="Novos Modelos">Novos Modelos</option>
                           </select>
                         ) : (
                           <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{r.setor}</span>
@@ -937,6 +938,7 @@ export default function QuadroPessoalTab({
                     >
                       <option value="Projetos">Projetos</option>
                       <option value="T&P">T&P</option>
+                      <option value="Novos Modelos">Novos Modelos</option>
                     </select>
                     <ChevronDown size={14} className="sel-icon" />
                   </div>
