@@ -7,7 +7,8 @@ import type {
   Activity, Theme, User, HenkatenEvent, LogEntry,
   KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday,
   AbsenteeismRecord, Employee, OvertimeRecord,
-  StaffingBoard, StaffingColumn, StaffingRow, StaffingCell
+  StaffingBoard, StaffingColumn, StaffingRow, StaffingCell,
+  Organization, OrgSector
 } from '../types'
 
 const isCloudEnabled = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
@@ -33,15 +34,18 @@ const mapKnowledgeProgress = (row: any): KnowledgeProgress => ({
 
 export const dbService = {
   // --- TEMAS ---
-  async getThemes(): Promise<Theme[]> {
+  async getThemes(orgId?: string): Promise<Theme[]> {
     if (!isCloudEnabled) return []
-    const { data, error } = await supabase.from('themes').select('*').order('name', { ascending: true })
+    let q = supabase.from('themes').select('*').order('name', { ascending: true })
+    if (orgId) q = q.eq('organization_id', orgId)
+    const { data, error } = await q
     if (error) { console.error('GetThemes Error:', error); return [] }
     return data || []
   },
-  async saveTheme(theme: Omit<Theme, 'id'> | Theme, user?: User) {
+  async saveTheme(theme: Omit<Theme, 'id'> | Theme, user?: User, orgId?: string) {
     if (!isCloudEnabled) return { data: null, error: null }
-    const { data, error } = await supabase.from('themes').upsert(theme).select()
+    const payload = { ...theme, ...(orgId ? { organization_id: orgId } : {}) }
+    const { data, error } = await supabase.from('themes').upsert(payload).select()
     if (error) console.error("Save Theme Error", error)
     if (!error && user) {
       await this.saveLog({
@@ -49,7 +53,7 @@ export const dbService = {
         userName: user.name,
         action: 'Ajustou Cadastro de Tema',
         target: (theme as any).name || 'Tema',
-      })
+      }, orgId)
     }
     return { data, error }
   },
@@ -59,15 +63,18 @@ export const dbService = {
   },
 
   // --- USUÁRIOS ---
-  async getUsers(): Promise<User[]> {
+  async getUsers(orgId?: string): Promise<User[]> {
     if (!isCloudEnabled) return []
-    const { data, error } = await supabase.from('users').select('*').order('name', { ascending: true })
+    let q = supabase.from('users').select('*').order('name', { ascending: true })
+    if (orgId) q = q.eq('organization_id', orgId)
+    const { data, error } = await q
     if (error) { console.error('GetUsers Error:', error); return [] }
     return (data || []).map(mapUser)
   },
-  async saveUser(user: Omit<User, 'id'> | User, adminUser?: User) {
+  async saveUser(user: Omit<User, 'id'> | User, adminUser?: User, orgId?: string) {
     if (!isCloudEnabled) return { data: null, error: null }
-    const { data, error } = await supabase.from('users').upsert(user).select()
+    const payload = { ...user, ...(orgId ? { organization_id: orgId } : {}) }
+    const { data, error } = await supabase.from('users').upsert(payload).select()
     if (error) console.error("Save User Error", error)
     if (!error && adminUser) {
       await this.saveLog({
@@ -75,7 +82,7 @@ export const dbService = {
         userName: adminUser.name,
         action: 'Gerenciou Usuário',
         target: (user as any).name || 'Usuário',
-      })
+      }, orgId)
     }
     return { data, error }
   },
@@ -85,9 +92,11 @@ export const dbService = {
   },
 
   // --- ATIVIDADES ---
-  async getActivities(): Promise<Activity[]> {
+  async getActivities(orgId?: string): Promise<Activity[]> {
     if (!isCloudEnabled) return []
-    const { data, error } = await supabase.from('activities').select('*').order('planejamento', { ascending: true })
+    let q = supabase.from('activities').select('*').order('planejamento', { ascending: true })
+    if (orgId) q = q.eq('organization_id', orgId)
+    const { data, error } = await q
     if (error) { console.error('GetActivities Error:', error); return [] }
     
     // Mapear de snake_case para camelCase
@@ -110,9 +119,10 @@ export const dbService = {
       return act;
     });
   },
-  async saveActivity(act: Omit<Activity, 'id'> | Activity) {
+  async saveActivity(act: Omit<Activity, 'id'> | Activity, orgId?: string) {
     if (!isCloudEnabled) return { data: null, error: null }
     let dbPayload = { ...act } as any;
+    if (orgId) dbPayload.organization_id = orgId;
 
     const cleanEmptyStrings = (obj: any) => {
       const newObj = { ...obj };
@@ -149,9 +159,11 @@ export const dbService = {
   },
 
   // --- HENKATENS ---
-  async getHenkatens(): Promise<HenkatenEvent[]> {
+  async getHenkatens(orgId?: string): Promise<HenkatenEvent[]> {
     if (!isCloudEnabled) return []
-    const { data, error } = await supabase.from('henkatens').select('*').order('date', { ascending: true })
+    let q = supabase.from('henkatens').select('*').order('date', { ascending: true })
+    if (orgId) q = q.eq('organization_id', orgId)
+    const { data, error } = await q
     if (error) { console.error('GetHenkatens Error:', error); return [] }
     
     return (data || []).map(row => {
@@ -163,9 +175,10 @@ export const dbService = {
       return evt;
     });
   },
-  async saveHenkaten(evt: Omit<HenkatenEvent, 'id'> | HenkatenEvent) {
+  async saveHenkaten(evt: Omit<HenkatenEvent, 'id'> | HenkatenEvent, orgId?: string) {
     if (!isCloudEnabled) return { data: null, error: null }
     const dbPayload = { ...evt } as any;
+    if (orgId) dbPayload.organization_id = orgId;
     const cleanDate = (val: any) => (val === "" || val === undefined) ? null : val;
     if (dbPayload.endDate !== undefined) dbPayload.end_date = cleanDate(dbPayload.endDate);
     if (dbPayload.postponedDate !== undefined) dbPayload.postponed_date = cleanDate(dbPayload.postponedDate);
@@ -183,17 +196,19 @@ export const dbService = {
   },
 
   // --- LOGS ---
-  async getTodayLogs(): Promise<LogEntry[]> {
+  async getTodayLogs(orgId?: string): Promise<LogEntry[]> {
     if (!isCloudEnabled) return []
     const date = new Date();
     date.setDate(date.getDate() - 1);
     const dateStr = date.toISOString().slice(0, 10);
-    const { data, error } = await supabase
+    let q = supabase
       .from('app_logs')
       .select('*')
       .gte('timestamp', `${dateStr}T00:00:00Z`)
       .order('timestamp', { ascending: false })
       .limit(100)
+    if (orgId) q = (q as any).eq('organization_id', orgId)
+    const { data, error } = await q
     if (error) return []
     return (data || []).map(row => ({
       id: row.id,
@@ -204,7 +219,7 @@ export const dbService = {
       timestamp: row.timestamp || new Date().toISOString()
     }));
   },
-  async saveLog(log: Omit<LogEntry, 'id' | 'timestamp'>) {
+  async saveLog(log: Omit<LogEntry, 'id' | 'timestamp'>, orgId?: string) {
     if (!isCloudEnabled) return { error: null }
     const dbPayload = {
       user_id: log.userId,
@@ -212,7 +227,8 @@ export const dbService = {
       action: log.action,
       target: log.target,
       id: crypto.randomUUID(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      ...(orgId ? { organization_id: orgId } : {})
     }
     const { error } = await supabase.from('app_logs').insert(dbPayload)
     await (supabase as any).channel('lsl_presence_tracker').send({
@@ -224,11 +240,19 @@ export const dbService = {
   },
 
   // --- CONHECIMENTO ---
-  async getKnowledgeBase(): Promise<{ categories: KnowledgeCategory[], activities: KnowledgeActivity[], progress: KnowledgeProgress[] }> {
+  async getKnowledgeBase(orgId?: string): Promise<{ categories: KnowledgeCategory[], activities: KnowledgeActivity[], progress: KnowledgeProgress[] }> {
     if (!isCloudEnabled) return { categories: [], activities: [], progress: [] }
-    const { data: categories } = await supabase.from('knowledge_categories').select('*').order('order', { ascending: true })
-    const { data: activities } = await supabase.from('knowledge_activities').select('*').order('order', { ascending: true })
-    const { data: progress } = await supabase.from('knowledge_progress').select('*')
+    let qCat = supabase.from('knowledge_categories').select('*').order('order', { ascending: true })
+    let qAct = supabase.from('knowledge_activities').select('*').order('order', { ascending: true })
+    let qProg = supabase.from('knowledge_progress').select('*')
+    if (orgId) {
+      qCat = qCat.eq('organization_id', orgId)
+      qAct = qAct.eq('organization_id', orgId)
+      qProg = qProg.eq('organization_id', orgId)
+    }
+    const { data: categories } = await qCat
+    const { data: activities } = await qAct
+    const { data: progress } = await qProg
     return { 
       categories: categories || [], 
       activities: (activities || []).map(mapKnowledgeActivity), 
@@ -236,44 +260,50 @@ export const dbService = {
     }
   },
 
-  async saveKnowledgeProgress(progress: KnowledgeProgress) {
+  async saveKnowledgeProgress(progress: KnowledgeProgress, orgId?: string) {
     if (!isCloudEnabled) return { error: null }
     const { error } = await supabase.from('knowledge_progress').upsert({
       user_id: progress.userId,
       activity_id: progress.activityId,
-      status: progress.status
+      status: progress.status,
+      ...(orgId ? { organization_id: orgId } : {})
     })
     return { error }
   },
 
-  async saveKnowledgeActivity(act: KnowledgeActivity) {
+  async saveKnowledgeActivity(act: KnowledgeActivity, orgId?: string) {
     if (!isCloudEnabled) return { error: null }
     const { error } = await supabase.from('knowledge_activities').upsert({
       id: act.id,
       category_id: act.categoryId,
       name: act.name,
-      order: act.order
+      order: act.order,
+      ...(orgId ? { organization_id: orgId } : {})
     })
     return { error }
   },
 
-  async saveKnowledgeCategory(cat: KnowledgeCategory) {
+  async saveKnowledgeCategory(cat: KnowledgeCategory, orgId?: string) {
     if (!isCloudEnabled) return { error: null }
-    const { error } = await supabase.from('knowledge_categories').upsert(cat)
+    const payload = { ...cat, ...(orgId ? { organization_id: orgId } : {}) }
+    const { error } = await supabase.from('knowledge_categories').upsert(payload)
     return { error }
   },
 
   // --- FERIADOS ---
-  async getHolidays(): Promise<Holiday[]> {
+  async getHolidays(orgId?: string): Promise<Holiday[]> {
     if (!isCloudEnabled) return []
-    const { data, error } = await supabase.from('holidays').select('*').order('date', { ascending: true })
+    let q = supabase.from('holidays').select('*').order('date', { ascending: true })
+    if (orgId) q = q.eq('organization_id', orgId)
+    const { data, error } = await q
     if (error) return []
     return data || []
   },
 
-  async saveHoliday(holiday: Holiday) {
+  async saveHoliday(holiday: Holiday, orgId?: string) {
     if (!isCloudEnabled) return { error: null }
-    const { error } = await supabase.from('holidays').upsert(holiday)
+    const payload = { ...holiday, ...(orgId ? { organization_id: orgId } : {}) }
+    const { error } = await supabase.from('holidays').upsert(payload)
     return { error }
   },
 
@@ -284,9 +314,11 @@ export const dbService = {
   },
 
   // --- ABSENTEÍSMO ---
-  async getAbsenteeism(): Promise<AbsenteeismRecord[]> {
+  async getAbsenteeism(orgId?: string): Promise<AbsenteeismRecord[]> {
     if (!isCloudEnabled) return []
-    const { data, error } = await supabase.from('absenteeism').select('*')
+    let q = supabase.from('absenteeism').select('*')
+    if (orgId) q = q.eq('organization_id', orgId)
+    const { data, error } = await q
     if (error) { console.error('GetAbsenteeism Error:', error); return [] }
     return (data || []).map(row => ({
       id: row.id,
@@ -298,7 +330,7 @@ export const dbService = {
     }))
   },
 
-  async saveAbsenteeism(record: Omit<AbsenteeismRecord, 'id'> | AbsenteeismRecord) {
+  async saveAbsenteeism(record: Omit<AbsenteeismRecord, 'id'> | AbsenteeismRecord, orgId?: string) {
     if (!isCloudEnabled) return { data: null, error: null }
     const dbPayload = {
       ...(record as any).id && { id: (record as any).id },
@@ -306,7 +338,8 @@ export const dbService = {
       date: record.date,
       status: record.status,
       updated_by: record.updatedBy,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      ...(orgId ? { organization_id: orgId } : {})
     }
     const { data, error } = await supabase.from('absenteeism').upsert(dbPayload).select()
     if (error) console.error("Save Absenteeism Error", error)
@@ -319,9 +352,11 @@ export const dbService = {
   },
 
   // --- EMPLOYEES (Funcionários do Ponto) ---
-  async getEmployees(): Promise<Employee[]> {
+  async getEmployees(orgId?: string): Promise<Employee[]> {
     if (!isCloudEnabled) return []
-    const { data, error } = await supabase.from('employees').select('*').order('name')
+    let q = supabase.from('employees').select('*').order('name')
+    if (orgId) q = q.eq('organization_id', orgId)
+    const { data, error } = await q
     if (error) { console.error('GetEmployees Error:', error); return [] }
     return (data || []).map(row => ({
       id: row.id,
@@ -334,7 +369,7 @@ export const dbService = {
     }))
   },
 
-  async saveEmployee(emp: Employee) {
+  async saveEmployee(emp: Employee, orgId?: string) {
     if (!isCloudEnabled) return { error: null }
     const payload = {
       id: emp.id,
@@ -343,7 +378,8 @@ export const dbService = {
       registration: emp.registration,
       role: emp.role,
       area: emp.area,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      ...(orgId ? { organization_id: orgId } : {})
     }
     const { error } = await supabase.from('employees').upsert(payload)
     if (error) console.error('SaveEmployee Error', error)
@@ -358,9 +394,11 @@ export const dbService = {
   },
 
   // --- OVERTIME (Horas Extras) ---
-  async getOvertimes(): Promise<OvertimeRecord[]> {
+  async getOvertimes(orgId?: string): Promise<OvertimeRecord[]> {
     if (!isCloudEnabled) return []
-    const { data, error } = await supabase.from('overtime').select('*').order('date', { ascending: false })
+    let q = supabase.from('overtime').select('*').order('date', { ascending: false })
+    if (orgId) q = q.eq('organization_id', orgId)
+    const { data, error } = await q
     if (error) { console.error('GetOvertimes Error:', error); return [] }
     return (data || []).map(row => ({
       id: row.id,
@@ -377,7 +415,7 @@ export const dbService = {
     }))
   },
 
-  async saveOvertime(record: Omit<OvertimeRecord, 'id'> | OvertimeRecord) {
+  async saveOvertime(record: Omit<OvertimeRecord, 'id'> | OvertimeRecord, orgId?: string) {
     if (!isCloudEnabled) return { error: null }
     const payload = {
       ...(record as any).id && { id: (record as any).id }, // Only pass id if updating
@@ -390,7 +428,8 @@ export const dbService = {
       motive: record.motive,
       form_number: record.formNumber,
       updated_by: record.updatedBy,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      ...(orgId ? { organization_id: orgId } : {})
     }
     const { error } = await supabase.from('overtime').upsert(payload)
     if (error) console.error('SaveOvertime Error', error)
@@ -405,7 +444,7 @@ export const dbService = {
   },
 
   // --- QUADRO DE PESSOAL (STAFFING BOARD) ---
-  async getStaffingData(): Promise<{ boards: StaffingBoard[], columns: StaffingColumn[], rows: StaffingRow[], cells: StaffingCell[] }> {
+  async getStaffingData(orgId?: string): Promise<{ boards: StaffingBoard[], columns: StaffingColumn[], rows: StaffingRow[], cells: StaffingCell[] }> {
     const localBoards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
     const localColumns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
     const localRows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
@@ -416,8 +455,10 @@ export const dbService = {
     }
     
     try {
+      let boardsQ = supabase.from('staffing_boards').select('*').order('order', { ascending: true })
+      if (orgId) boardsQ = boardsQ.eq('organization_id', orgId)
       const [boardsRes, columnsRes, rowsRes, cellsRes] = await Promise.all([
-        supabase.from('staffing_boards').select('*').order('order', { ascending: true }),
+        boardsQ,
         supabase.from('staffing_columns').select('*').order('order', { ascending: true }),
         supabase.from('staffing_rows').select('*').order('order', { ascending: true }),
         supabase.from('staffing_cells').select('*')
@@ -478,7 +519,7 @@ export const dbService = {
     }
   },
 
-  async saveStaffingBoard(board: StaffingBoard) {
+  async saveStaffingBoard(board: StaffingBoard, orgId?: string) {
     const boards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
     const idx = boards.findIndex((b: any) => b.id === board.id);
     if (idx !== -1) boards[idx] = board;
@@ -486,7 +527,8 @@ export const dbService = {
     localStorage.setItem('staffing_boards', JSON.stringify(boards));
 
     if (isCloudEnabled) {
-      const { error } = await supabase.from('staffing_boards').upsert(board);
+      const payload = { ...board, ...(orgId ? { organization_id: orgId } : {}) };
+      const { error } = await supabase.from('staffing_boards').upsert(payload);
       if (error) console.warn('[Staffing] Board sync failed, using localStorage:', error.message);
     }
     return { error: null };
@@ -587,5 +629,52 @@ export const dbService = {
       if (error) console.warn('[Staffing] Cell sync failed, using localStorage:', error.message);
     }
     return { error: null };
-  }
+  },
+
+  // --- ORGANIZATIONS ---
+  async getOrganizations(): Promise<Organization[]> {
+    if (!isCloudEnabled) return []
+    const { data, error } = await supabase.from('organizations').select('*').order('name', { ascending: true })
+    if (error) { console.error('GetOrganizations Error:', error); return [] }
+    return data || []
+  },
+  async saveOrganization(org: Omit<Organization, 'id'> | Organization) {
+    if (!isCloudEnabled) return { data: null, error: null }
+    const payload = (org as Organization).id ? org : { ...org, id: crypto.randomUUID() }
+    const { data, error } = await supabase.from('organizations').upsert(payload).select()
+    if (error) console.error('SaveOrganization Error:', error)
+    return { data, error }
+  },
+  async deleteOrganization(id: string) {
+    if (!isCloudEnabled) return { error: null }
+    const { error } = await supabase.from('organizations').delete().eq('id', id)
+    if (error) console.error('DeleteOrganization Error:', error)
+    return { error }
+  },
+
+  // --- ORG SECTORS ---
+  async getOrgSectors(orgId: string): Promise<OrgSector[]> {
+    if (!isCloudEnabled) return []
+    const { data, error } = await supabase
+      .from('org_sectors')
+      .select('*')
+      .eq('organization_id', orgId)
+      .order('name', { ascending: true })
+    if (error) { console.error('GetOrgSectors Error:', error); return [] }
+    return data || []
+  },
+  async saveOrgSector(sector: Omit<OrgSector, 'id'> | OrgSector) {
+    if (!isCloudEnabled) return { data: null, error: null }
+    const payload = (sector as OrgSector).id ? sector : { ...sector, id: crypto.randomUUID() }
+    const { data, error } = await supabase.from('org_sectors').upsert(payload).select()
+    if (error) console.error('SaveOrgSector Error:', error)
+    return { data, error }
+  },
+  async deleteOrgSector(id: string) {
+    if (!isCloudEnabled) return { error: null }
+    const { error } = await supabase.from('org_sectors').delete().eq('id', id)
+    if (error) console.error('DeleteOrgSector Error:', error)
+    return { error }
+  },
 };
+

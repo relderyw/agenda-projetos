@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, X, Edit2, Plus, Layout, Globe, AlertCircle, Trash2, ShieldAlert } from 'lucide-react';
-import type { User, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, KnowledgeStatus } from '../types';
+import type { User, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, KnowledgeStatus, OrgSector } from '../types';
 import { dbService } from '../services/db';
 import React from 'react';
 
@@ -12,12 +12,11 @@ interface Props {
   activities: KnowledgeActivity[];
   progress: KnowledgeProgress[];
   onRefresh: () => void;
+  sectors: OrgSector[];
 }
 
-type MatrixArea = 'T&P' | 'Projetos';
-
-export default function KnowledgeTab({ currentUser, users, categories, activities, progress, onRefresh }: Props) {
-  const [activeArea, setActiveArea] = useState<MatrixArea>('T&P');
+export default function KnowledgeTab({ currentUser, users, categories, activities, progress, onRefresh, sectors }: Props) {
+  const [activeArea, setActiveArea] = useState<string>('');
   const [optimisticProgress, setOptimisticProgress] = useState<Record<string, KnowledgeStatus>>({});
   const [isUpdating, setIsUpdating] = useState(false);
   
@@ -27,21 +26,30 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
   const [userModal, setUserModal] = useState<{ open: boolean }>({ open: false });
 
   const p = currentUser?.permissions;
-  const isGlobalAdmin = currentUser?.role === 'Administrador';
+  const isGlobalAdmin = currentUser?.role === 'Administrador' || currentUser?.role === 'Super Admin';
   
+  // Set default active area
+  useEffect(() => {
+    if (sectors.length > 0 && !activeArea) {
+      setActiveArea(sectors[0].name);
+    }
+  }, [sectors, activeArea]);
+
   const canView = useMemo(() => {
     if (isGlobalAdmin) return true;
     if (activeArea === 'T&P') return p?.conhecimentoTP?.view ?? (currentUser?.role === 'Gestão');
-    return p?.conhecimentoProj?.view ?? (currentUser?.role === 'Gestão');
+    if (activeArea === 'Projetos') return p?.conhecimentoProj?.view ?? (currentUser?.role === 'Gestão');
+    return true; 
   }, [currentUser, activeArea, p, isGlobalAdmin]);
 
   const canEdit = useMemo(() => {
     if (isGlobalAdmin) return true;
     if (activeArea === 'T&P') return p?.conhecimentoTP?.edit ?? (currentUser?.role === 'Gestão');
-    return p?.conhecimentoProj?.edit ?? (currentUser?.role === 'Gestão');
+    if (activeArea === 'Projetos') return p?.conhecimentoProj?.edit ?? (currentUser?.role === 'Gestão');
+    return currentUser?.role === 'Gestão';
   }, [currentUser, activeArea, p, isGlobalAdmin]);
 
-  const isAdmin = canEdit; // Mantido para compatibilidade com o restante do arquivo
+  const isAdmin = canEdit;
   
   const areaAnalysts = useMemo(() => 
     users.filter(u => u.role === 'Analista' && (u.area === activeArea || !u.area)), 
@@ -56,7 +64,6 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
     progress.forEach(p => {
       map[`${p.userId}-${p.activityId}`] = p.status;
     });
-    // Overlay optimistic updates
     Object.entries(optimisticProgress).forEach(([key, status]) => {
       map[key] = status;
     });
@@ -74,16 +81,14 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
     else if (currentStatus === 'checked') nextStatus = 'x';
     else if (currentStatus === 'x') nextStatus = 'empty';
 
-    // Update UI immediately (Optimistic)
     setOptimisticProgress(prev => ({ ...prev, [key]: nextStatus }));
     
     try {
       setIsUpdating(true);
-      await dbService.saveKnowledgeProgress({ userId, activityId, status: nextStatus });
+      await dbService.saveKnowledgeProgress({ userId, activityId, status: nextStatus }, currentUser?.organization_id);
       onRefresh();
     } catch (err) {
       console.error("Failed to update status:", err);
-      // Rollback on error
       setOptimisticProgress(prev => {
         const next = { ...prev };
         delete next[key];
@@ -102,9 +107,9 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
       id: catModal.editing?.id || crypto.randomUUID(),
       name: fd.get('name') as string,
       order: fd.get('order') as string,
-      area: fd.get('area') as MatrixArea || activeArea
+      area: fd.get('area') as string || activeArea
     };
-    await dbService.saveKnowledgeCategory(catData);
+    await dbService.saveKnowledgeCategory(catData, currentUser?.organization_id);
     setCatModal({ open: false, editing: null });
     onRefresh();
   };
@@ -141,7 +146,7 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
       name: fd.get('name') as string,
       order: fd.get('order') as string
     };
-    await dbService.saveKnowledgeActivity(actData);
+    await dbService.saveKnowledgeActivity(actData, currentUser?.organization_id);
     setActModal({ open: false, editing: null });
     onRefresh();
   };
@@ -152,18 +157,18 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
     const newUser: Partial<User> = {
       name: fd.get('name') as string,
       role: 'Analista',
-      area: fd.get('area') as MatrixArea,
+      area: fd.get('area') as string,
       id: crypto.randomUUID()
     };
-    await dbService.saveUser(newUser as User, currentUser || undefined);
+    await dbService.saveUser(newUser as User, currentUser || undefined, currentUser?.organization_id);
     setUserModal({ open: false });
     onRefresh();
   };
 
-  const getAreaEvolution = (area: MatrixArea) => {
-    const areaCats = categories.filter(cat => cat.area === area || (!cat.area && area === 'T&P'));
+  const getAreaEvolution = (areaName: string) => {
+    const areaCats = categories.filter(cat => cat.area === areaName || (!cat.area && sectors.length > 0 && areaName === sectors[0].name));
     const areaActs = activities.filter(act => areaCats.some(cat => cat.id === act.categoryId));
-    const areaAnalysts = users.filter(u => u.role === 'Analista' && (u.area === area || !u.area));
+    const areaAnalysts = users.filter(u => u.role === 'Analista' && (u.area === areaName || !u.area));
     
     if (areaActs.length === 0 || areaAnalysts.length === 0) return 0;
     
@@ -177,12 +182,8 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
     return Math.round((checkedCount / (areaActs.length * areaAnalysts.length)) * 100);
   };
 
-  const tpEvolution = useMemo(() => getAreaEvolution('T&P'), [categories, activities, users, progressMap]);
-  const projEvolution = useMemo(() => getAreaEvolution('Projetos'), [categories, activities, users, progressMap]);
-
-  // Individual Analyst Progress
   const analystStats = useMemo(() => {
-    const areaCats = categories.filter(cat => cat.area === activeArea || (!cat.area && activeArea === 'T&P'));
+    const areaCats = categories.filter(cat => cat.area === activeArea || (!cat.area && sectors.length > 0 && activeArea === sectors[0].name));
     const areaActs = activities.filter(act => areaCats.some(cat => cat.id === act.categoryId));
     
     return areaAnalysts.map(u => {
@@ -192,8 +193,8 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
       });
       const pct = areaActs.length > 0 ? Math.round((checked / areaActs.length) * 100) : 0;
       return { ...u, pct };
-    }).sort((a,b) => b.pct - a.pct); // Sort by highest progress
-  }, [areaAnalysts, activities, categories, progressMap, activeArea]);
+    }).sort((a,b) => b.pct - a.pct);
+  }, [areaAnalysts, activities, categories, progressMap, activeArea, sectors]);
 
   if (!canView) {
     return (
@@ -214,21 +215,19 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
             <p className="tab-subtitle">Controle de aprendizagem e assimilação • {activeArea}</p>
           </div>
 
-          <div className="kn-summary-stats">
-            <div className="kn-stat-card tp" onClick={() => setActiveArea('T&P')} style={{ cursor: 'pointer' }}>
-              <span className="kn-stat-label">EVOLUÇÃO T&P</span>
-              <div className="kn-stat-value-row">
-                <span className="kn-stat-number">{tpEvolution}%</span>
-                <div className="kn-stat-mini-bar"><div className="kn-stat-fill" style={{ width: `${tpEvolution}%` }} /></div>
-              </div>
-            </div>
-            <div className="kn-stat-card proj" onClick={() => setActiveArea('Projetos')} style={{ cursor: 'pointer' }}>
-              <span className="kn-stat-label">EVOLUÇÃO PROJETOS</span>
-              <div className="kn-stat-value-row">
-                <span className="kn-stat-number">{projEvolution}%</span>
-                <div className="kn-stat-mini-bar"><div className="kn-stat-fill" style={{ width: `${projEvolution}%` }} /></div>
-              </div>
-            </div>
+          <div className="kn-summary-stats" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            {sectors.map(sec => {
+              const evo = getAreaEvolution(sec.name);
+              return (
+                <div key={sec.id} className={`kn-stat-card ${activeArea === sec.name ? 'active' : ''}`} onClick={() => setActiveArea(sec.name)} style={{ cursor: 'pointer', minWidth: '150px' }}>
+                  <span className="kn-stat-label">EVOLUÇÃO {sec.name.toUpperCase()}</span>
+                  <div className="kn-stat-value-row">
+                    <span className="kn-stat-number">{evo}%</span>
+                    <div className="kn-stat-mini-bar"><div className="kn-stat-fill" style={{ width: `${evo}%`, background: sec.color || 'var(--accent)' }} /></div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           <div className="kn-nav-actions">
@@ -248,13 +247,20 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
               </div>
             )}
             <div className="kn-picker">
-              <button className={`kn-picker-btn ${activeArea === 'T&P' ? 'active-tp' : ''}`} onClick={() => setActiveArea('T&P')}>T&P</button>
-              <button className={`kn-picker-btn ${activeArea === 'Projetos' ? 'active-proj' : ''}`} onClick={() => setActiveArea('Projetos')}>PROJETOS</button>
+              {sectors.map(sec => (
+                <button
+                  key={sec.id}
+                  className={`kn-picker-btn ${activeArea === sec.name ? 'active-tp' : ''}`}
+                  style={activeArea === sec.name ? { background: sec.color || 'var(--accent)', color: 'white', borderColor: sec.color || 'var(--accent)' } : {}}
+                  onClick={() => setActiveArea(sec.name)}
+                >
+                  {sec.name}
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* ── Analysts Evolution Strip Integrated ── */}
         <div className="kn-analysts-strip">
           {analystStats.map(stat => (
             <div key={stat.id} className="kn-analyst-card">
@@ -276,7 +282,6 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
         </div>
       </div>
 
-      {/* ── Table Container ── */}
       <div className="kn-matrix-wrapper">
         {areaCategories.length === 0 ? (
           <div className="kn-empty-onboarding">
@@ -357,7 +362,6 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
         )}
       </div>
 
-      {/* --- Modals --- */}
       {catModal.open && createPortal(
         <div className="modal-overlay" onClick={() => setCatModal({ open: false, editing: null })}>
           <div className="modal-box" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
@@ -368,7 +372,9 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
                 <div className="form-group"><label>Ordem (ex: 1, 2, 3)</label><input name="order" type="number" defaultValue={catModal.editing?.order} required /></div>
                 <div className="form-group"><label>Área</label>
                   <select name="area" defaultValue={catModal.editing?.area || activeArea}>
-                    <option value="T&P">T&P</option><option value="Projetos">Projetos</option>
+                    {sectors.map(sec => (
+                      <option key={sec.id} value={sec.name}>{sec.name}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -408,8 +414,9 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
                 <div className="form-group"><label>Nome Completo</label><input name="name" required placeholder="Ex: João Silva" /></div>
                 <div className="form-group"><label>Área</label>
                   <select name="area" defaultValue={activeArea}>
-                    <option value="T&P">T&P</option>
-                    <option value="Projetos">Projetos</option>
+                    {sectors.map(sec => (
+                      <option key={sec.id} value={sec.name}>{sec.name}</option>
+                    ))}
                   </select>
                 </div>
               </div>

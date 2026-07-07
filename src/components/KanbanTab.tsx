@@ -3,7 +3,7 @@ import {
   ChevronLeft, ChevronRight, Calendar, User2,
   CheckCircle2, Clock, AlertCircle, Minus, Play, Pause, FastForward
 } from 'lucide-react'
-import type { Activity, Theme, User, Holiday } from '../types'
+import type { Activity, Theme, User, Holiday, OrgSector } from '../types'
 import { dbService } from '../services/db'
 
 interface Props {
@@ -14,6 +14,7 @@ interface Props {
   holidays: Holiday[];
   onRefresh: () => void;
   showToast?: (type: 'success' | 'error' | 'info', title: string, msg: string) => void;
+  sectors: OrgSector[];
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -191,7 +192,7 @@ function ActivityCard({
   )
 }
 
-export default function KanbanTab({ activities, themes, users, holidays, currentUser, onRefresh, showToast }: Props) {
+export default function KanbanTab({ activities, themes, users, holidays, currentUser, onRefresh, showToast, sectors }: Props) {
   const canManageHolidays = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão';
 
   const holidayMap = useMemo(() => {
@@ -240,7 +241,7 @@ export default function KanbanTab({ activities, themes, users, holidays, current
 
   // Agrupamento de Swimlanes por Área
   const groupedSwimlanes = useMemo(() => {
-    const areas = ['T&P', 'Projetos', 'Sem Área'];
+    const areas = [...sectors.map(s => s.name), 'Sem Área'];
     return areas.map(area => {
       const groupUsers = onlyAnalysts.filter(u => {
         if (area === 'Sem Área') return !u.area;

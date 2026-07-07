@@ -1,3 +1,17 @@
+// ─── Multi-Tenancy ────────────────────────────────────────
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface OrgSector {
+  id: string;
+  organization_id: string;
+  name: string;
+  color: string;
+}
+
 // ─── Cadastros ────────────────────────────────────────────
 export interface Theme {
   id: string;
@@ -9,7 +23,7 @@ export interface KnowledgeCategory {
   id: string;
   name: string;
   order: string | number;
-  area?: 'T&P' | 'Projetos';
+  area?: string; // Setor/área da organização (dinâmico)
 }
 
 export interface KnowledgeActivity {
@@ -52,7 +66,7 @@ export interface UserPermissions {
   quadroPessoal?: AppPermissions;
 }
 
-export type Role = 'Administrador' | 'Gestão' | 'Analista';
+export type Role = 'Super Admin' | 'Administrador' | 'Gestão' | 'Analista';
 
 export interface User {
   id: string;
@@ -61,7 +75,8 @@ export interface User {
   username?: string;
   email: string;
   color: string;
-  area?: 'T&P' | 'Projetos'; // Novo campo para agrupamento
+  area?: string; // Setor da organização (dinâmico por org)
+  organization_id?: string;
   password?: string;
   permissions?: UserPermissions;
 }
@@ -89,7 +104,7 @@ export interface Activity {
 }
 
 // ─── App State ────────────────────────────────────────────
-export type Tab = 'atividades' | 'dashboard' | 'cadastros' | 'kanban' | 'henkatens' | 'logs' | 'conhecimento' | 'absenteismo' | 'quadroPessoal';
+export type Tab = 'atividades' | 'dashboard' | 'cadastros' | 'kanban' | 'henkatens' | 'logs' | 'conhecimento' | 'absenteismo' | 'quadroPessoal' | 'superadmin';
 
 // ─── Henkatens ──────────────────────────────────────────
 export type HenkatenType =
@@ -120,7 +135,8 @@ export interface Employee {
   status: 'Ativo' | 'Inativo';
   registration?: string; // Matrícula
   role?: string;         // Cargo
-  area?: string;         // T&P, Projetos, etc. (mantido por compatibilidade)
+  area?: string;         // Setor da organização (dinâmico por org)
+  organization_id?: string;
   updatedAt?: string;
 }
 

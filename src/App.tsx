@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, ChevronDown, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2, UserCheck, Users, AlertTriangle, Bell, BellOff } from 'lucide-react'
+import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, ChevronDown, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2, UserCheck, Users, AlertTriangle, Bell, BellOff, Building2 } from 'lucide-react'
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from './data'
 import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday, AbsenteeismRecord, Employee, OvertimeRecord, Status } from './types'
-import type { StaffingBoard, StaffingColumn, StaffingRow, StaffingCell } from './types'
+import type { StaffingBoard, StaffingColumn, StaffingRow, StaffingCell, Organization, OrgSector } from './types'
 import AtividadesTab from './components/AtividadesTab'
 import DashboardTab from './components/DashboardTab'
 import CadastrosTab from './components/CadastrosTab'
@@ -12,6 +12,7 @@ import LogsTab from './components/LogsTab'
 import KnowledgeTab from './components/KnowledgeTab'
 import AbsenteismoTab from './components/AbsenteismoTab'
 import QuadroPessoalTab from './components/QuadroPessoalTab'
+import SuperAdminTab from './components/SuperAdminTab'
 import Login from './components/Login'
 import { dbService } from './services/db'
 import { requestNotificationPermission, getNotificationPermission, fireOverdueNotifications, getOverdueActivities, sendWebhookNotification } from './services/notificationService'
@@ -63,6 +64,14 @@ export default function App() {
     return localStorage.getItem('agenda_closed_date') === today;
   });
 
+  // ── Multi-Tenancy: current organization ──────────────────
+  const [currentOrg, setCurrentOrg] = useState<Organization | null>(() => {
+    const saved = localStorage.getItem('currentOrg');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [sectors, setSectors] = useState<OrgSector[]>([]);
+
 
   const showToast = useCallback((type: Toast['type'], title: string, msg: string) => {
     const id = crypto.randomUUID();
@@ -84,6 +93,15 @@ export default function App() {
       localStorage.removeItem('currentUser')
     }
   }, [currentUser])
+
+  // Persist currentOrg
+  useEffect(() => {
+    if (currentOrg) {
+      localStorage.setItem('currentOrg', JSON.stringify(currentOrg));
+    } else {
+      localStorage.removeItem('currentOrg');
+    }
+  }, [currentOrg])
 
   // Apply theme to <html> element
   useEffect(() => {
@@ -187,19 +205,25 @@ export default function App() {
     // Only show the central spinner on the very first app load
     if (isFirstLoad) setLoading(true);
     
+    // Determine org filter: Super Admin uses currentOrg, others use their own organization_id
+    const orgId = currentUser?.role === 'Super Admin'
+      ? (currentOrg?.id)
+      : (currentUser?.organization_id || currentOrg?.id);
+    
     try {
-      const [a, t, u, h, l, k, hol, abs, emp, ove, staffing] = await Promise.all([
-        dbService.getActivities(),
-        dbService.getThemes(),
-        dbService.getUsers(),
-        dbService.getHenkatens(),
-        dbService.getTodayLogs(),
-        dbService.getKnowledgeBase(),
-        dbService.getHolidays(),
-        dbService.getAbsenteeism(),
-        dbService.getEmployees(),
-        dbService.getOvertimes(),
-        dbService.getStaffingData()
+      const [a, t, u, h, l, k, hol, abs, emp, ove, staffing, sec] = await Promise.all([
+        dbService.getActivities(orgId),
+        dbService.getThemes(orgId),
+        dbService.getUsers(orgId),
+        dbService.getHenkatens(orgId),
+        dbService.getTodayLogs(orgId),
+        dbService.getKnowledgeBase(orgId),
+        dbService.getHolidays(orgId),
+        dbService.getAbsenteeism(orgId),
+        dbService.getEmployees(orgId),
+        dbService.getOvertimes(orgId),
+        dbService.getStaffingData(orgId),
+        orgId ? dbService.getOrgSectors(orgId) : Promise.resolve([])
       ])
       setActivities(a)
       setThemes(t)
@@ -215,6 +239,16 @@ export default function App() {
       setStaffingColumns(staffing.columns)
       setStaffingRows(staffing.rows)
       setStaffingCells(staffing.cells)
+      setSectors(sec)
+      // Also load organizations for Super Admin
+      if (currentUser?.role === 'Super Admin') {
+        const orgs = await dbService.getOrganizations();
+        setOrganizations(orgs);
+        // Auto-set first org if no org selected
+        if (!currentOrg && orgs.length > 0) {
+          setCurrentOrg(orgs[0]);
+        }
+      }
     } finally {
       if (isFirstLoad) setLoading(false);
       setIsFirstLoad(false);
@@ -525,10 +559,46 @@ export default function App() {
       setUsers(oldUsers)
       showToast('error', 'Erro ao excluir', 'O usuário não pôde ser removido.')
     } else {
-      await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Usuário', target: userToDel?.name })
+      const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+      await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Usuário', target: userToDel?.name }, orgId)
       showToast('info', 'Usuário Removido', `O acesso de ${userToDel?.name} foi revogado.`)
     }
   }
+
+  // ── Sectors CRUD ──────────────────────────────────────────
+  const addSector = async (sec: OrgSector) => {
+    if (!currentUser) return;
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    if (!orgId) return;
+    const { error } = await dbService.saveOrgSector({ ...sec, organization_id: orgId });
+    if (error) {
+      showToast('error', 'Erro ao salvar', 'Não foi possível salvar o setor.');
+    } else {
+      showToast('success', 'Setor Salvo', `Setor "${sec.name}" salvo com sucesso.`);
+      loadData();
+    }
+  };
+
+  const updateSector = async (sec: OrgSector) => {
+    if (!currentUser) return;
+    const { error } = await dbService.saveOrgSector(sec);
+    if (error) {
+      showToast('error', 'Erro ao salvar', 'Não foi possível atualizar o setor.');
+    } else {
+      showToast('success', 'Setor Atualizado', `Setor "${sec.name}" atualizado.`);
+      loadData();
+    }
+  };
+
+  const deleteSector = async (id: string) => {
+    const { error } = await dbService.deleteOrgSector(id);
+    if (error) {
+      showToast('error', 'Erro ao excluir', 'Não foi possível remover o setor.');
+    } else {
+      showToast('info', 'Setor Excluído', 'Setor removido.');
+      loadData();
+    }
+  };
 
   // ── Henkatens CRUD ────────────────────────────────────────
   const addHenkaten = async (e: HenkatenEvent) => {
@@ -719,26 +789,31 @@ export default function App() {
   };
 
   const navItemsRaw: { key: Tab; label: string; icon: React.ReactNode }[] = [
-    { key: 'kanban',     label: 'Programação', icon: <Kanban size={20} /> },
-    { key: 'atividades', label: 'Atividades',  icon: <ListTodo size={20} /> },
-    { key: 'dashboard',  label: 'Dashboard',   icon: <LayoutDashboard size={20} /> },
+    { key: 'kanban',      label: 'Programação',    icon: <Kanban size={20} /> },
+    { key: 'atividades',  label: 'Atividades',     icon: <ListTodo size={20} /> },
+    { key: 'dashboard',   label: 'Dashboard',      icon: <LayoutDashboard size={20} /> },
     { key: 'quadroPessoal', label: 'Quadro de Pessoal', icon: <Users size={20} /> },
-    { key: 'absenteismo',label: 'Absenteísmo', icon: <UserCheck size={20} /> },
-    { key: 'henkatens',  label: 'Henkatens',   icon: <Calendar size={20} /> },
-    { key: 'conhecimento', label: 'Conhecimento', icon: <BookOpen size={20} /> },
-    { key: 'cadastros',  label: 'Cadastros',   icon: <ShieldAlert size={20} /> },
-    { key: 'logs',       label: 'Logs',        icon: <ShieldAlert size={20} /> },
+    { key: 'absenteismo', label: 'Absenteísmo',    icon: <UserCheck size={20} /> },
+    { key: 'henkatens',   label: 'Henkatens',      icon: <Calendar size={20} /> },
+    { key: 'conhecimento',label: 'Conhecimento',   icon: <BookOpen size={20} /> },
+    { key: 'cadastros',   label: 'Cadastros',      icon: <ShieldAlert size={20} /> },
+    { key: 'logs',        label: 'Logs',           icon: <ShieldAlert size={20} /> },
+    { key: 'superadmin',  label: 'Super Admin',    icon: <Building2 size={20} /> },
   ]
 
   const navItems = navItemsRaw.filter(item => {
     if (!currentUser) return false;
     const p = currentUser.permissions;
 
-    // Administrador sempre vê tudo
-    if (currentUser.role === 'Administrador') return true;
+    // Super Admin vê tudo, incluindo o painel exclusivo
+    if (currentUser.role === 'Super Admin') return true;
 
+    // Administrador vê tudo menos o painel Super Admin
+    if (currentUser.role === 'Administrador') return item.key !== 'superadmin';
+
+    if (item.key === 'superadmin') return false;
     if (item.key === 'cadastros') return p?.cadastros?.view ?? false;
-    if (item.key === 'logs') return false; // Somente Admin (já coberto acima)
+    if (item.key === 'logs') return false;
     if (item.key === 'conhecimento') return (p?.conhecimentoTP?.view || p?.conhecimentoProj?.view) ?? (currentUser.role === 'Gestão');
     if (item.key === 'absenteismo') return p?.absenteismo?.view ?? false;
     if (item.key === 'quadroPessoal') return p?.quadroPessoal?.view ?? false;
@@ -813,6 +888,26 @@ export default function App() {
             <span className="logo-subtitle">Projetos 103Ki</span>
           </div>
         </div>
+
+        {/* ── Org Selector (Super Admin only) ── */}
+        {currentUser.role === 'Super Admin' && organizations.length > 0 && (
+          <div className="sa-org-selector">
+            <label className="sa-org-selector-label"><Building2 size={12} /> Organização ativa</label>
+            <select
+              className="sa-org-selector-select"
+              value={currentOrg?.id || ''}
+              onChange={e => {
+                const org = organizations.find(o => o.id === e.target.value);
+                if (org) { setCurrentOrg(org); setTimeout(loadData, 100); }
+              }}
+            >
+              <option value="">— Selecione —</option>
+              {organizations.map(o => (
+                <option key={o.id} value={o.id}>{o.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <nav className="nav">
           {navItems.map(item => (
@@ -1052,6 +1147,7 @@ export default function App() {
             holidays={holidays}
             onRefresh={loadData}
             showToast={showToast}
+            sectors={sectors}
           />
         )}
         {activeTab === 'dashboard' && (
@@ -1078,6 +1174,7 @@ export default function App() {
             themes={themes}
             users={users}
             holidays={holidays}
+            sectors={sectors}
             onAddTheme={addTheme}
             onUpdateTheme={updateTheme}
             onDeleteTheme={deleteTheme}
@@ -1086,6 +1183,9 @@ export default function App() {
             onDeleteUser={deleteUser}
             onAddHoliday={addHoliday}
             onDeleteHoliday={deleteHoliday}
+            onAddSector={addSector}
+            onUpdateSector={updateSector}
+            onDeleteSector={deleteSector}
           />
         )}
         {activeTab === 'conhecimento' && (
@@ -1096,6 +1196,7 @@ export default function App() {
             activities={knowledgeBase.activities}
             progress={knowledgeBase.progress}
             onRefresh={loadData}
+            sectors={sectors}
           />
         )}
         {activeTab === 'absenteismo' && (
@@ -1137,6 +1238,16 @@ export default function App() {
             logs={logs}
             onlineUsers={onlineUsers}
             realtimeStatus={realtimeStatus}
+          />
+        )}
+        {activeTab === 'superadmin' && currentUser.role === 'Super Admin' && (
+          <SuperAdminTab
+            currentUser={currentUser}
+            currentOrg={currentOrg}
+            onSwitchOrg={(org) => {
+              setCurrentOrg(org);
+              setTimeout(loadData, 100);
+            }}
           />
         )}
       </main>

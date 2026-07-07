@@ -2,6 +2,8 @@
 // Proxy server-side para enviar webhooks com Content-Type application/json
 // Resolve o bloqueio de CORS do Power Automate (Teams) quando chamado direto do browser.
 
+declare const Deno: any;
+
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',

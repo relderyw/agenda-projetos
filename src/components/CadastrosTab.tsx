@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Save, Tag, Users, ChevronDown, CloudUpload, RefreshCw, Calendar, MinusCircle, Bell } from 'lucide-react';
-import type { Theme, User, UserPermissions, Activity, HenkatenEvent, Holiday } from '../types';
+import { Plus, Edit2, Trash2, X, Save, Tag, Users, ChevronDown, CloudUpload, RefreshCw, Calendar, MinusCircle, Bell, Layers } from 'lucide-react';
+import type { Theme, User, UserPermissions, Activity, HenkatenEvent, Holiday, OrgSector } from '../types';
 import { dbService } from '../services/db';
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from '../data';
 import { getWebhookConfig, saveWebhookConfig, sendWebhookNotification } from '../services/notificationService';
@@ -12,6 +12,7 @@ interface Props {
   themes: Theme[];
   users: User[];
   holidays: Holiday[];
+  sectors: OrgSector[];
   onAddTheme: (t: Theme) => void;
   onUpdateTheme: (t: Theme) => void;
   onDeleteTheme: (id: string) => void;
@@ -20,6 +21,9 @@ interface Props {
   onDeleteUser: (id: string) => void;
   onAddHoliday: (h: Holiday) => void;
   onDeleteHoliday: (date: string) => void;
+  onAddSector: (s: OrgSector) => void;
+  onUpdateSector: (s: OrgSector) => void;
+  onDeleteSector: (id: string) => void;
 }
 
 const COLORS = [
@@ -53,10 +57,11 @@ const MODULE_LABELS: Record<keyof UserPermissions, string> = {
 };
 
 export default function CadastrosTab({
-  currentUser, themes, users, holidays,
+  currentUser, themes, users, holidays, sectors,
   onAddTheme, onUpdateTheme, onDeleteTheme,
   onAddUser, onUpdateUser, onDeleteUser,
-  onAddHoliday, onDeleteHoliday
+  onAddHoliday, onDeleteHoliday,
+  onAddSector, onUpdateSector, onDeleteSector
 }: Props) {
   const canViewThemes = currentUser?.permissions?.cadastros.view ?? false;
   const canEditThemes = currentUser?.permissions?.cadastros.edit ?? false;
@@ -66,7 +71,7 @@ export default function CadastrosTab({
   const canEditUsers = currentUser?.permissions?.usuarios.edit ?? false;
   const canDeleteUsers = currentUser?.permissions?.usuarios.delete ?? false;
 
-  const [section, setSection] = useState<'temas' | 'usuarios' | 'holidays' | 'notifications'>(() => canViewThemes ? 'temas' : 'usuarios');
+  const [section, setSection] = useState<'temas' | 'usuarios' | 'holidays' | 'notifications' | 'setores'>(() => canViewThemes ? 'temas' : 'usuarios');
 
   // Theme modal
   const [tModal, setTModal] = useState<{ open: boolean; editing: Theme | null }>({ open: false, editing: null });
@@ -75,11 +80,15 @@ export default function CadastrosTab({
   // User modal
   const [uModal, setUModal] = useState<{ open: boolean; editing: User | null }>({ open: false, editing: null });
   const [uForm, setUForm] = useState<Omit<User, 'id'>>({
-    name: '', role: 'Analista', area: 'Projetos', username: '', password: '', email: '', color: COLORS[0],
+    name: '', role: 'Analista', area: sectors[0]?.name || '', username: '', password: '', email: '', color: COLORS[0],
     permissions: JSON.parse(JSON.stringify(MOCK_PERMS))
   });
 
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'tema' | 'usuario' | 'holiday'; id: string } | null>(null);
+  // Sector modal
+  const [sModal, setSModal] = useState<{ open: boolean; editing: OrgSector | null }>({ open: false, editing: null });
+  const [sForm, setSForm] = useState<Omit<OrgSector, 'id' | 'organization_id'>>({ name: '', color: COLORS[0] });
+
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'tema' | 'usuario' | 'holiday' | 'sector'; id: string } | null>(null);
 
   // Holiday modal
   const [hModal, setHModal] = useState(false);
@@ -98,12 +107,12 @@ export default function CadastrosTab({
 
   // ── User handlers ───────────────────────────────────────
   const openNewUser = () => {
-    setUForm({ name: '', role: 'Analista', area: 'Projetos', username: '', password: '', email: '', color: COLORS[0], permissions: JSON.parse(JSON.stringify(MOCK_PERMS)) });
+    setUForm({ name: '', role: 'Analista', area: sectors[0]?.name || '', username: '', password: '', email: '', color: COLORS[0], permissions: JSON.parse(JSON.stringify(MOCK_PERMS)) });
     setUModal({ open: true, editing: null });
   };
   const openEditUser = (u: User) => {
     setUForm({
-      name: u.name, role: u.role, area: u.area || 'Projetos', username: u.username || '', password: u.password || '', email: u.email || '', color: u.color,
+      name: u.name, role: u.role, area: u.area || sectors[0]?.name || '', username: u.username || '', password: u.password || '', email: u.email || '', color: u.color,
       permissions: u.permissions ? JSON.parse(JSON.stringify(u.permissions)) : JSON.parse(JSON.stringify(MOCK_PERMS))
     });
     setUModal({ open: true, editing: u });
@@ -171,7 +180,19 @@ export default function CadastrosTab({
     if (deleteConfirm.type === 'tema') onDeleteTheme(deleteConfirm.id);
     else if (deleteConfirm.type === 'usuario') onDeleteUser(deleteConfirm.id);
     else if (deleteConfirm.type === 'holiday') onDeleteHoliday(deleteConfirm.id);
+    else if (deleteConfirm.type === 'sector') onDeleteSector(deleteConfirm.id);
     setDeleteConfirm(null);
+  };
+
+  // ── Sector handlers ──────────────────────────────────────
+  const openNewSector = () => { setSForm({ name: '', color: COLORS[0] }); setSModal({ open: true, editing: null }); };
+  const openEditSector = (s: OrgSector) => { setSForm({ name: s.name, color: s.color }); setSModal({ open: true, editing: s }); };
+  const closeSector = () => setSModal({ open: false, editing: null });
+  const saveSector = () => {
+    if (!sForm.name.trim()) return;
+    if (sModal.editing) onUpdateSector({ ...sForm, id: sModal.editing.id, organization_id: sModal.editing.organization_id });
+    else onAddSector({ ...sForm, id: crypto.randomUUID(), organization_id: '' } as OrgSector);
+    closeSector();
   };
 
   const saveHoliday = () => {
@@ -208,6 +229,11 @@ export default function CadastrosTab({
         {canViewThemes && (
           <button className={`sec-tab ${section === 'temas' ? 'sec-active' : ''}`} onClick={() => setSection('temas')}>
             <Tag size={16} /> Temas
+          </button>
+        )}
+        {canViewThemes && (
+          <button className={`sec-tab ${section === 'setores' ? 'sec-active' : ''}`} onClick={() => setSection('setores')}>
+            <Layers size={16} /> Setores
           </button>
         )}
         {canViewUsers && (
@@ -275,6 +301,33 @@ export default function CadastrosTab({
                 <div className="cad-card-actions">
                   {canEditUsers && <button className="action-btn edit" onClick={() => openEditUser(u)}><Edit2 size={14} /></button>}
                   {canDeleteUsers && <button className="action-btn del" onClick={() => setDeleteConfirm({ type: 'usuario', id: u.id })}><Trash2 size={14} /></button>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── SETORES ── */}
+      {section === 'setores' && (
+        <div>
+          <div className="cad-section-header">
+            <span className="cad-count">{sectors.length} setores cadastrados</span>
+            <button className="btn-primary" onClick={openNewSector}><Plus size={16} /> Novo Setor</button>
+          </div>
+          <div className="cad-grid">
+            {sectors.map(s => (
+              <div key={s.id} className="cad-card">
+                <div className="cad-card-left">
+                  <div className="cad-color-dot" style={{ background: s.color }} />
+                  <div className="cad-card-info">
+                    <span className="cad-name">{s.name}</span>
+                    <span className="cad-meta" style={{ color: s.color }}>{s.color}</span>
+                  </div>
+                </div>
+                <div className="cad-card-actions">
+                  {canEditThemes && <button className="action-btn edit" onClick={() => openEditSector(s)}><Edit2 size={14} /></button>}
+                  {canDeleteThemes && <button className="action-btn del" onClick={() => setDeleteConfirm({ type: 'sector', id: s.id })}><Trash2 size={14} /></button>}
                 </div>
               </div>
             ))}
@@ -431,9 +484,11 @@ export default function CadastrosTab({
                 <div className="form-group">
                   <label>Área Atuação</label>
                   <div className="select-wrap full-w">
-                    <select value={uForm.area} onChange={e => setUForm(f => ({ ...f, area: e.target.value as any }))}>
-                      <option value="T&P">T&P</option>
-                      <option value="Projetos">Projetos</option>
+                    <select value={uForm.area} onChange={e => setUForm(f => ({ ...f, area: e.target.value }))}>
+                      <option value="">— Sem Setor —</option>
+                      {sectors.map(sec => (
+                        <option key={sec.id} value={sec.name}>{sec.name}</option>
+                      ))}
                     </select>
                     <ChevronDown size={14} className="sel-icon" />
                   </div>
@@ -524,13 +579,48 @@ export default function CadastrosTab({
         <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
           <div className="confirm-box" onClick={e => e.stopPropagation()}>
             <Trash2 size={36} style={{ color: '#ef4444', marginBottom: '1rem' }} />
-            <h3>Excluir {deleteConfirm.type === 'tema' ? 'tema' : 'usuário'}?</h3>
+            <h3>Excluir {deleteConfirm.type === 'tema' ? 'tema' : deleteConfirm.type === 'usuario' ? 'usuário' : deleteConfirm.type === 'sector' ? 'setor' : 'item'}?</h3>
             <p style={{ color: 'var(--text-secondary)', textAlign: 'center', marginBottom: '1.5rem' }}>
               Esta ação não pode ser desfeita.
             </p>
             <div className="confirm-actions">
               <button className="btn-ghost" onClick={() => setDeleteConfirm(null)}>Cancelar</button>
               <button className="btn-danger" onClick={handleDelete}>Excluir</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Sector */}
+      {sModal.open && (
+        <div className="modal-overlay" onClick={closeSector}>
+          <div className="modal-box sm" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{sModal.editing ? 'Editar Setor' : 'Novo Setor'}</h2>
+              <button className="modal-close" onClick={closeSector}><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group full">
+                <label>Nome do Setor *</label>
+                <input type="text" placeholder="ex: Compras" value={sForm.name}
+                  onChange={e => setSForm(f => ({ ...f, name: e.target.value }))} />
+              </div>
+              <div className="form-group full">
+                <label>Cor</label>
+                <div className="color-picker">
+                  {COLORS.map(c => (
+                    <button key={c} className={`color-swatch ${sForm.color === c ? 'selected' : ''}`}
+                      style={{ background: c }} onClick={() => setSForm(f => ({ ...f, color: c }))} />
+                  ))}
+                </div>
+                <div className="color-preview" style={{ background: sForm.color }}>
+                  <span>{sForm.name || 'Pré-visualização'}</span>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-ghost" onClick={closeSector}>Cancelar</button>
+              <button className="btn-primary" onClick={saveSector} disabled={!sForm.name.trim()}><Save size={16} /> Salvar</button>
             </div>
           </div>
         </div>
