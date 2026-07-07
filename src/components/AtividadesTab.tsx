@@ -154,7 +154,7 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
       
       // Sempre ocultar atividades atribuídas a Administrador ou Gestão
       const u = users.find(usr => usr.id === a.responsavel);
-      const isManagement = u?.role === 'Administrador' || u?.role === 'Gestão';
+      const isManagement = (u?.role === 'Administrador' || u?.role === 'Super Admin') || u?.role === 'Gestão';
       if (isManagement) return false;
 
       return matchSearch && matchResp && matchStatus && matchPrio && matchWeek;
@@ -276,12 +276,12 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
     if (!hasBasePermission || !currentUser) return false;
 
     // Se estiver POSTERGADA, apenas Admin pode mexer
-    if (activity.status === 'POSTERGADA' && currentUser.role !== 'Administrador') {
+    if (activity.status === 'POSTERGADA' && (currentUser.role !== 'Administrador' && currentUser.role !== 'Super Admin')) {
       return false;
     }
     
     // Gestores e Administradores podem editar/deletar qualquer coisa (além da regra acima)
-    if (currentUser.role === 'Administrador' || currentUser.role === 'Gestão') return true;
+    if ((currentUser.role === 'Administrador' || currentUser.role === 'Super Admin') || currentUser.role === 'Gestão') return true;
     
     // Analistas só podem editar/deletar o que for deles mesmos
     return currentUser.role === 'Analista' && activity.responsavel === currentUser.id;
@@ -331,7 +331,7 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
           <p className="tab-subtitle">{filteredAndSorted.length} de {activities.length} atividades</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          {currentUser?.role === 'Administrador' && (
+          {(currentUser?.role === 'Administrador' || currentUser?.role === 'Super Admin') && (
             <button className="btn-ghost" onClick={exportCSV} title="Exportar para Excel (CSV)">
               <Download size={18} /> Baixar Excel
             </button>

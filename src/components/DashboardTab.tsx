@@ -139,7 +139,7 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
   }, [filteredActivities]);
 
   // ── Rankings de Performance (Gestão) ──
-  const isAdminOrGestao = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão';
+  const isAdminOrGestao = (currentUser?.role === 'Administrador' || currentUser?.role === 'Super Admin') || currentUser?.role === 'Gestão';
 
   const topLateThemes = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);

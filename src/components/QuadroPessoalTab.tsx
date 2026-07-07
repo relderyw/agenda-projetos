@@ -45,8 +45,8 @@ export default function QuadroPessoalTab({
     }
   }, [boards, activeBoardId]);
 
-  const canEdit = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão' || !!currentUser?.permissions?.quadroPessoal?.edit;
-  const canDelete = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão' || !!currentUser?.permissions?.quadroPessoal?.delete;
+  const canEdit = (currentUser?.role === 'Administrador' || currentUser?.role === 'Super Admin') || currentUser?.role === 'Gestão' || !!currentUser?.permissions?.quadroPessoal?.edit;
+  const canDelete = (currentUser?.role === 'Administrador' || currentUser?.role === 'Super Admin') || currentUser?.role === 'Gestão' || !!currentUser?.permissions?.quadroPessoal?.delete;
 
   // Filter components for the active board
   const boardColumns = useMemo(() => {

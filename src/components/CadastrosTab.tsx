@@ -206,7 +206,7 @@ export default function CadastrosTab({
     <div className="tab-content">
       <div className="tab-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {currentUser?.role === 'Administrador' && (
+          {(currentUser?.role === 'Administrador' || currentUser?.role === 'Super Admin') && (
             <button 
               className="btn-ghost" 
               onClick={handleCloudSync} 
@@ -241,12 +241,12 @@ export default function CadastrosTab({
             <Users size={16} /> Usuários
           </button>
         )}
-        {currentUser?.role === 'Administrador' && (
+        {(currentUser?.role === 'Administrador' || currentUser?.role === 'Super Admin') && (
           <button className={`sec-tab ${section === 'holidays' ? 'sec-active' : ''}`} onClick={() => setSection('holidays')}>
             <Calendar size={16} /> Dias sem Expediente
           </button>
         )}
-        {currentUser?.role === 'Administrador' && (
+        {(currentUser?.role === 'Administrador' || currentUser?.role === 'Super Admin') && (
           <button className={`sec-tab ${section === 'notifications' ? 'sec-active' : ''}`} onClick={() => setSection('notifications')}>
             <Bell size={16} /> Notificações Webhook
           </button>

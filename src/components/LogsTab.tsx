@@ -100,7 +100,7 @@ export default function LogsTab({ currentUser, users, activities, logs, onlineUs
     });
   }, [logs, analysts]);
 
-  if (currentUser?.role !== 'Administrador') {
+  if ((currentUser?.role !== 'Administrador' && currentUser?.role !== 'Super Admin')) {
     return (
       <div className="tab-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.5 }}>
         <ShieldAlert size={64} style={{ marginBottom: '1rem', color: 'var(--text-muted)' }} />

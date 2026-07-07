@@ -341,7 +341,7 @@ export default function App() {
 
   // --- Migration: Corrigir Labels de Semanas (Executa uma vez por sessão se houver discrepância) ---
   const migrateWeeks = useCallback(async () => {
-    if (!currentUser || (currentUser.role !== 'Administrador' && currentUser.role !== 'Gestão')) return;
+    if (!currentUser || ((currentUser.role !== 'Administrador' && currentUser.role !== 'Super Admin') && currentUser.role !== 'Gestão')) return;
     if ((window as any)._weeks_migrated) return;
     (window as any)._weeks_migrated = true;
 
@@ -809,7 +809,7 @@ export default function App() {
     if (currentUser.role === 'Super Admin') return true;
 
     // Administrador vê tudo menos o painel Super Admin
-    if (currentUser.role === 'Administrador') return item.key !== 'superadmin';
+    if ((currentUser.role === 'Administrador' || currentUser.role === 'Super Admin')) return item.key !== 'superadmin';
 
     if (item.key === 'superadmin') return false;
     if (item.key === 'cadastros') return p?.cadastros?.view ?? false;
@@ -983,7 +983,7 @@ export default function App() {
         if (overdue.length === 0) return null;
 
         // Count only MY activities if not admin/gestão
-        const isManager = currentUser.role === 'Administrador' || currentUser.role === 'Gestão';
+        const isManager = (currentUser.role === 'Administrador' || currentUser.role === 'Super Admin') || currentUser.role === 'Gestão';
         const myOverdue = isManager
           ? overdue
           : overdue.filter(o => o.activity.responsavel === currentUser.id);

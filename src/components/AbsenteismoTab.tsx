@@ -53,9 +53,9 @@ export default function AbsenteismoTab({
   onSaveOvertime, onDeleteOvertime
 }: Props) {
   const [subTab, setSubTab] = useState<'absenteismo' | 'hora-extra' | 'funcionarios'>('absenteismo');
-  const canEdit = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão' || !!currentUser?.permissions?.absenteismo?.edit;
-  const canDelete = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão' || !!currentUser?.permissions?.absenteismo?.delete;
-  const canViewDashboards = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão' || !!currentUser?.permissions?.absenteismo?.edit || !!currentUser?.permissions?.absenteismo?.delete;
+  const canEdit = (currentUser?.role === 'Administrador' || currentUser?.role === 'Super Admin') || currentUser?.role === 'Gestão' || !!currentUser?.permissions?.absenteismo?.edit;
+  const canDelete = (currentUser?.role === 'Administrador' || currentUser?.role === 'Super Admin') || currentUser?.role === 'Gestão' || !!currentUser?.permissions?.absenteismo?.delete;
+  const canViewDashboards = (currentUser?.role === 'Administrador' || currentUser?.role === 'Super Admin') || currentUser?.role === 'Gestão' || !!currentUser?.permissions?.absenteismo?.edit || !!currentUser?.permissions?.absenteismo?.delete;
 
   // State: Absenteísmo
   const [selectedMonth, setSelectedMonth] = useState(() => {

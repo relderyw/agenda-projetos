@@ -193,7 +193,7 @@ function ActivityCard({
 }
 
 export default function KanbanTab({ activities, themes, users, holidays, currentUser, onRefresh, showToast, sectors }: Props) {
-  const canManageHolidays = currentUser?.role === 'Administrador' || currentUser?.role === 'Gestão';
+  const canManageHolidays = (currentUser?.role === 'Administrador' || currentUser?.role === 'Super Admin') || currentUser?.role === 'Gestão';
 
   const holidayMap = useMemo(() => {
     const map: Record<string, Holiday> = {};

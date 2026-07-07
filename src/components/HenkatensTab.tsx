@@ -200,7 +200,7 @@ export default function HenkatensTab({ currentUser, events, onAddEvent, onUpdate
           <p className="tab-subtitle">Calendário de Eventos Industriais</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          {currentUser?.role === 'Administrador' && (
+          {(currentUser?.role === 'Administrador' || currentUser?.role === 'Super Admin') && (
             <button className="btn-ghost" onClick={exportCSV} title="Exportar para Excel (CSV)">
               <Download size={18} /> Baixar Excel
             </button>

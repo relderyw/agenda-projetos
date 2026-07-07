@@ -26,7 +26,7 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
   const [userModal, setUserModal] = useState<{ open: boolean }>({ open: false });
 
   const p = currentUser?.permissions;
-  const isGlobalAdmin = currentUser?.role === 'Administrador' || currentUser?.role === 'Super Admin';
+  const isGlobalAdmin = (currentUser?.role === 'Administrador' || currentUser?.role === 'Super Admin') || currentUser?.role === 'Super Admin';
   
   // Set default active area
   useEffect(() => {
