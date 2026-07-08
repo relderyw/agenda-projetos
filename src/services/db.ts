@@ -445,37 +445,74 @@ export const dbService = {
 
   // --- QUADRO DE PESSOAL (STAFFING BOARD) ---
   async getStaffingData(orgId?: string): Promise<{ boards: StaffingBoard[], columns: StaffingColumn[], rows: StaffingRow[], cells: StaffingCell[] }> {
-    const localBoards = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
-    const localColumns = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
-    const localRows = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
-    const localCells = JSON.parse(localStorage.getItem('staffing_cells') || '[]');
+    const emptyResult = { boards: [], columns: [], rows: [], cells: [] };
 
     if (!isCloudEnabled) {
-      return { boards: localBoards, columns: localColumns, rows: localRows, cells: localCells };
+      // Sem nuvem: usa localStorage mas ainda filtra por orgId se disponível
+      const localBoards: StaffingBoard[] = JSON.parse(localStorage.getItem('staffing_boards') || '[]');
+      const localColumns: any[] = JSON.parse(localStorage.getItem('staffing_columns') || '[]');
+      const localRows: any[] = JSON.parse(localStorage.getItem('staffing_rows') || '[]');
+      const localCells: any[] = JSON.parse(localStorage.getItem('staffing_cells') || '[]');
+      const orgBoards = orgId ? localBoards.filter((b: any) => b.organization_id === orgId) : localBoards;
+      const orgBoardIds = new Set(orgBoards.map((b: any) => b.id));
+      return {
+        boards: orgBoards,
+        columns: localColumns.filter((c: any) => orgBoardIds.has(c.boardId || c.board_id)),
+        rows: localRows.filter((r: any) => orgBoardIds.has(r.boardId || r.board_id)),
+        cells: localCells.filter((c: any) => orgBoardIds.has(c.boardId))
+      };
     }
-    
-    try {
-      let boardsQ = supabase.from('staffing_boards').select('*').order('order', { ascending: true })
-      if (orgId) boardsQ = boardsQ.eq('organization_id', orgId)
-      const [boardsRes, columnsRes, rowsRes, cellsRes] = await Promise.all([
-        boardsQ,
-        supabase.from('staffing_columns').select('*').order('order', { ascending: true }),
-        supabase.from('staffing_rows').select('*').order('order', { ascending: true }),
-        supabase.from('staffing_cells').select('*')
-      ]);
 
-      if (boardsRes.error || columnsRes.error || rowsRes.error || cellsRes.error) {
-        console.error('Staffing fetch error, using local fallback:', boardsRes.error || columnsRes.error || rowsRes.error || cellsRes.error);
-        return { boards: localBoards, columns: localColumns, rows: localRows, cells: localCells };
+    try {
+      // 1. Busca apenas os boards da org correta
+      let boardsQ = supabase.from('staffing_boards').select('*').order('order', { ascending: true });
+      if (orgId) boardsQ = boardsQ.eq('organization_id', orgId);
+      const boardsRes = await boardsQ;
+
+      if (boardsRes.error) {
+        console.error('Staffing boards fetch error:', boardsRes.error);
+        return emptyResult;
       }
 
-      const boards = (boardsRes.data || []).map((row: any) => ({
+      const boards: StaffingBoard[] = (boardsRes.data || []).map((row: any) => ({
         id: row.id,
         name: row.name,
         order: row.order
       }));
 
-      const columns = (columnsRes.data || []).map((row: any) => ({
+      if (boards.length === 0) {
+        // Org sem quadros cadastrados — retorna vazio (sem fallback de outra org)
+        localStorage.removeItem('staffing_boards');
+        localStorage.removeItem('staffing_columns');
+        localStorage.removeItem('staffing_rows');
+        localStorage.removeItem('staffing_cells');
+        return emptyResult;
+      }
+
+      // 2. Busca columns e rows filtrando pelos boardIds da org (em paralelo)
+      const boardIds = boards.map(b => b.id);
+      const [columnsRes, rowsRes] = await Promise.all([
+        supabase.from('staffing_columns').select('*').in('board_id', boardIds).order('order', { ascending: true }),
+        supabase.from('staffing_rows').select('*').in('board_id', boardIds).order('order', { ascending: true }),
+      ]);
+
+      if (columnsRes.error || rowsRes.error) {
+        console.error('Staffing columns/rows fetch error:', columnsRes.error || rowsRes.error);
+        return emptyResult;
+      }
+
+      // 3. Busca cells filtrando pelos rowIds das rows encontradas (isolamento garantido)
+      const rowIds = (rowsRes.data || []).map((r: any) => r.id);
+      const cellsResCorrect = rowIds.length > 0
+        ? await supabase.from('staffing_cells').select('*').in('row_id', rowIds)
+        : { data: [], error: null };
+
+      if (cellsResCorrect.error) {
+        console.error('Staffing cells fetch error:', cellsResCorrect.error);
+        return emptyResult;
+      }
+
+      const columns: StaffingColumn[] = (columnsRes.data || []).map((row: any) => ({
         id: row.id,
         boardId: row.board_id || row.boardId,
         name: row.name,
@@ -484,7 +521,7 @@ export const dbService = {
         order: row.order
       }));
 
-      const rows = (rowsRes.data || []).map((row: any) => ({
+      const rows: StaffingRow[] = (rowsRes.data || []).map((row: any) => ({
         id: row.id,
         boardId: row.board_id || row.boardId,
         cargo: row.cargo,
@@ -492,7 +529,7 @@ export const dbService = {
         order: row.order
       }));
 
-      const cells = (cellsRes.data || []).map((row: any) => ({
+      const cells: StaffingCell[] = (cellsResCorrect.data || []).map((row: any) => ({
         id: row.id,
         rowId: row.row_id || row.rowId,
         columnId: row.column_id || row.columnId,
@@ -500,13 +537,7 @@ export const dbService = {
         status: row.status || 'ativo'
       }));
 
-      // If Supabase returns nothing but we have local data, do not overwrite the local cache.
-      // This prevents RLS / database blockages from wiping out user's local entries.
-      if (boards.length === 0 && localBoards.length > 0) {
-        console.warn('[Staffing] Supabase returned empty boards but localStorage has data. Keeping local data to prevent RLS/sync wipeout.');
-        return { boards: localBoards, columns: localColumns, rows: localRows, cells: localCells };
-      }
-
+      // Atualiza cache local com dados isolados da org correta
       localStorage.setItem('staffing_boards', JSON.stringify(boards));
       localStorage.setItem('staffing_columns', JSON.stringify(columns));
       localStorage.setItem('staffing_rows', JSON.stringify(rows));
@@ -514,8 +545,8 @@ export const dbService = {
 
       return { boards, columns, rows, cells };
     } catch (e) {
-      console.error('Supabase error, using local fallback:', e);
-      return { boards: localBoards, columns: localColumns, rows: localRows, cells: localCells };
+      console.error('Supabase staffing error:', e);
+      return emptyResult;
     }
   },
 
