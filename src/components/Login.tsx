@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { User } from '../types';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface Props {
   users: User[];
@@ -9,6 +10,7 @@ interface Props {
 export default function Login({ users, onLogin }: Props) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -48,14 +50,23 @@ export default function Login({ users, onLogin }: Props) {
           </div>
           <div className="login-input-group">
             <input 
-              type="password" 
+              type={showPassword ? "text" : "password"} 
               placeholder="Senha" 
               value={password} 
               onChange={e => setPassword(e.target.value)} 
               required 
               className="login-input"
               autoComplete="current-password"
+              style={{ paddingRight: '2.5rem' }}
             />
+            <button
+              type="button"
+              className="login-input-toggle"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Ocultar senha" : "Exibir senha"}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
           </div>
           <div className="login-footer">
             <span className="login-forgot">
