@@ -201,29 +201,24 @@ export default function App() {
   }, [currentUser, isAgendaClosedToday, getMyPendingCount]);
 
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (resolvedOrgId?: string | null) => {
     // Only show the central spinner on the very first app load
     if (isFirstLoad) setLoading(true);
     
-    // Determine org filter: Super Admin uses currentOrg, others use their own organization_id
-    const orgId = currentUser?.role === 'Super Admin'
-      ? (currentOrg?.id)
-      : (currentUser?.organization_id || currentOrg?.id);
-    
     try {
       const [a, t, u, h, l, k, hol, abs, emp, ove, staffing, sec] = await Promise.all([
-        dbService.getActivities(orgId),
-        dbService.getThemes(orgId),
-        dbService.getUsers(orgId),
-        dbService.getHenkatens(orgId),
-        dbService.getTodayLogs(orgId),
-        dbService.getKnowledgeBase(orgId),
-        dbService.getHolidays(orgId),
-        dbService.getAbsenteeism(orgId),
-        dbService.getEmployees(orgId),
-        dbService.getOvertimes(orgId),
-        dbService.getStaffingData(orgId),
-        orgId ? dbService.getOrgSectors(orgId) : Promise.resolve([])
+        dbService.getActivities(resolvedOrgId ?? undefined),
+        dbService.getThemes(resolvedOrgId ?? undefined),
+        dbService.getUsers(resolvedOrgId ?? undefined),
+        dbService.getHenkatens(resolvedOrgId ?? undefined),
+        dbService.getTodayLogs(resolvedOrgId ?? undefined),
+        dbService.getKnowledgeBase(resolvedOrgId ?? undefined),
+        dbService.getHolidays(resolvedOrgId ?? undefined),
+        dbService.getAbsenteeism(resolvedOrgId ?? undefined),
+        dbService.getEmployees(resolvedOrgId ?? undefined),
+        dbService.getOvertimes(resolvedOrgId ?? undefined),
+        dbService.getStaffingData(resolvedOrgId ?? undefined),
+        resolvedOrgId ? dbService.getOrgSectors(resolvedOrgId) : Promise.resolve([])
       ])
       setActivities(a)
       setThemes(t)
@@ -240,25 +235,63 @@ export default function App() {
       setStaffingRows(staffing.rows)
       setStaffingCells(staffing.cells)
       setSectors(sec)
-      // Also load organizations for Super Admin
-      if (currentUser?.role === 'Super Admin') {
-        const orgs = await dbService.getOrganizations();
-        setOrganizations(orgs);
-        // Auto-set first org if no org selected
-        if (!currentOrg && orgs.length > 0) {
-          setCurrentOrg(orgs[0]);
-        }
-      }
     } finally {
       if (isFirstLoad) setLoading(false);
       setIsFirstLoad(false);
     }
   }, [isFirstLoad])
 
-
+  // Recarrega dados sempre que o usuário logado ou a org selecionada mudar.
+  // Para Super Admin: usa currentOrg.id. Para outros: usa organization_id do próprio usuário.
+  // Enquanto não há usuário (pré-login), carrega apenas a lista de users sem filtro de org.
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    if (!currentUser) {
+      // Pré-login: carrega todos os usuários (sem orgId) só para permitir a autenticação.
+      dbService.getUsers().then(allUsers => setUsers(allUsers));
+      setLoading(false);
+      setIsFirstLoad(false);
+      return;
+    }
+    // Pós-login: determina o orgId correto e recarrega tudo
+    const orgId = currentUser.role === 'Super Admin'
+      ? (currentOrg?.id ?? null)
+      : (currentUser.organization_id ?? null);
+
+    // Super Admin sem org ainda selecionada: carrega orgs e espera seleção
+    if (currentUser.role === 'Super Admin' && !orgId) {
+      dbService.getOrganizations().then(orgs => {
+        setOrganizations(orgs);
+        if (orgs.length > 0) {
+          setCurrentOrg(orgs[0]);
+          // O setCurrentOrg vai re-disparar este useEffect com a org preenchida
+        } else {
+          setLoading(false);
+          setIsFirstLoad(false);
+        }
+      });
+      return;
+    }
+
+    const run = async () => {
+      await loadData(orgId);
+      // Depois de carregar os dados, também atualiza a lista de orgs para Super Admin
+      if (currentUser.role === 'Super Admin') {
+        const orgs = await dbService.getOrganizations();
+        setOrganizations(orgs);
+      }
+    };
+    run();
+  }, [currentUser, currentOrg, loadData])
+
+  // Helper para chamadas manuais de refresh (botão, CRUD, migração, etc.)
+  // Sempre resolve o orgId correto do usuário logado antes de chamar loadData.
+  const refreshData = useCallback(async () => {
+    if (!currentUser) return;
+    const orgId = currentUser.role === 'Super Admin'
+      ? (currentOrg?.id ?? null)
+      : (currentUser.organization_id ?? null);
+    await loadData(orgId);
+  }, [currentUser, currentOrg, loadData]);
 
     // --- Realtime Presence & Logs Tracker Effect ---
   useEffect(() => {
@@ -372,9 +405,9 @@ export default function App() {
         await dbService.saveActivity({ ...a, week: correctWeek });
       }
       showToast('info', 'Correção de Calendário', `${toUpdate.length} atividades foram sincronizadas com o novo padrão semanal.`);
-      loadData();
+      refreshData();
     }
-  }, [activities, currentUser, showToast, loadData]);
+  }, [activities, currentUser, showToast, loadData, refreshData]);
 
   useEffect(() => {
     if (activities.length > 0 && currentUser) {
@@ -575,7 +608,7 @@ export default function App() {
       showToast('error', 'Erro ao salvar', 'Não foi possível salvar o setor.');
     } else {
       showToast('success', 'Setor Salvo', `Setor "${sec.name}" salvo com sucesso.`);
-      loadData();
+      refreshData();
     }
   };
 
@@ -586,7 +619,7 @@ export default function App() {
       showToast('error', 'Erro ao salvar', 'Não foi possível atualizar o setor.');
     } else {
       showToast('success', 'Setor Atualizado', `Setor "${sec.name}" atualizado.`);
-      loadData();
+      refreshData();
     }
   };
 
@@ -596,7 +629,7 @@ export default function App() {
       showToast('error', 'Erro ao excluir', 'Não foi possível remover o setor.');
     } else {
       showToast('info', 'Setor Excluído', 'Setor removido.');
-      loadData();
+      refreshData();
     }
   };
 
@@ -823,9 +856,21 @@ export default function App() {
 
   // Auth Gate
   if (!currentUser) {
-    // Initial loading for users to allow login check against proper data
-    if (loading && users.length === 0) return <div className="app-loader">Carregando segurança...</div>
-    return <Login users={users} onLogin={setCurrentUser} />
+    // Aguarda o carregamento inicial da lista de usuários para o login funcionar
+    if (loading) return <div className="app-loader">Carregando segurança...</div>
+    return <Login users={users} onLogin={(user) => {
+      // Limpa dados de outra org antes de definir o novo usuário
+      setActivities([]); setThemes([]); setUsers([]); setHenkatens([]); setLogs([]);
+      setKnowledgeBase({ categories: [], activities: [], progress: [] });
+      setHolidays([]); setAbsenteeism([]); setEmployees([]); setOvertimes([]);
+      setStaffingBoards([]); setStaffingColumns([]); setStaffingRows([]); setStaffingCells([]);
+      setSectors([]); setOrganizations([]);
+      // Se o usuário tem uma org definida, reseta currentOrg para a dele
+      if (user.organization_id) {
+        setCurrentOrg(null); // será definido ao carregar orgs se Super Admin, ou não usado para outros
+      }
+      setCurrentUser(user);
+    }} />
   }
 
   if (loading) {
@@ -898,7 +943,7 @@ export default function App() {
               value={currentOrg?.id || ''}
               onChange={e => {
                 const org = organizations.find(o => o.id === e.target.value);
-                if (org) { setCurrentOrg(org); setTimeout(loadData, 100); }
+                if (org) { setCurrentOrg(org); /* useEffect re-dispara com nova org */ }
               }}
             >
               <option value="">— Selecione —</option>
@@ -1145,7 +1190,7 @@ export default function App() {
             themes={themes}
             users={users}
             holidays={holidays}
-            onRefresh={loadData}
+            onRefresh={refreshData}
             showToast={showToast}
             sectors={sectors}
           />
@@ -1195,7 +1240,7 @@ export default function App() {
             categories={knowledgeBase.categories}
             activities={knowledgeBase.activities}
             progress={knowledgeBase.progress}
-            onRefresh={loadData}
+            onRefresh={refreshData}
             sectors={sectors}
           />
         )}
@@ -1245,8 +1290,7 @@ export default function App() {
             currentUser={currentUser}
             currentOrg={currentOrg}
             onSwitchOrg={(org) => {
-              setCurrentOrg(org);
-              setTimeout(loadData, 100);
+              setCurrentOrg(org); /* useEffect re-dispara com nova org */
             }}
           />
         )}
