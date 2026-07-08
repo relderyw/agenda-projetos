@@ -35,7 +35,7 @@ const mapKnowledgeProgress = (row: any): KnowledgeProgress => ({
 export const dbService = {
   // --- TEMAS ---
   async getThemes(orgId?: string): Promise<Theme[]> {
-    if (!isCloudEnabled) return []
+    if (!isCloudEnabled || !orgId) return []
     let q = supabase.from('themes').select('*').order('name', { ascending: true })
     if (orgId) q = q.eq('organization_id', orgId)
     const { data, error } = await q
@@ -93,7 +93,7 @@ export const dbService = {
 
   // --- ATIVIDADES ---
   async getActivities(orgId?: string): Promise<Activity[]> {
-    if (!isCloudEnabled) return []
+    if (!isCloudEnabled || !orgId) return []
     let q = supabase.from('activities').select('*').order('planejamento', { ascending: true })
     if (orgId) q = q.eq('organization_id', orgId)
     const { data, error } = await q
@@ -160,7 +160,7 @@ export const dbService = {
 
   // --- HENKATENS ---
   async getHenkatens(orgId?: string): Promise<HenkatenEvent[]> {
-    if (!isCloudEnabled) return []
+    if (!isCloudEnabled || !orgId) return []
     let q = supabase.from('henkatens').select('*').order('date', { ascending: true })
     if (orgId) q = q.eq('organization_id', orgId)
     const { data, error } = await q
@@ -292,7 +292,7 @@ export const dbService = {
 
   // --- FERIADOS ---
   async getHolidays(orgId?: string): Promise<Holiday[]> {
-    if (!isCloudEnabled) return []
+    if (!isCloudEnabled || !orgId) return []
     let q = supabase.from('holidays').select('*').order('date', { ascending: true })
     if (orgId) q = q.eq('organization_id', orgId)
     const { data, error } = await q
@@ -315,7 +315,7 @@ export const dbService = {
 
   // --- ABSENTEÍSMO ---
   async getAbsenteeism(orgId?: string): Promise<AbsenteeismRecord[]> {
-    if (!isCloudEnabled) return []
+    if (!isCloudEnabled || !orgId) return []
     let q = supabase.from('absenteeism').select('*')
     if (orgId) q = q.eq('organization_id', orgId)
     const { data, error } = await q
@@ -353,7 +353,7 @@ export const dbService = {
 
   // --- EMPLOYEES (Funcionários do Ponto) ---
   async getEmployees(orgId?: string): Promise<Employee[]> {
-    if (!isCloudEnabled) return []
+    if (!isCloudEnabled || !orgId) return []
     let q = supabase.from('employees').select('*').order('name')
     if (orgId) q = q.eq('organization_id', orgId)
     const { data, error } = await q
@@ -395,7 +395,7 @@ export const dbService = {
 
   // --- OVERTIME (Horas Extras) ---
   async getOvertimes(orgId?: string): Promise<OvertimeRecord[]> {
-    if (!isCloudEnabled) return []
+    if (!isCloudEnabled || !orgId) return []
     let q = supabase.from('overtime').select('*').order('date', { ascending: false })
     if (orgId) q = q.eq('organization_id', orgId)
     const { data, error } = await q

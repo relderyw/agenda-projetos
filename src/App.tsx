@@ -443,12 +443,16 @@ export default function App() {
   // ── Activities CRUD ──────────────────────────────────────
   const addActivity = async (a: Activity) => {
     if (!currentUser) return;
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    if (!orgId) return;
+    const payload = { ...a, organization_id: orgId };
+
     // Optimistic update
-    setActivities(prev => [a, ...prev])
+    setActivities(prev => [payload, ...prev])
     
-    const { error } = await dbService.saveActivity(a)
+    const { error } = await dbService.saveActivity(payload, orgId)
     if (error) {
-      setActivities(prev => prev.filter(act => act.id !== a.id)) // rollback
+      setActivities(prev => prev.filter(act => act.id !== payload.id)) // rollback
       showToast('error', 'Erro ao salvar', 'Não foi possível enviar a atividade para a nuvem. Tente novamente.')
       return;
     }
@@ -460,10 +464,14 @@ export default function App() {
   }
   const updateActivity = async (a: Activity) => {
     if (!currentUser) return;
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    if (!orgId) return;
+    const payload = { ...a, organization_id: orgId };
+
     const oldActivities = [...activities];
-    setActivities(prev => prev.map(p => p.id === a.id ? a : p))
+    setActivities(prev => prev.map(p => p.id === payload.id ? payload : p))
     
-    const { error } = await dbService.saveActivity(a)
+    const { error } = await dbService.saveActivity(payload, orgId)
     if (error) {
       setActivities(oldActivities) // rollback
       showToast('error', 'Erro na atualização', 'Falha ao atualizar atividade na nuvem.')
@@ -497,10 +505,14 @@ export default function App() {
   // ── Themes CRUD ──────────────────────────────────────────
   const addTheme = async (t: Theme) => {
     if (!currentUser) return;
-    setThemes(prev => [...prev, t])
-    const { error } = await dbService.saveTheme(t, currentUser)
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    if (!orgId) return;
+    const payload = { ...t, organization_id: orgId };
+
+    setThemes(prev => [...prev, payload])
+    const { error } = await dbService.saveTheme(payload, currentUser, orgId)
     if (error) {
-      setThemes(prev => prev.filter(item => item.id !== t.id))
+      setThemes(prev => prev.filter(item => item.id !== payload.id))
       showToast('error', 'Erro ao salvar tema', 'Falha na conexão com a nuvem.')
     } else {
       showToast('success', 'Tema Criado', `O tema "${t.name}" foi salvo.`)
@@ -508,9 +520,13 @@ export default function App() {
   }
   const updateTheme = async (t: Theme) => {
     if (!currentUser) return;
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    if (!orgId) return;
+    const payload = { ...t, organization_id: orgId };
+
     const oldThemes = [...themes];
-    setThemes(prev => prev.map(p => p.id === t.id ? t : p))
-    const { error } = await dbService.saveTheme(t, currentUser)
+    setThemes(prev => prev.map(p => p.id === payload.id ? payload : p))
+    const { error } = await dbService.saveTheme(payload, currentUser, orgId)
     if (error) {
       setThemes(oldThemes)
       showToast('error', 'Erro ao atualizar', 'Não foi possível salvar as alterações do tema.')
@@ -536,10 +552,14 @@ export default function App() {
   // ── Holidays CRUD ─────────────────────────────────────────
   const addHoliday = async (h: Holiday) => {
     if (!currentUser) return;
-    setHolidays(prev => [...prev, h])
-    const { error } = await dbService.saveHoliday(h)
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    if (!orgId) return;
+    const payload = { ...h, organization_id: orgId };
+
+    setHolidays(prev => [...prev, payload])
+    const { error } = await dbService.saveHoliday(payload, orgId)
     if (error) {
-      setHolidays(prev => prev.filter(item => item.date !== h.date))
+      setHolidays(prev => prev.filter(item => item.date !== payload.date))
       showToast('error', 'Erro ao salvar feriado', 'Falha na conexão com a nuvem.')
     } else {
       showToast('success', 'Dia Registrado', `${h.date}: ${h.type} salvo.`)
@@ -561,10 +581,14 @@ export default function App() {
   // ── Users CRUD ───────────────────────────────────────────
   const addUser = async (u: User) => {
     if (!currentUser) return;
-    setUsers(prev => [...prev, u])
-    const { error } = await dbService.saveUser(u, currentUser)
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    if (!orgId) return;
+    const payload = { ...u, organization_id: orgId };
+
+    setUsers(prev => [...prev, payload])
+    const { error } = await dbService.saveUser(payload, currentUser, orgId)
     if (error) {
-      setUsers(prev => prev.filter(item => item.id !== u.id))
+      setUsers(prev => prev.filter(item => item.id !== payload.id))
       showToast('error', 'Erro ao criar usuário', 'Não foi possível salvar o novo usuário.')
     } else {
       showToast('success', 'Usuário Criado', `${u.name} agora tem acesso ao sistema.`)
@@ -572,9 +596,13 @@ export default function App() {
   }
   const updateUser = async (u: User) => {
     if (!currentUser) return;
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    if (!orgId) return;
+    const payload = { ...u, organization_id: orgId };
+
     const oldUsers = [...users];
-    setUsers(prev => prev.map(p => p.id === u.id ? u : p))
-    const { error } = await dbService.saveUser(u, currentUser)
+    setUsers(prev => prev.map(p => p.id === payload.id ? payload : p))
+    const { error } = await dbService.saveUser(payload, currentUser, orgId)
     if (error) {
       setUsers(oldUsers)
       showToast('error', 'Erro na atualização', 'Falha ao salvar alterações do usuário.')
