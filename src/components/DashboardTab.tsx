@@ -125,17 +125,31 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
     })).sort((a, b) => b.count - a.count);
   }, [filteredActivities, themes]);
 
-  // Por semana
+  // Por semana (Ordenado cronologicamente pela data de planejamento e limitado a 5 semanas)
   const byWeek = useMemo(() => {
-    const map: Record<string, { total: number; done: number }> = {};
+    const map: Record<string, { total: number; done: number; earliestDate: string }> = {};
     filteredActivities.forEach(a => {
       if (!a.week) return;
-      if (!map[a.week]) map[a.week] = { total: 0, done: 0 };
+      if (!map[a.week]) {
+        map[a.week] = { total: 0, done: 0, earliestDate: a.planejamento || '9999-99-99' };
+      }
       map[a.week].total++;
       if (a.status === 'FINALIZADA') map[a.week].done++;
+      if (a.planejamento && a.planejamento < map[a.week].earliestDate) {
+        map[a.week].earliestDate = a.planejamento;
+      }
     });
-    return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([week, v]) => ({ week, ...v, pct: Math.round((v.done / v.total) * 100) }));
+
+    const sorted = Object.entries(map)
+      .sort((a, b) => a[1].earliestDate.localeCompare(b[1].earliestDate))
+      .map(([week, v]) => ({ 
+        week, 
+        total: v.total, 
+        done: v.done, 
+        pct: Math.round((v.done / v.total) * 100) 
+      }));
+
+    return sorted.slice(-5);
   }, [filteredActivities]);
 
   // ── Rankings de Performance (Gestão) ──
@@ -473,7 +487,7 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
               <BarChart2 size={18} />
               <h3>Progresso por Semana</h3>
             </div>
-            <div className="week-bars" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div className="week-bars custom-scroll" style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto', paddingRight: '4px' }}>
               {byWeek.length > 0 ? byWeek.map(({ week, total, done, pct }) => (
                 <div key={week} className="week-row-prime" style={{ padding: '2px 0' }}>
                   <span className="week-label-prime" style={{ minWidth: '70px', fontSize: '0.75rem' }}>{week}</span>
