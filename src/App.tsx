@@ -459,7 +459,7 @@ export default function App() {
 
     const newLog = { userId: currentUser.id, userName: currentUser.name, action: 'Criou Nova Atividade', target: a.descricao.substring(0, 30), timestamp: new Date().toISOString(), id: crypto.randomUUID() };
     setLogs(prev => [newLog, ...prev.slice(0, 49)]);
-    await dbService.saveLog(newLog)
+    await dbService.saveLog(newLog, orgId)
     showToast('success', 'Sucesso', 'Atividade salva na nuvem.')
   }
   const updateActivity = async (a: Activity) => {
@@ -480,7 +480,7 @@ export default function App() {
 
     const newLog = { userId: currentUser.id, userName: currentUser.name, action: 'Atualizou Atividade', target: a.descricao.substring(0, 30), timestamp: new Date().toISOString(), id: crypto.randomUUID() };
     setLogs(prev => [newLog, ...prev.slice(0, 49)]);
-    await dbService.saveLog(newLog)
+    await dbService.saveLog(newLog, orgId)
     showToast('success', 'Atualizado', 'Alterações salvas com sucesso.')
   }
   const deleteActivity = async (id: string) => {
@@ -496,9 +496,10 @@ export default function App() {
       return;
     }
 
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
     const newLog = { userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Atividade', target: act?.descricao.substring(0, 30), timestamp: new Date().toISOString(), id: crypto.randomUUID() };
     setLogs(prev => [newLog, ...prev.slice(0, 49)]);
-    await dbService.saveLog(newLog)
+    await dbService.saveLog(newLog, orgId)
     showToast('info', 'Excluído', 'Atividade removida.')
   }
 
@@ -665,12 +666,13 @@ export default function App() {
   const addHenkaten = async (e: HenkatenEvent) => {
     if (!currentUser) return;
     setHenkatens(prev => [...prev, e])
-    const { error } = await dbService.saveHenkaten(e)
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    const { error } = await dbService.saveHenkaten(e, orgId)
     if (error) {
       setHenkatens(prev => prev.filter(item => item.id !== e.id))
       showToast('error', 'Erro ao criar Henkaten', 'Não foi possível salvar o evento.')
     } else {
-      await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Criou Henkaten', target: e.title })
+      await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Criou Henkaten', target: e.title }, orgId)
       showToast('success', 'Henkaten Criado', `Evento "${e.title}" agendado.`)
     }
   }
@@ -678,12 +680,13 @@ export default function App() {
     if (!currentUser) return;
     const oldH = [...henkatens];
     setHenkatens(prev => prev.map(ev => ev.id === e.id ? e : ev))
-    const { error } = await dbService.saveHenkaten(e)
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    const { error } = await dbService.saveHenkaten(e, orgId)
     if (error) {
       setHenkatens(oldH)
       showToast('error', 'Erro na atualização', 'Falha ao salvar alterações do Henkaten.')
     } else {
-      await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Atualizou Henkaten', target: e.title })
+      await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Atualizou Henkaten', target: e.title }, orgId)
       showToast('success', 'Evento Atualizado', 'Informações sincronizadas.')
     }
   }
@@ -697,7 +700,8 @@ export default function App() {
       setHenkatens(oldH)
       showToast('error', 'Erro ao excluir', 'O evento não pôde ser removido.')
     } else {
-      await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Henkaten', target: event?.title })
+      const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+      await dbService.saveLog({ userId: currentUser.id, userName: currentUser.name, action: 'Excluiu Henkaten', target: event?.title }, orgId)
       showToast('info', 'Evento Excluído', 'Henkaten removido do calendário.')
     }
   }
@@ -719,7 +723,8 @@ export default function App() {
       }
     });
 
-    const { error } = await dbService.saveAbsenteeism(record);
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    const { error } = await dbService.saveAbsenteeism(record, orgId);
     if (error) {
        setAbsenteeism(oldAbs);
        showToast('error', 'Aviso de Sincronização', 'Falha ao salvar registro de absenteísmo na nuvem.');
@@ -748,7 +753,8 @@ export default function App() {
       else copy.push(emp);
       return copy;
     });
-    const { error } = await dbService.saveEmployee(emp);
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    const { error } = await dbService.saveEmployee(emp, orgId);
     if (error) showToast('error', 'Aviso de Sincronização', 'Falha ao salvar funcionário.');
     else if (isNew) showToast('success', 'Funcionário Salvo', `Perfil de ${emp.name} criado com sucesso.`);
   };
@@ -774,7 +780,8 @@ export default function App() {
       }
     });
 
-    const { error } = await dbService.saveOvertime(record);
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    const { error } = await dbService.saveOvertime(record, orgId);
     if (error) showToast('error', 'Aviso de Sincronização', 'Falha ao salvar Hora Extra.');
     else showToast('success', 'Salvo', 'Lançamento de Hora Extra salvo.');
   };
@@ -788,12 +795,14 @@ export default function App() {
 
   // ── Staffing Board CRUD ───────────────────────────────────
   const saveBoardRecord = async (board: StaffingBoard) => {
+    if (!currentUser) return;
     setStaffingBoards(prev => {
       const idx = prev.findIndex(b => b.id === board.id);
       if (idx !== -1) return prev.map(b => b.id === board.id ? board : b);
       return [...prev, board];
     });
-    const { error } = await dbService.saveStaffingBoard(board);
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    const { error } = await dbService.saveStaffingBoard(board, orgId);
     if (error) showToast('error', 'Erro', 'Falha ao salvar quadro de pessoal.');
   };
 
@@ -1270,6 +1279,7 @@ export default function App() {
             progress={knowledgeBase.progress}
             onRefresh={refreshData}
             sectors={sectors}
+            selectedOrgId={currentUser?.role === 'Super Admin' ? currentOrg?.id : currentUser?.organization_id}
           />
         )}
         {activeTab === 'absenteismo' && (

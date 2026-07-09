@@ -13,9 +13,10 @@ interface Props {
   progress: KnowledgeProgress[];
   onRefresh: () => void;
   sectors: OrgSector[];
+  selectedOrgId?: string;
 }
 
-export default function KnowledgeTab({ currentUser, users, categories, activities, progress, onRefresh, sectors }: Props) {
+export default function KnowledgeTab({ currentUser, users, categories, activities, progress, onRefresh, sectors, selectedOrgId }: Props) {
   const [activeArea, setActiveArea] = useState<string>('');
   const [optimisticProgress, setOptimisticProgress] = useState<Record<string, KnowledgeStatus>>({});
   const [isUpdating, setIsUpdating] = useState(false);
@@ -85,7 +86,7 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
     
     try {
       setIsUpdating(true);
-      await dbService.saveKnowledgeProgress({ userId, activityId, status: nextStatus }, currentUser?.organization_id);
+      await dbService.saveKnowledgeProgress({ userId, activityId, status: nextStatus }, selectedOrgId);
       onRefresh();
     } catch (err) {
       console.error("Failed to update status:", err);
@@ -109,7 +110,7 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
       order: fd.get('order') as string,
       area: fd.get('area') as string || activeArea
     };
-    await dbService.saveKnowledgeCategory(catData, currentUser?.organization_id);
+    await dbService.saveKnowledgeCategory(catData, selectedOrgId);
     setCatModal({ open: false, editing: null });
     onRefresh();
   };
@@ -146,7 +147,7 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
       name: fd.get('name') as string,
       order: fd.get('order') as string
     };
-    await dbService.saveKnowledgeActivity(actData, currentUser?.organization_id);
+    await dbService.saveKnowledgeActivity(actData, selectedOrgId);
     setActModal({ open: false, editing: null });
     onRefresh();
   };
@@ -160,7 +161,7 @@ export default function KnowledgeTab({ currentUser, users, categories, activitie
       area: fd.get('area') as string,
       id: crypto.randomUUID()
     };
-    await dbService.saveUser(newUser as User, currentUser || undefined, currentUser?.organization_id);
+    await dbService.saveUser(newUser as User, currentUser || undefined, selectedOrgId);
     setUserModal({ open: false });
     onRefresh();
   };
