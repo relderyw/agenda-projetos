@@ -14,6 +14,8 @@ interface Props {
   onAdd: (a: Activity) => void;
   onUpdate: (a: Activity) => void;
   onDelete: (id: string) => void;
+  initialOverdueFilter?: boolean;
+  onOverdueFilterCleared?: () => void;
 }
 
 type SortKey = keyof Activity | '';
@@ -84,7 +86,7 @@ function SortTh({
   );
 }
 
-export default function AtividadesTab({ currentUser, activities, themes, users, onAdd, onUpdate, onDelete }: Props) {
+export default function AtividadesTab({ currentUser, activities, themes, users, onAdd, onUpdate, onDelete, initialOverdueFilter, onOverdueFilterCleared }: Props) {
   const canEdit = currentUser?.permissions?.atividades.edit ?? false;
   const canDelete = currentUser?.permissions?.atividades.delete ?? false;
 
@@ -93,12 +95,18 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPrio, setFilterPrio] = useState('all');
   const [filterWeek, setFilterWeek] = useState('all');
+  const [overdueOnly, setOverdueOnly] = useState(initialOverdueFilter ?? false);
   const [sortKey, setSortKey] = useState<SortKey>('planejamento');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [modal, setModal] = useState<{ open: boolean; editing: Activity | null }>({ open: false, editing: null });
   const [form, setForm] = useState<Omit<Activity, 'id'>>(empty());
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Sync when parent changes the overdueFilterActive flag
+  useEffect(() => {
+    if (initialOverdueFilter) setOverdueOnly(true);
+  }, [initialOverdueFilter]);
 
   // Fechar o modal ou o confirm de exclusão com a tecla Escape
   useEffect(() => {
@@ -145,6 +153,9 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
   };
 
   const filteredAndSorted = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const f = activities.filter(a => {
       const matchSearch = a.descricao.toLowerCase().includes(search.toLowerCase());
       const matchResp = filterResp === 'all' || a.responsavel === filterResp;
@@ -156,6 +167,14 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
       const u = users.find(usr => usr.id === a.responsavel);
       const isManagement = (u?.role === 'Administrador' || u?.role === 'Super Admin') || u?.role === 'Gestão';
       if (isManagement) return false;
+
+      // Overdue filter: only show activities past due date that are not done/cancelled
+      if (overdueOnly) {
+        if (a.status === 'FINALIZADA' || a.status === 'CANCELADA') return false;
+        if (!a.dataPrevistaFinalizacao) return false;
+        const due = new Date(a.dataPrevistaFinalizacao + 'T00:00:00');
+        if (due >= today) return false;
+      }
 
       return matchSearch && matchResp && matchStatus && matchPrio && matchWeek;
     });
@@ -344,7 +363,49 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Overdue filter active badge */}
+      {overdueOnly && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '6px 14px',
+          background: 'rgba(251,146,60,0.12)',
+          border: '1px solid rgba(251,146,60,0.35)',
+          borderRadius: '8px',
+          marginBottom: '8px',
+          fontSize: '0.825rem',
+          color: '#b45309',
+          fontWeight: 500,
+        }}>
+          <AlertCircle size={15} />
+          Filtrando: apenas atividades atrasadas
+          <button
+            onClick={() => {
+              setOverdueOnly(false);
+              onOverdueFilterCleared?.();
+            }}
+            style={{
+              marginLeft: 'auto',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#b45309',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              fontSize: '0.8rem',
+              padding: '2px 6px',
+              borderRadius: '4px',
+            }}
+            title="Remover filtro de atraso"
+          >
+            <X size={13} /> Limpar filtro
+          </button>
+        </div>
+      )}
+
+
       <div className="filter-bar">
         <div className="search-wrap">
           <Search size={16} className="search-icon" />

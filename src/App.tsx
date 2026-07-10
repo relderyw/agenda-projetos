@@ -56,7 +56,12 @@ export default function App() {
     return (localStorage.getItem('theme') as ThemeMode) || 'light'
   });
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(() => {
+    // Persists per day: reset automatically the next day
+    const today = new Date().toLocaleDateString('en-CA');
+    return localStorage.getItem('banner_dismissed_date') === today;
+  });
+  const [overdueFilterActive, setOverdueFilterActive] = useState(false);
   const [notifPermission, setNotifPermission] = useState<'granted' | 'denied' | 'default' | 'unsupported'>('default');
   const [isClosureModalOpen, setIsClosureModalOpen] = useState(false);
   const [isAgendaClosedToday, setIsAgendaClosedToday] = useState(() => {
@@ -1102,7 +1107,13 @@ export default function App() {
             <div className="overdue-banner-actions">
               <button
                 className="overdue-banner-btn"
-                onClick={() => setActiveTab('atividades')}
+                onClick={() => {
+                  setOverdueFilterActive(true);
+                  setActiveTab('atividades');
+                  const today = new Date().toLocaleDateString('en-CA');
+                  localStorage.setItem('banner_dismissed_date', today);
+                  setBannerDismissed(true);
+                }}
               >
                 Ver atividades →
               </button>
@@ -1131,7 +1142,11 @@ export default function App() {
               )}
               <button
                 className="overdue-banner-close"
-                onClick={() => setBannerDismissed(true)}
+                onClick={() => {
+                  const today = new Date().toLocaleDateString('en-CA');
+                  localStorage.setItem('banner_dismissed_date', today);
+                  setBannerDismissed(true);
+                }}
                 title="Fechar banner"
               >
                 <IconX size={16} />
@@ -1230,6 +1245,8 @@ export default function App() {
             onAdd={addActivity}
             onUpdate={updateActivity}
             onDelete={deleteActivity}
+            initialOverdueFilter={overdueFilterActive}
+            onOverdueFilterCleared={() => setOverdueFilterActive(false)}
           />
         )}
         {activeTab === 'kanban' && (
