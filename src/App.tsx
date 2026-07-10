@@ -258,7 +258,7 @@ export default function App() {
       : (currentUser.organization_id ?? null);
 
     // Super Admin sem org ainda selecionada: carrega orgs e espera seleção
-    if (currentUser.role === 'Super Admin' && !orgId) {
+    if (currentUser.role === 'Super Admin' && !orgId && !currentOrg) {
       dbService.getOrganizations().then(orgs => {
         setOrganizations(orgs);
         if (orgs.length > 0) {
@@ -273,7 +273,9 @@ export default function App() {
     }
 
     const run = async () => {
-      await loadData(orgId);
+      // If regular user has no orgId, prevent data fetching of all records
+      const safeOrgId = (!orgId && currentUser.role !== 'Super Admin') ? 'INVALID_ORG_ID' : orgId;
+      await loadData(safeOrgId);
       // Depois de carregar os dados, também atualiza a lista de orgs para Super Admin
       if (currentUser.role === 'Super Admin') {
         const orgs = await dbService.getOrganizations();
@@ -290,7 +292,9 @@ export default function App() {
     const orgId = currentUser.role === 'Super Admin'
       ? (currentOrg?.id ?? null)
       : (currentUser.organization_id ?? null);
-    await loadData(orgId);
+    
+    const safeOrgId = (!orgId && currentUser.role !== 'Super Admin') ? 'INVALID_ORG_ID' : orgId;
+    await loadData(safeOrgId);
   }, [currentUser, currentOrg, loadData]);
 
     // --- Realtime Presence & Logs Tracker Effect ---
@@ -711,20 +715,24 @@ export default function App() {
     if (!currentUser) return;
     const oldAbs = [...absenteeism];
     
+    // Ensure the record HAS an ID before saving to DB
+    const recordId = (record as any).id || crypto.randomUUID();
+    const recordToSave = { ...record, id: recordId } as AbsenteeismRecord;
+
     // update locally optimistic
     setAbsenteeism(prev => {
-      const idx = prev.findIndex(r => r.employeeId === record.employeeId && r.date === record.date);
+      const idx = prev.findIndex(r => r.employeeId === recordToSave.employeeId && r.date === recordToSave.date);
       if (idx !== -1) {
         const copy = [...prev];
-        copy[idx] = { ...copy[idx], status: record.status } as AbsenteeismRecord;
+        copy[idx] = { ...copy[idx], status: recordToSave.status, id: recordId } as AbsenteeismRecord;
         return copy;
       } else {
-        return [...prev, { ...record, id: crypto.randomUUID() } as AbsenteeismRecord];
+        return [...prev, recordToSave];
       }
     });
 
     const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
-    const { error } = await dbService.saveAbsenteeism(record, orgId);
+    const { error } = await dbService.saveAbsenteeism(recordToSave, orgId);
     if (error) {
        setAbsenteeism(oldAbs);
        showToast('error', 'Aviso de Sincronização', 'Falha ao salvar registro de absenteísmo na nuvem.');
@@ -769,19 +777,23 @@ export default function App() {
 
   const saveOvertimeRecord = async (record: Omit<OvertimeRecord, 'id'> | OvertimeRecord) => {
     if (!currentUser) return;
+    
+    const recordId = (record as any).id || crypto.randomUUID();
+    const recordToSave = { ...record, id: recordId } as OvertimeRecord;
+
     setOvertimes(prev => {
-      const idx = prev.findIndex(r => r.id === (record as any).id);
+      const idx = prev.findIndex(r => r.id === recordId);
       if (idx !== -1) {
         const copy = [...prev];
-        copy[idx] = record as OvertimeRecord;
+        copy[idx] = recordToSave;
         return copy;
       } else {
-        return [...prev, record as OvertimeRecord];
+        return [...prev, recordToSave];
       }
     });
 
     const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
-    const { error } = await dbService.saveOvertime(record, orgId);
+    const { error } = await dbService.saveOvertime(recordToSave, orgId);
     if (error) showToast('error', 'Aviso de Sincronização', 'Falha ao salvar Hora Extra.');
     else showToast('success', 'Salvo', 'Lançamento de Hora Extra salvo.');
   };
