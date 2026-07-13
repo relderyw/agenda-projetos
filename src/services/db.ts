@@ -417,8 +417,8 @@ export const dbService = {
 
   async saveOvertime(record: Omit<OvertimeRecord, 'id'> | OvertimeRecord, orgId?: string) {
     if (!isCloudEnabled) return { error: null }
-    const payload = {
-      ...(record as any).id && { id: (record as any).id }, // Only pass id if updating
+    const recordId = (record as any).id;
+    const payload: Record<string, any> = {
       employee_id: record.employeeId,
       date: record.date,
       start_time: record.startTime,
@@ -430,6 +430,10 @@ export const dbService = {
       updated_by: record.updatedBy,
       updated_at: new Date().toISOString(),
       ...(orgId ? { organization_id: orgId } : {})
+    };
+    // Inclui o id apenas quando é uma string não-vazia (evita inserção de duplicata)
+    if (recordId && typeof recordId === 'string') {
+      payload.id = recordId;
     }
     const { error } = await supabase.from('overtime').upsert(payload)
     if (error) console.error('SaveOvertime Error', error)

@@ -365,6 +365,33 @@ export default function App() {
           });
         }
       })
+      // OUVIR ALTERAÇÕES NAS TABELAS PRINCIPAIS (Realtime)
+      // Debounce de 1.5s para evitar conflito com updates otimistas locais
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activities' }, () => {
+        console.log('[REALTIME] Tabela activities atualizada, recarregando...');
+        clearTimeout((window as any)._rt_debounce_activities);
+        (window as any)._rt_debounce_activities = setTimeout(() => refreshData(), 1500);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'absenteeism' }, () => {
+        console.log('[REALTIME] Tabela absenteeism atualizada, recarregando...');
+        clearTimeout((window as any)._rt_debounce_absenteeism);
+        (window as any)._rt_debounce_absenteeism = setTimeout(() => refreshData(), 1500);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, () => {
+        console.log('[REALTIME] Tabela employees atualizada, recarregando...');
+        clearTimeout((window as any)._rt_debounce_employees);
+        (window as any)._rt_debounce_employees = setTimeout(() => refreshData(), 1500);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'overtime' }, () => {
+        console.log('[REALTIME] Tabela overtime atualizada, recarregando...');
+        clearTimeout((window as any)._rt_debounce_overtime);
+        (window as any)._rt_debounce_overtime = setTimeout(() => refreshData(), 1500);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'henkatens' }, () => {
+        console.log('[REALTIME] Tabela henkatens atualizada, recarregando...');
+        clearTimeout((window as any)._rt_debounce_henkatens);
+        (window as any)._rt_debounce_henkatens = setTimeout(() => refreshData(), 1500);
+      })
       .subscribe(async (subStatus) => {
         if (subStatus === 'SUBSCRIBED') {
           setRealtimeStatus('connected');
@@ -379,7 +406,17 @@ export default function App() {
       });
 
     return () => { channel.unsubscribe(); };
-  }, [currentUser]);
+  }, [currentUser, refreshData]);
+
+  // --- Fallback Polling (A cada 30 segundos, garante atualização caso realtime não esteja ativo) ---
+  useEffect(() => {
+    if (!currentUser) return;
+    const interval = setInterval(() => {
+      console.log('[POLLING] Sincronizando banco de dados em segundo plano...');
+      refreshData();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [currentUser, refreshData]);
 
   // --- Migration: Corrigir Labels de Semanas (Executa uma vez por sessão se houver discrepância) ---
   const migrateWeeks = useCallback(async () => {

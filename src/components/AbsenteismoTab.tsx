@@ -163,7 +163,9 @@ export default function AbsenteismoTab({
   const heGroups = useMemo(() => {
     const groups: Record<string, HEGroup> = {};
     filterHEMonth.forEach(rec => {
-      const key = `${rec.date}|${rec.formNumber || ''}|${rec.startTime}|${rec.endTime}|${rec.costCenter}|${rec.cause}|${rec.motive || ''}`;
+      // Chave de agrupamento NÃO inclui motive/cause para evitar quebra de grupos
+      // quando registros do mesmo formulário tiverem pequenas variações nesses campos
+      const key = `${rec.date}|${rec.formNumber || ''}|${rec.startTime}|${rec.endTime}|${rec.costCenter}`;
       if (!groups[key]) {
         groups[key] = {
           key,
@@ -739,12 +741,12 @@ export default function AbsenteismoTab({
                   </div>
                 </div>
                 <div className="form-group full">
-                  <label>Motivo</label>
-                  <input type="text" placeholder="ex: Defeito na linha X..." value={heForm.motive} onChange={e => setHeForm(f => ({ ...f, motive: e.target.value }))} />
+                  <label>Causa</label>
+                  <input type="text" placeholder="ex: Estratégia Hines, Demanda cliente..." value={heForm.cause} onChange={e => setHeForm(f => ({ ...f, cause: e.target.value }))} />
                 </div>
                 <div className="form-group full">
-                  <label>Causa</label>
-                  <input type="text" placeholder="ex: Finalização urgente de..." value={heForm.cause} onChange={e => setHeForm(f => ({ ...f, cause: e.target.value }))} />
+                  <label>Motivo</label>
+                  <input type="text" placeholder="ex: Descrição detalhada da atividade realizada..." value={heForm.motive} onChange={e => setHeForm(f => ({ ...f, motive: e.target.value }))} />
                 </div>
               </div>
             </div>
