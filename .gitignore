@@ -21,3 +21,11 @@ build/
 # OS related files
 .DS_Store
 Thumbs.db
+
+# Sensitive credentials & migration backups
+firebase-service-account.json
+supabase_backup.json
+export_*.mjs
+import_firebase.mjs
+find_pooler.mjs
+test_*.mjs

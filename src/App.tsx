@@ -445,15 +445,16 @@ export default function App() {
     });
 
     if (toUpdate.length > 0) {
-      console.log(`[MIGRATION] Sincronizando ${toUpdate.length} atividades...`);
-      for (const a of toUpdate) {
-        const correctWeek = getWeekOfMonthString(a.planejamento);
-        await dbService.saveActivity({ ...a, week: correctWeek });
-      }
+      console.log(`[MIGRATION] Sincronizando ${toUpdate.length} atividades via batch...`);
+      const updatedList = toUpdate.map(a => ({
+        ...a,
+        week: getWeekOfMonthString(a.planejamento)
+      }));
+      await dbService.saveActivitiesBatch(updatedList, currentOrg?.id);
       showToast('info', 'Correção de Calendário', `${toUpdate.length} atividades foram sincronizadas com o novo padrão semanal.`);
       refreshData();
     }
-  }, [activities, currentUser, showToast, loadData, refreshData]);
+  }, [activities, currentUser, currentOrg, showToast, refreshData]);
 
   useEffect(() => {
     if (activities.length > 0 && currentUser) {

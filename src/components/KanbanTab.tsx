@@ -20,7 +20,8 @@ interface Props {
 // ── helpers ──────────────────────────────────────────────────────────────────
 function parseLocal(str: string): Date {
   if (!str || typeof str !== 'string') return new Date();
-  const [y, m, d] = str.split('-').map(Number)
+  const clean = str.slice(0, 10);
+  const [y, m, d] = clean.split('-').map(Number)
   return new Date(y, m - 1, d)
 }
 
@@ -233,8 +234,8 @@ export default function KanbanTab({ activities, themes, users, holidays, current
       if (!onlyAnalysts.some(u => u.id === a.responsavel)) return false;
       if (!a.planejamento) return false;
       if (a.status === 'CANCELADA') return false; // Atividades canceladas não aparecem no Kanban semanal
-      const actStart = a.planejamento
-      const actEnd = a.dataPrevistaFinalizacao && a.dataPrevistaFinalizacao.length === 10 ? a.dataPrevistaFinalizacao : actStart
+      const actStart = a.planejamento.slice(0, 10)
+      const actEnd = (a.dataPrevistaFinalizacao || a.planejamento).slice(0, 10)
       return actStart <= endStr && actEnd >= startStr
     })
   }, [activities, weekStart, onlyAnalysts])
@@ -255,8 +256,8 @@ export default function KanbanTab({ activities, themes, users, holidays, current
           return {
             date: dStr,
             acts: userActs.filter(a => {
-              const start = a.planejamento
-              const end = a.dataPrevistaFinalizacao && a.dataPrevistaFinalizacao.length === 10 ? a.dataPrevistaFinalizacao : start
+              const start = a.planejamento.slice(0, 10)
+              const end = (a.dataPrevistaFinalizacao || a.planejamento).slice(0, 10)
               return dStr >= start && dStr <= end
             }),
           }

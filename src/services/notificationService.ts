@@ -27,8 +27,8 @@ export async function getWebhookConfig(): Promise<WebhookConfig> {
     } catch {}
   }
 
-  const isCloudEnabled = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
-  if (!isCloudEnabled) return config;
+  const isCloudEnabled = !!(supabase && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+  if (!isCloudEnabled || !supabase) return config;
 
   try {
     const { data, error } = await supabase
@@ -52,8 +52,8 @@ export async function getWebhookConfig(): Promise<WebhookConfig> {
 export async function saveWebhookConfig(config: WebhookConfig): Promise<boolean> {
   localStorage.setItem(LOCAL_WEBHOOK_KEY, JSON.stringify(config));
   
-  const isCloudEnabled = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
-  if (!isCloudEnabled) return true;
+  const isCloudEnabled = !!(supabase && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+  if (!isCloudEnabled || !supabase) return true;
 
   try {
     const payload = {
@@ -110,8 +110,7 @@ export async function sendWebhookNotification(message: string, email?: string): 
     }
 
     if (config.type === 'teams') {
-      // Power Automate bloqueia CORS do browser.
-      // Usamos a Supabase Edge Function como proxy server-side.
+      if (!supabase) return false;
       try {
         const { data, error } = await supabase.functions.invoke('send-webhook', {
           body: {
