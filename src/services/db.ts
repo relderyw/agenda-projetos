@@ -417,20 +417,40 @@ export const dbService = {
 
   async getHolidays(orgId?: string): Promise<Holiday[]> {
     const filters = orgId ? [{ field: 'organization_id', value: orgId }] : []
-    return getAll<Holiday>('holidays', filters, 'date')
+    const rows = await getAll<any>('holidays', filters, 'date')
+    return rows.map(h => {
+      let cleanDate = String(h.date || '');
+      if (cleanDate.includes('T')) cleanDate = cleanDate.split('T')[0];
+      return {
+        id: h.id,
+        date: cleanDate,
+        description: h.description || '',
+        type: h.type || 'Feriado',
+        organization_id: h.organization_id
+      } as Holiday;
+    })
   },
 
   async saveHoliday(holiday: Holiday, orgId?: string) {
-    const id = orgId ? `${holiday.date}_${orgId}` : holiday.date
+    let cleanDate = String(holiday.date || '');
+    if (cleanDate.includes('T')) cleanDate = cleanDate.split('T')[0];
+    const id = holiday.id || (orgId ? `${cleanDate}_${orgId}` : cleanDate);
     return upsert('holidays', id, {
       ...holiday,
+      date: cleanDate,
       ...(orgId ? { organization_id: orgId } : {})
     })
   },
 
-  async deleteHoliday(date: string, orgId?: string) {
-    const id = orgId ? `${date}_${orgId}` : date
-    return remove('holidays', id)
+  async deleteHoliday(dateOrId: string, orgId?: string) {
+    const res = await remove('holidays', dateOrId)
+    if (orgId && !dateOrId.includes(orgId)) {
+      await remove('holidays', `${dateOrId}_${orgId}`)
+    }
+    if (!dateOrId.includes('_global')) {
+      await remove('holidays', `${dateOrId}_global`)
+    }
+    return res
   },
 
   // ─── ABSENTEÍSMO ──────────────────────────────────────────────────────────

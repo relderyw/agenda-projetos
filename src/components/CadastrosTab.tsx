@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Edit2, Trash2, X, Save, Tag, Users, ChevronDown, CloudUpload, RefreshCw, Calendar, MinusCircle, Bell, Layers } from 'lucide-react';
 import type { Theme, User, UserPermissions, Activity, HenkatenEvent, Holiday, OrgSector } from '../types';
 import { dbService } from '../services/db';
@@ -13,6 +13,7 @@ interface Props {
   users: User[];
   holidays: Holiday[];
   sectors: OrgSector[];
+  activities?: Activity[];
   onAddTheme: (t: Theme) => void;
   onUpdateTheme: (t: Theme) => void;
   onDeleteTheme: (id: string) => void;
@@ -57,7 +58,7 @@ const MODULE_LABELS: Record<keyof UserPermissions, string> = {
 };
 
 export default function CadastrosTab({
-  currentUser, themes, users, holidays, sectors,
+  currentUser, themes, users, holidays, sectors, activities = [],
   onAddTheme, onUpdateTheme, onDeleteTheme,
   onAddUser, onUpdateUser, onDeleteUser,
   onAddHoliday, onDeleteHoliday,
@@ -72,6 +73,53 @@ export default function CadastrosTab({
   const canDeleteUsers = currentUser?.permissions?.usuarios.delete ?? false;
 
   const [section, setSection] = useState<'temas' | 'usuarios' | 'holidays' | 'notifications' | 'setores'>(() => canViewThemes ? 'temas' : 'usuarios');
+
+  // ── Contagem de atividades por tema ──────────────────────
+  const activityCountByTheme = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const t of themes) {
+      let count = 0;
+      for (const a of activities) {
+        if (a.tema === t.id || (a.tema && a.tema.trim().toLowerCase() === t.name.trim().toLowerCase())) {
+          count++;
+        }
+      }
+      map.set(t.id, count);
+    }
+    return map;
+  }, [themes, activities]);
+
+  const [themeFilter, setThemeFilter] = useState<'all' | 'zero' | 'with'>('all');
+
+  const zeroThemesCount = useMemo(() => {
+    let count = 0;
+    for (const t of themes) {
+      if ((activityCountByTheme.get(t.id) || 0) === 0) count++;
+    }
+    return count;
+  }, [themes, activityCountByTheme]);
+
+  const filteredThemes = useMemo(() => {
+    if (themeFilter === 'zero') {
+      return themes.filter(t => (activityCountByTheme.get(t.id) || 0) === 0);
+    }
+    if (themeFilter === 'with') {
+      return themes.filter(t => (activityCountByTheme.get(t.id) || 0) > 0);
+    }
+    return themes;
+  }, [themes, themeFilter, activityCountByTheme]);
+
+  const formatDateDisplay = (dateStr: string) => {
+    if (!dateStr) return '';
+    const clean = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+    const parts = clean.split('-');
+    if (parts.length === 3) {
+      const [y, m, d] = parts;
+      return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+    }
+    return clean;
+  };
+
 
   // Theme modal
   const [tModal, setTModal] = useState<{ open: boolean; editing: Theme | null }>({ open: false, editing: null });
@@ -256,26 +304,61 @@ export default function CadastrosTab({
       {/* ── TEMAS ── */}
       {section === 'temas' && (
         <div>
-          <div className="cad-section-header">
-            <span className="cad-count">{themes.length} temas cadastrados</span>
+          <div className="cad-section-header" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <span className="cad-count">{themes.length} temas cadastrados</span>
+              <div className="cad-filter-pills">
+                <button
+                  type="button"
+                  className={`cad-filter-pill ${themeFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setThemeFilter('all')}
+                >
+                  Todos ({themes.length})
+                </button>
+                <button
+                  type="button"
+                  className={`cad-filter-pill ${themeFilter === 'zero' ? 'active pill-zero' : ''}`}
+                  onClick={() => setThemeFilter('zero')}
+                  title="Mostrar apenas temas que não possuem nenhuma atividade vinculada na base"
+                >
+                  Sem Atividades ({zeroThemesCount})
+                </button>
+                <button
+                  type="button"
+                  className={`cad-filter-pill ${themeFilter === 'with' ? 'active' : ''}`}
+                  onClick={() => setThemeFilter('with')}
+                >
+                  Com Atividades ({themes.length - zeroThemesCount})
+                </button>
+              </div>
+            </div>
             <button className="btn-primary" onClick={openNewTheme}><Plus size={16} /> Novo Tema</button>
           </div>
           <div className="cad-grid">
-            {themes.map(t => (
-              <div key={t.id} className="cad-card">
-                <div className="cad-card-left">
-                  <div className="cad-color-dot" style={{ background: t.color }} />
-                  <div className="cad-card-info">
-                    <span className="cad-name">{t.name}</span>
-                    <span className="cad-meta" style={{ color: t.color }}>{t.color}</span>
+            {filteredThemes.map((t: Theme) => {
+              const count = activityCountByTheme.get(t.id) || 0;
+              return (
+                <div key={t.id} className="cad-card">
+                  <div
+                    className={`cad-theme-counter ${count === 0 ? 'zero' : 'active'}`}
+                    title={count === 0 ? 'Nenhuma atividade vinculada a este tema na base' : `${count} atividade(s) vinculada(s)`}
+                  >
+                    {count === 0 ? '0 ativ.' : `${count} ativ.`}
+                  </div>
+                  <div className="cad-card-left">
+                    <div className="cad-color-dot" style={{ background: t.color }} />
+                    <div className="cad-card-info">
+                      <span className="cad-name" title={t.name}>{t.name}</span>
+                      <span className="cad-meta" style={{ color: t.color }}>{t.color}</span>
+                    </div>
+                  </div>
+                  <div className="cad-card-actions">
+                    {canEditThemes && <button className="action-btn edit" onClick={() => openEditTheme(t)}><Edit2 size={14} /></button>}
+                    {canDeleteThemes && <button className="action-btn del" onClick={() => setDeleteConfirm({ type: 'tema', id: t.id })}><Trash2 size={14} /></button>}
                   </div>
                 </div>
-                <div className="cad-card-actions">
-                  {canEditThemes && <button className="action-btn edit" onClick={() => openEditTheme(t)}><Edit2 size={14} /></button>}
-                  {canDeleteThemes && <button className="action-btn del" onClick={() => setDeleteConfirm({ type: 'tema', id: t.id })}><Trash2 size={14} /></button>}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -343,22 +426,26 @@ export default function CadastrosTab({
             <button className="btn-primary" onClick={() => setHModal(true)}><Plus size={16} /> Nova Data</button>
           </div>
           <div className="cad-grid">
-            {holidays.map(h => (
-              <div key={h.date} className="cad-card">
-                <div className="cad-card-left">
-                  <div className={`cad-holiday-icon ${h.type === 'Feriado' ? 'festive' : 'off'}`}>
-                    <Calendar size={18} />
+            {holidays.map(h => {
+              const displayDate = formatDateDisplay(h.date);
+              const holidayId = h.id || h.date;
+              return (
+                <div key={holidayId} className="cad-card">
+                  <div className="cad-card-left">
+                    <div className={`cad-holiday-icon ${h.type === 'Feriado' ? 'festive' : 'off'}`}>
+                      <Calendar size={18} />
+                    </div>
+                    <div className="cad-card-info">
+                      <span className="cad-name">{displayDate}</span>
+                      <span className="cad-meta">{h.type} {h.description ? `· ${h.description}` : ''}</span>
+                    </div>
                   </div>
-                  <div className="cad-card-info">
-                    <span className="cad-name">{new Date(h.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-                    <span className="cad-meta">{h.type} {h.description ? `· ${h.description}` : ''}</span>
+                  <div className="cad-card-actions">
+                    <button className="action-btn del" title="Excluir data" onClick={() => setDeleteConfirm({ type: 'holiday', id: holidayId })}><Trash2 size={14} /></button>
                   </div>
                 </div>
-                <div className="cad-card-actions">
-                  <button className="action-btn del" onClick={() => setDeleteConfirm({ type: 'holiday', id: h.date })}><Trash2 size={14} /></button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {holidays.length === 0 && (
               <div className="empty-state">
                 <MinusCircle size={32} />

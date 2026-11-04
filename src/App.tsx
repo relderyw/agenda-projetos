@@ -602,27 +602,29 @@ export default function App() {
     if (!currentUser) return;
     const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
     if (!orgId) return;
-    const payload = { ...h, organization_id: orgId };
+    const cleanDate = h.date.includes('T') ? h.date.split('T')[0] : h.date;
+    const payload = { ...h, date: cleanDate, organization_id: orgId };
 
-    setHolidays(prev => [...prev, payload])
+    setHolidays(prev => [...prev.filter(item => item.date !== cleanDate), payload])
     const { error } = await dbService.saveHoliday(payload, orgId)
     if (error) {
       setHolidays(prev => prev.filter(item => item.date !== payload.date))
       showToast('error', 'Erro ao salvar feriado', 'Falha na conexão com a nuvem.')
     } else {
-      showToast('success', 'Dia Registrado', `${h.date}: ${h.type} salvo.`)
+      showToast('success', 'Dia Registrado', `${cleanDate}: ${h.type} salvo.`)
     }
   }
-  const deleteHoliday = async (date: string) => {
+  const deleteHoliday = async (idOrDate: string) => {
     if (!currentUser) return;
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
     const oldHolidays = [...holidays];
-    setHolidays(prev => prev.filter(h => h.date !== date))
-    const { error } = await dbService.deleteHoliday(date)
+    setHolidays(prev => prev.filter(h => h.id !== idOrDate && h.date !== idOrDate))
+    const { error } = await dbService.deleteHoliday(idOrDate, orgId)
     if (error) {
       setHolidays(oldHolidays)
       showToast('error', 'Erro ao excluir', 'Não foi possível remover a data.')
     } else {
-      showToast('info', 'Dia Removido', 'A data voltou ao normal.')
+      showToast('info', 'Dia Removido', 'A data foi excluída com sucesso.')
     }
   }
 
@@ -1306,6 +1308,9 @@ export default function App() {
             themes={themes}
             users={users}
             themeMode={themeMode}
+            absenteeism={absenteeism}
+            employees={employees}
+            holidays={holidays}
           />
         )}
         {activeTab === 'henkatens' && (
@@ -1324,6 +1329,7 @@ export default function App() {
             users={users}
             holidays={holidays}
             sectors={sectors}
+            activities={activities}
             onAddTheme={addTheme}
             onUpdateTheme={updateTheme}
             onDeleteTheme={deleteTheme}

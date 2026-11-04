@@ -44,9 +44,11 @@ export interface KnowledgeProgress {
 export type HolidayType = 'Feriado' | 'S/ Expediente';
 
 export interface Holiday {
+  id?: string;
   date: string; // YYYY-MM-DD
   description?: string;
   type: HolidayType;
+  organization_id?: string;
 }
 
 export interface AppPermissions {

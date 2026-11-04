@@ -3,7 +3,7 @@ import {
   CheckCircle2, Clock, AlertCircle, TrendingUp,
   Users, BarChart2, Target, Play, Pause, FastForward
 } from 'lucide-react';
-import type { Activity, Theme, User } from '../types';
+import type { Activity, Theme, User, AbsenteeismRecord, Employee, Holiday } from '../types';
 
 interface Props {
   currentUser: User | null;
@@ -11,9 +11,12 @@ interface Props {
   themes: Theme[];
   users: User[];
   themeMode?: 'dark' | 'light';
+  absenteeism?: AbsenteeismRecord[];
+  employees?: Employee[];
+  holidays?: Holiday[];
 }
 
-export default function DashboardTab({ currentUser, activities, themes, users, themeMode = 'light' }: Props) {
+export default function DashboardTab({ currentUser, activities, themes, users, themeMode = 'light', absenteeism = [], employees = [], holidays = [] }: Props) {
   // Estados de Controle e Scroll
   const [isScrolling, setIsScrolling] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(1);
@@ -27,6 +30,96 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
   const onlyAnalysts = useMemo(() => {
     return users.filter(u => u.role === 'Analista');
   }, [users]);
+
+  // Helper: Verifica se a data é Sábado (não conta como presença regular)
+  const isSaturday = (dateStr: string) => {
+    if (!dateStr) return false;
+    const clean = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+    const parts = clean.split('-').map(Number);
+    if (parts.length < 3) return false;
+    return new Date(parts[0], parts[1] - 1, parts[2]).getDay() === 6;
+  };
+
+  const ABS_STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+    F:  { label: 'Falta', color: '#fff', bg: '#ef4444' },
+    A:  { label: 'Atraso', color: '#000', bg: '#eab308' },
+    AR: { label: 'Atraso da rota', color: '#fff', bg: '#f97316' },
+    PR: { label: 'Perda da rota', color: '#fff', bg: '#c2410c' },
+    ER: { label: 'Esquecimento de registro', color: '#fff', bg: '#ec4899' },
+    EC: { label: 'Esquecimento de Crachá', color: '#000', bg: '#fca5a5' },
+    LM: { label: 'Licença Médica', color: '#fff', bg: '#3b82f6' },
+    SA: { label: 'Saída Antecipada', color: '#000', bg: '#86efac' },
+    TR: { label: 'Treinamento', color: '#fff', bg: '#ca8a04' },
+    FE: { label: 'Férias', color: '#000', bg: '#7dd3fc' },
+    FO: { label: 'Folga', color: '#fff', bg: '#c084fc' },
+    DE: { label: 'Declaração', color: '#fff', bg: '#a855f7' },
+    LP: { label: 'Licença Paternidade', color: '#000', bg: '#93c5fd' },
+    AF: { label: 'AFASTAMENTO', color: '#fff', bg: '#991b1b' },
+  };
+
+  const [absPeriodFilter, setAbsPeriodFilter] = useState<'current_month' | 'last_3' | 'all'>('current_month');
+
+  const absAnalytics = useMemo(() => {
+    if (!absenteeism || absenteeism.length === 0) return null;
+
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth() + 1;
+    const curMonthPrefix = `${curYear}-${String(curMonth).padStart(2, '0')}`;
+
+    const filteredRecords = absenteeism.filter(r => {
+      if (!r.date) return false;
+      if (absPeriodFilter === 'current_month') {
+        return r.date.startsWith(curMonthPrefix);
+      }
+      if (absPeriodFilter === 'last_3') {
+        const [yr, mr] = r.date.split('-').map(Number);
+        const diffMonths = (curYear - yr) * 12 + (curMonth - mr);
+        return diffMonths >= 0 && diffMonths < 3;
+      }
+      return true;
+    });
+
+    let totalPresence = 0;
+    let totalAbsences = 0;
+    const counts: Record<string, number> = {};
+
+    filteredRecords.forEach(rec => {
+      const isSat = isSaturday(rec.date);
+      if (rec.status === 'P') {
+        // Sábados não contam como presença
+        if (!isSat) totalPresence++;
+      } else {
+        totalAbsences++;
+        counts[rec.status] = (counts[rec.status] || 0) + 1;
+      }
+    });
+
+    const totalGeneral = totalPresence + totalAbsences;
+    const overallRate = totalGeneral > 0 ? (totalAbsences / totalGeneral) * 100 : 0;
+
+    const breakdown = Object.entries(ABS_STATUS_LABELS).map(([status, meta]) => {
+      const count = counts[status] || 0;
+      const pctOfAbsences = totalAbsences > 0 ? (count / totalAbsences) * 100 : 0;
+      const pctOfGeneral = totalGeneral > 0 ? (count / totalGeneral) * 100 : 0;
+      return {
+        status,
+        ...meta,
+        count,
+        pctOfAbsences,
+        pctOfGeneral
+      };
+    }).filter(item => item.count > 0).sort((a, b) => b.count - a.count);
+
+    return {
+      totalPresence,
+      totalAbsences,
+      totalGeneral,
+      overallRate,
+      breakdown
+    };
+  }, [absenteeism, absPeriodFilter]);
+
 
   // Lógica de Auto-scroll para Apresentação
   useEffect(() => {
@@ -653,6 +746,112 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
               )) : <div className="empty-ranking-msg">Aguardando entregas...</div>}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Painel de Ausências e Absenteísmo no Dashboard */}
+      {absAnalytics && (
+        <div className="dash-card" style={{ marginBottom: '1.5rem' }}>
+          <div className="dash-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Users size={18} style={{ color: '#ef4444' }} />
+              <h3 style={{ margin: 0 }}>Resumo de Ausências e Absenteísmo da Equipe</h3>
+            </div>
+            <div className="cad-filter-pills" style={{ display: 'flex', gap: '0.4rem' }}>
+              <button
+                type="button"
+                className={`cad-filter-pill ${absPeriodFilter === 'current_month' ? 'active' : ''}`}
+                onClick={() => setAbsPeriodFilter('current_month')}
+              >
+                Mês Atual
+              </button>
+              <button
+                type="button"
+                className={`cad-filter-pill ${absPeriodFilter === 'last_3' ? 'active' : ''}`}
+                onClick={() => setAbsPeriodFilter('last_3')}
+              >
+                Últimos 3 Meses
+              </button>
+              <button
+                type="button"
+                className={`cad-filter-pill ${absPeriodFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setAbsPeriodFilter('all')}
+              >
+                Todo o Período
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem', marginBottom: '1.25rem' }}>
+            <div style={{ padding: '1rem', borderRadius: '10px', background: 'var(--bg-layer)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase' }}>Taxa Geral de Absenteísmo</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>{absAnalytics.overallRate.toFixed(1)}%</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{absAnalytics.totalAbsences} ausências em {absAnalytics.totalGeneral} apontamentos</span>
+            </div>
+
+            <div style={{ padding: '1rem', borderRadius: '10px', background: 'var(--bg-layer)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ea580c', textTransform: 'uppercase' }}>Total de Ausências</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>{absAnalytics.totalAbsences}</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Ocorrências registradas</span>
+            </div>
+
+            <div style={{ padding: '1rem', borderRadius: '10px', background: 'var(--bg-layer)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#16a34a', textTransform: 'uppercase' }}>Presenças Computadas</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>{absAnalytics.totalPresence}</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Sábados desconsiderados (HE)</span>
+            </div>
+          </div>
+
+          {absAnalytics.totalAbsences > 0 ? (
+            <div>
+              <div style={{ display: 'flex', height: '10px', borderRadius: '5px', overflow: 'hidden', background: 'var(--bg-layer)', marginBottom: '1rem', border: '1px solid var(--border-color)' }}>
+                {absAnalytics.breakdown.map(t => (
+                  <div
+                    key={t.status}
+                    style={{ width: `${t.pctOfAbsences}%`, background: t.bg }}
+                    title={`${t.label}: ${t.count} (${t.pctOfAbsences.toFixed(1)}% das ausências)`}
+                  />
+                ))}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem' }}>
+                {absAnalytics.breakdown.map(t => (
+                  <div
+                    key={t.status}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.6rem 0.8rem',
+                      borderRadius: '8px',
+                      background: 'var(--bg-layer)',
+                      border: '1px solid var(--border-color)',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                      <div style={{ width: '24px', height: '24px', borderRadius: '5px', background: t.bg, color: t.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold', flexShrink: 0 }}>
+                        {t.status}
+                      </div>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.label}</span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>{t.count}</span>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#dc2626', display: 'block' }}>{t.pctOfAbsences.toFixed(1)}%</span>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{t.pctOfGeneral.toFixed(1)}% geral</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+              Nenhuma ausência registrada para o período selecionado.
+            </div>
+          )}
         </div>
       )}
 

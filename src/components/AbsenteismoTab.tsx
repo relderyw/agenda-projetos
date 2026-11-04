@@ -28,6 +28,15 @@ interface Props {
   onDeleteOvertime: (id: string) => Promise<void>;
 }
 
+// Helper: Verifica se a data é Sábado (dia de hora extra, não conta como presença regular)
+const isSaturday = (dateStr: string) => {
+  if (!dateStr) return false;
+  const clean = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+  const parts = clean.split('-').map(Number);
+  if (parts.length < 3) return false;
+  return new Date(parts[0], parts[1] - 1, parts[2]).getDay() === 6;
+};
+
 const STATUS_LEGEND: { status: AbsenteeismStatus; label: string; color: string; bg: string }[] = [
   { status: 'P', label: 'Presente', color: '#fff', bg: '#22c55e' },
   { status: 'F', label: 'Falta', color: '#fff', bg: '#ef4444' },
@@ -122,8 +131,9 @@ export default function AbsenteismoTab({
       const dayCells = daysArray.map(d => {
         const rec = getRecord(emp.id, d.dateStr);
         if (rec) {
-          if (rec.status === 'P') calcP++;
-          else if (['F', 'A', 'PR', 'ER', 'EC', 'LM', 'SA', 'DE', 'AF'].includes(rec.status)) calcF++;
+          // Sábados não contam como presença
+          if (rec.status === 'P' && d.weekDay !== 'Sáb') calcP++;
+          else if (rec.status !== 'P') calcF++;
         }
         return rec ? rec.status : '';
       });
@@ -272,6 +282,9 @@ export default function AbsenteismoTab({
     let allStats: { emp: Employee, p: number, f: number, total: number, rate: number }[] = [];
 
     const periodRecords = getPeriodRecords(absenteeismRecords);
+    const absenceCounts: Record<string, number> = {};
+    let totalAbsences = 0;
+    let totalPresence = 0;
 
     activeEmployees.forEach(emp => {
       let calcP = 0, calcF = 0;
@@ -281,8 +294,18 @@ export default function AbsenteismoTab({
       empRecords.forEach(rec => {
         if (!processedDates.has(rec.date)) {
           processedDates.add(rec.date);
-          if (rec.status === 'P') calcP++;
-          else if (['F', 'A', 'PR', 'ER', 'EC', 'LM', 'SA', 'DE', 'AF'].includes(rec.status)) calcF++;
+          const isSat = isSaturday(rec.date);
+          if (rec.status === 'P') {
+            // Sábados NÃO contam como presença
+            if (!isSat) {
+              calcP++;
+              totalPresence++;
+            }
+          } else {
+            calcF++;
+            totalAbsences++;
+            absenceCounts[rec.status] = (absenceCounts[rec.status] || 0) + 1;
+          }
         }
       });
 
@@ -294,7 +317,32 @@ export default function AbsenteismoTab({
     });
 
     const top3 = [...allStats].sort((a, b) => b.rate - a.rate || b.p - a.p).slice(0, 3);
-    return { mostAbsent, top3 };
+    const totalGeneral = totalPresence + totalAbsences;
+
+    const absenceTypeBreakdown = STATUS_LEGEND
+      .filter(l => l.status !== 'P')
+      .map(l => {
+        const count = absenceCounts[l.status] || 0;
+        const pctOfAbsences = totalAbsences > 0 ? (count / totalAbsences) * 100 : 0;
+        const pctOfGeneral = totalGeneral > 0 ? (count / totalGeneral) * 100 : 0;
+        return {
+          ...l,
+          count,
+          pctOfAbsences,
+          pctOfGeneral
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    return {
+      mostAbsent,
+      top3,
+      totalAbsences,
+      totalPresence,
+      totalGeneral,
+      absenceTypeBreakdown,
+      overallAbsenceRate: totalGeneral > 0 ? (totalAbsences / totalGeneral) * 100 : 0
+    };
   }, [activeEmployees, absenteeismRecords, selectedMonth, indicatorPeriod]);
 
   const heStats = useMemo(() => {
@@ -367,26 +415,140 @@ export default function AbsenteismoTab({
           {canViewDashboards && (
             <>
               <IndicatorFilter />
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2fr)', gap: '1rem', flexWrap: 'wrap', marginTop: '-0.5rem' }}>
 
-                <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.1) 100%)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase' }}>Colaborador com Maior Ausência</span>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{absStats.mostAbsent.name}</span>
-                  </div>
-                  {absStats.mostAbsent.count > 0 ? <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{absStats.mostAbsent.count} ocorrências no período.</span> : <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Nenhuma ausência reportada.</span>}
+              {/* KPI CARDS */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem', marginTop: '-0.5rem' }}>
+                <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.35rem', background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.06) 0%, rgba(239, 68, 68, 0.12) 100%)', border: '1px solid rgba(239, 68, 68, 0.25)' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Taxa Geral de Absenteísmo</span>
+                  <span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1 }}>{absStats.overallAbsenceRate.toFixed(1)}%</span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{absStats.totalAbsences} ausências em {absStats.totalGeneral} apontamentos</span>
                 </div>
 
-                <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase' }}>Top 3 Assiduidades do Período</span>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
+                <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.35rem', background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.06) 0%, rgba(249, 115, 22, 0.12) 100%)', border: '1px solid rgba(249, 115, 22, 0.25)' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total de Ausências</span>
+                  <span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1 }}>{absStats.totalAbsences}</span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Ocorrências no período selecionado</span>
+                </div>
+
+                <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.35rem', background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.06) 0%, rgba(34, 197, 94, 0.12) 100%)', border: '1px solid rgba(34, 197, 94, 0.25)' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Presenças Computadas</span>
+                  <span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1 }}>{absStats.totalPresence}</span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Sábados excluídos (Horas extras)</span>
+                </div>
+
+                <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.35rem', background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.06) 0%, rgba(139, 92, 246, 0.12) 100%)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Maior Ausência Individual</span>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={absStats.mostAbsent.name}>{absStats.mostAbsent.name}</span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{absStats.mostAbsent.count > 0 ? `${absStats.mostAbsent.count} ocorrência(s)` : 'Nenhuma ausência'}</span>
+                </div>
+              </div>
+
+              {/* DETALHAMENTO DE AUSÊNCIAS POR TIPO & TOP ASSIDUIDADES */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 2fr)', gap: '1rem', flexWrap: 'wrap' }}>
+                {/* Resumo de Ausências por Tipo */}
+                <div className="table-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div>
+                      <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-primary)' }}>
+                        Resumo de Ausências por Tipo
+                      </h3>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        Percentual em relação ao total de ausências e em relação ao geral no período
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: 'var(--bg-layer)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                      Total: {absStats.totalAbsences} ocorrência(s)
+                    </span>
+                  </div>
+
+                  {/* Barra empilhada visual proporcional */}
+                  {absStats.totalAbsences > 0 ? (
+                    <div>
+                      <div style={{ display: 'flex', height: '14px', borderRadius: '7px', overflow: 'hidden', background: 'var(--bg-layer)', border: '1px solid var(--border-color)' }}>
+                        {absStats.absenceTypeBreakdown.filter(t => t.count > 0).map(t => (
+                          <div
+                            key={t.status}
+                            style={{
+                              width: `${t.pctOfAbsences}%`,
+                              background: t.bg,
+                              transition: 'width 0.3s ease'
+                            }}
+                            title={`${t.label}: ${t.count} (${t.pctOfAbsences.toFixed(1)}% das ausências)`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Lista com percentuais */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '340px', overflowY: 'auto' }} className="custom-scroll">
+                    {absStats.totalAbsences === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                        Nenhuma ausência registrada para o período selecionado.
+                      </div>
+                    ) : (
+                      absStats.absenceTypeBreakdown.filter(t => t.count > 0).map(t => (
+                        <div
+                          key={t.status}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.5rem 0.75rem',
+                            borderRadius: '8px',
+                            background: 'var(--bg-layer)',
+                            border: '1px solid var(--border-color)',
+                            gap: '0.75rem'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: '160px', flex: 1 }}>
+                            <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: t.bg, color: t.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', flexShrink: 0 }}>
+                              {t.status}
+                            </div>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{t.label}</span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', minWidth: '50px', textAlign: 'right' }}>
+                              {t.count} {t.count === 1 ? 'reg.' : 'reg.'}
+                            </span>
+                            
+                            {/* % do Total de Ausências */}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: '95px' }}>
+                              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#dc2626' }}>
+                                {t.pctOfAbsences.toFixed(1)}%
+                              </span>
+                              <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>das ausências</span>
+                            </div>
+
+                            {/* % do Geral */}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: '85px' }}>
+                              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                {t.pctOfGeneral.toFixed(1)}%
+                              </span>
+                              <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>do geral ({absStats.totalGeneral})</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Top 3 Assiduidades */}
+                <div className="table-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top 3 Assiduidades do Período</span>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0' }}>Baseado em presenças regulares (segunda a sexta)</p>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                     {absStats.top3.length === 0 ? <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Nenhum dado calculado para o período.</span> : null}
                     {absStats.top3.map((st, i) => (
-                      <div key={st.emp.id} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                        <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#10b98115', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>#{i + 1}</div>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontWeight: 700, fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={st.emp.name}>{st.emp.name}</span>
-                          <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>{(st.rate * 100).toFixed(1)}% ({st.p} Pres)</span>
+                      <div key={st.emp.id} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.6rem 0.8rem', background: 'var(--bg-layer)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#10b98118', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0 }}>#{i + 1}</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={st.emp.name}>{st.emp.name}</span>
+                          <span style={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 600 }}>{(st.rate * 100).toFixed(1)}% assiduidade ({st.p} Presenças)</span>
                         </div>
                       </div>
                     ))}
@@ -463,13 +625,20 @@ export default function AbsenteismoTab({
                   <tr>
                     <th style={{ width: '250px', position: 'sticky', left: 0, zIndex: 10, background: 'var(--bg-card)', borderRight: '2px solid var(--border-color)' }}>Funcionário</th>
                     {daysArray.map(d => {
-                      const isHoliday = holidays.some(h => h.date === d.dateStr);
-                      const isSundayOrHoliday = d.weekDay === 'Dom' || isHoliday;
+                      const cleanHDate = (h: Holiday) => (h.date.includes('T') ? h.date.split('T')[0] : h.date);
+                      const isHoliday = holidays.some(h => cleanHDate(h) === d.dateStr);
+                      const isSunday = d.weekDay === 'Dom';
+                      const isSaturdayDay = d.weekDay === 'Sáb';
+                      const isSundayOrHoliday = isSunday || isHoliday;
                       return (
-                        <th key={d.day} style={{ width: '45px', minWidth: '45px', textAlign: 'center', padding: '0.4rem 0.2rem', fontSize: '0.75rem', borderBottom: '2px solid var(--border-color)', ...(isSundayOrHoliday ? { background: 'rgba(239, 68, 68, 0.05)', color: '#ef4444' } : {}) }}>
+                        <th key={d.day} style={{
+                          width: '45px', minWidth: '45px', textAlign: 'center', padding: '0.4rem 0.2rem', fontSize: '0.75rem',
+                          borderBottom: '2px solid var(--border-color)',
+                          ...(isSundayOrHoliday ? { background: 'rgba(239, 68, 68, 0.05)', color: '#ef4444' } : isSaturdayDay ? { background: 'rgba(245, 158, 11, 0.08)', color: '#d97706' } : {})
+                        }} title={isSaturdayDay ? 'Sábado: Horas Extras (não computado na presença regular)' : isSundayOrHoliday ? 'Descanso Semanal / Feriado' : undefined}>
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                             <b style={{ fontSize: '1rem' }}>{d.day}</b>
-                            <span style={{ color: isSundayOrHoliday ? '#ef4444' : 'var(--text-muted)', fontSize: '0.65rem' }}>{d.weekDay}</span>
+                            <span style={{ color: isSundayOrHoliday ? '#ef4444' : isSaturdayDay ? '#d97706' : 'var(--text-muted)', fontSize: '0.65rem' }}>{d.weekDay}</span>
                           </div>
                         </th>
                       )
@@ -493,12 +662,16 @@ export default function AbsenteismoTab({
                         {daysArray.map(d => {
                           const rec = getRecord(emp.id, d.dateStr);
                           const leg = rec ? STATUS_LEGEND.find(l => l.status === rec.status) : null;
-                          const isHoliday = holidays.some(h => h.date === d.dateStr);
-                          const isSundayOrHoliday = d.weekDay === 'Dom' || isHoliday;
+                          const cleanHDate = (h: Holiday) => (h.date.includes('T') ? h.date.split('T')[0] : h.date);
+                          const isHoliday = holidays.some(h => cleanHDate(h) === d.dateStr);
+                          const isSunday = d.weekDay === 'Dom';
+                          const isSaturdayDay = d.weekDay === 'Sáb';
+                          const isSundayOrHoliday = isSunday || isHoliday;
 
                           if (rec) {
-                            if (rec.status === 'P') calcP++;
-                            else if (['F', 'A', 'PR', 'ER', 'EC', 'LM', 'SA', 'DE', 'AF'].includes(rec.status)) calcF++;
+                            // Sábados não contam como presença
+                            if (rec.status === 'P' && !isSaturdayDay) calcP++;
+                            else if (rec.status !== 'P') calcF++;
                           }
 
                           return (
@@ -508,7 +681,7 @@ export default function AbsenteismoTab({
                               style={{
                                 textAlign: 'center', cursor: canEdit ? 'crosshair' : 'default', padding: '3px',
                                 border: '1px solid var(--border-color)',
-                                ...(isSundayOrHoliday && !rec ? { background: 'rgba(239, 68, 68, 0.05)' } : {})
+                                ...(isSundayOrHoliday && !rec ? { background: 'rgba(239, 68, 68, 0.05)' } : isSaturdayDay && !rec ? { background: 'rgba(245, 158, 11, 0.04)' } : {})
                               }}
                             >
                               {leg ? (
