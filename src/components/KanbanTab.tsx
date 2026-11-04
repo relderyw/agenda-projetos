@@ -1,9 +1,10 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import {
   ChevronLeft, ChevronRight, Calendar, User2,
-  CheckCircle2, Clock, AlertCircle, Minus, Play, Pause, FastForward
+  CheckCircle2, Clock, AlertCircle, Minus, Play, Pause, FastForward,
+  Eye, Edit3, X, Save, ChevronDown
 } from 'lucide-react'
-import type { Activity, Theme, User, Holiday, OrgSector } from '../types'
+import type { Activity, Theme, User, Holiday, OrgSector, Priority, Status } from '../types'
 import { dbService } from '../services/db'
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
   onRefresh: () => void;
   showToast?: (type: 'success' | 'error' | 'info', title: string, msg: string) => void;
   sectors: OrgSector[];
+  onUpdateActivity?: (a: Activity) => Promise<void> | void;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -89,8 +91,8 @@ function prioClass(p: Activity['prioridade']): string {
 }
 
 function ActivityCard({
-  act, theme, isToday, cardDate
-}: { act: Activity; theme?: Theme; isToday: boolean; cardDate: string }) {
+  act, theme, isToday, cardDate, onClick
+}: { act: Activity; theme?: Theme; isToday: boolean; cardDate: string; onClick?: () => void }) {
   
   // Lógica Multi-dia: Distribuir o % pelos dias
   const start = parseLocal(act.planejamento);
@@ -142,7 +144,7 @@ function ActivityCard({
   }
 
   return (
-    <div className={cardClass}>
+    <div className={cardClass} onClick={onClick}>
       <div className="kb-card-prog-strip">
         <div
           className="kb-card-prog-fill"
@@ -193,7 +195,7 @@ function ActivityCard({
   )
 }
 
-export default function KanbanTab({ activities, themes, users, holidays, currentUser, onRefresh, showToast, sectors }: Props) {
+export default function KanbanTab({ activities, themes, users, holidays, currentUser, onRefresh, showToast, sectors, onUpdateActivity }: Props) {
   const canManageHolidays = (currentUser?.role === 'Administrador' || currentUser?.role === 'Super Admin') || currentUser?.role === 'Gestão';
 
   const holidayMap = useMemo(() => {
@@ -224,6 +226,154 @@ export default function KanbanTab({ activities, themes, users, holidays, current
   )
 
   const themeMap = useMemo(() => Object.fromEntries(themes.map(t => [t.id, t])), [themes])
+
+  // ── Mapeamento de Usuários e Permissões de Card ────────────
+  const userMap = useMemo(() => Object.fromEntries(users.map(u => [u.id, u])), [users]);
+
+  const canEditCard = useCallback((act: Activity): boolean => {
+    if (!currentUser) return false;
+    const role = currentUser.role;
+    const isSuperAdmin = role === 'Super Admin';
+    const isAdmin = role === 'Administrador';
+    const isGestao = role === 'Gestão' || role === 'Gestao';
+    if (isSuperAdmin || isAdmin || isGestao) return true;
+
+    // Analistas e demais: apenas suas próprias atividades
+    const isOwner = act.responsavel === currentUser.id ||
+      act.responsavel === currentUser.name ||
+      (currentUser.name && act.responsavel && act.responsavel.toLowerCase() === currentUser.name.toLowerCase());
+    return !!isOwner;
+  }, [currentUser]);
+
+  // Modals de Interação
+  const [actionModalAct, setActionModalAct] = useState<Activity | null>(null);
+  const [viewModalAct, setViewModalAct] = useState<Activity | null>(null);
+  const [editModalAct, setEditModalAct] = useState<Activity | null>(null);
+  const [editForm, setEditForm] = useState<Activity | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleCardClick = (act: Activity) => {
+    setActionModalAct(act);
+  };
+
+  const openEditActivity = (act: Activity) => {
+    setEditForm({ ...act });
+    setEditModalAct(act);
+  };
+
+  const formatDisplayDate = (dateStr?: string) => {
+    if (!dateStr) return '';
+    const clean = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+    const parts = clean.split('-');
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return clean;
+  };
+
+  const getViewStatusType = (act: Activity): 'done' | 'late' | 'prog' | 'pend' => {
+    if (act.status === 'FINALIZADA' || act.percentualAndamento === 100) return 'done';
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (act.status !== 'CANCELADA' && act.dataPrevistaFinalizacao && act.dataPrevistaFinalizacao < todayStr) return 'late';
+    if (act.status === 'EM ANDAMENTO' || act.percentualAndamento > 0) return 'prog';
+    return 'pend';
+  };
+
+  const handlePlanDateChange = (dateStr: string) => {
+    if (!dateStr || !editForm) return;
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const planDate = new Date(y, m - 1, d);
+    if (isNaN(planDate.getTime())) return;
+
+    const dayOfMonth = planDate.getDate();
+    const firstDay = new Date(y, m - 1, 1);
+    const firstDayOfWeek = firstDay.getDay();
+    const offset = (firstDayOfWeek + 6) % 7;
+    const weekNum = Math.ceil((dayOfMonth + offset) / 7);
+
+    const ptMonths = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const w = `W${weekNum > 5 ? 5 : weekNum}`;
+    const month = ptMonths[planDate.getMonth()];
+
+    setEditForm(f => f ? ({ ...f, planejamento: dateStr, week: `${w} - ${month}` }) : null);
+  };
+
+  const handleStatusChange = (newStatus: Status) => {
+    setEditForm(f => {
+      if (!f) return null;
+      let newPercent = f.percentualAndamento;
+      if (newStatus === 'FINALIZADA') newPercent = 100;
+      else if (newStatus === 'PENDENTE') newPercent = 0;
+      else if (newStatus === 'EM ANDAMENTO' && f.percentualAndamento === 0) newPercent = 10;
+
+      return {
+        ...f,
+        status: newStatus,
+        percentualAndamento: newPercent,
+        dataFinalizada: newStatus === 'FINALIZADA' ? (f.dataFinalizada || new Date().toISOString().slice(0, 10)) : f.dataFinalizada
+      };
+    });
+  };
+
+  const handlePercentChange = (val: number) => {
+    const limitedVal = Math.min(100, Math.max(0, val));
+    setEditForm(f => {
+      if (!f) return null;
+      let newStatus = f.status;
+      if (limitedVal === 100) newStatus = 'FINALIZADA';
+      else if (limitedVal > 0 && f.status === 'PENDENTE') newStatus = 'EM ANDAMENTO';
+      else if (limitedVal === 0 && f.status === 'EM ANDAMENTO') newStatus = 'PENDENTE';
+
+      return {
+        ...f,
+        percentualAndamento: limitedVal,
+        status: newStatus,
+        dataFinalizada: limitedVal === 100 ? (f.dataFinalizada || new Date().toISOString().slice(0, 10)) : f.dataFinalizada
+      };
+    });
+  };
+
+  const saveEditActivity = async () => {
+    if (!editForm) return;
+    if (!editForm.descricao.trim()) {
+      alert('A descrição é obrigatória.');
+      return;
+    }
+    if (!editForm.responsavel) {
+      alert('Selecione um responsável.');
+      return;
+    }
+    if (!editForm.tema) {
+      alert('Selecione um tema.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const updated: Activity = {
+        ...editForm,
+        dataComentario: editForm.comentario !== editModalAct?.comentario
+          ? new Date().toLocaleString('pt-BR')
+          : editForm.dataComentario
+      };
+
+      if (onUpdateActivity) {
+        await onUpdateActivity(updated);
+      } else {
+        const orgId = currentUser?.role === 'Super Admin' ? undefined : currentUser?.organization_id;
+        await dbService.saveActivity(updated, orgId);
+        onRefresh();
+      }
+
+      showToast?.('success', 'Atividade Atualizada', 'As alterações foram salvas com sucesso.');
+      setEditModalAct(null);
+      setEditForm(null);
+    } catch (err: any) {
+      console.error(err);
+      showToast?.('error', 'Erro ao salvar', 'Não foi possível salvar a atividade.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   
   const onlyAnalysts = useMemo(() => users.filter(u => u.role === 'Analista'), [users]);
 
@@ -364,7 +514,16 @@ export default function KanbanTab({ activities, themes, users, holidays, current
                             {holiday.description && <span className="kb-holiday-desc">{holiday.description}</span>}
                           </div>
                         ) : acts.length === 0 ? <div className="kb-empty-cell" /> : 
-                          acts.map(act => <ActivityCard key={act.id} act={act} theme={themeMap[act.tema]} isToday={dayDef?.isToday ?? false} cardDate={date} />)
+                          acts.map(act => (
+                            <ActivityCard
+                              key={act.id}
+                              act={act}
+                              theme={themeMap[act.tema]}
+                              isToday={dayDef?.isToday ?? false}
+                              cardDate={date}
+                              onClick={() => handleCardClick(act)}
+                            />
+                          ))
                         }
                       </div>
                     )
@@ -379,6 +538,400 @@ export default function KanbanTab({ activities, themes, users, holidays, current
               <p>Nenhuma atividade planejada</p>
             </div>
           )}
+
+      {/* ── MODAL 1: OPÇÕES DO CARD (VISUALIZAR OU EDITAR) ── */}
+      {actionModalAct && (
+        <div className="modal-overlay" onClick={() => setActionModalAct(null)}>
+          <div className="modal-box sm" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px', borderRadius: '16px' }}>
+            <div className="modal-header" style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {themeMap[actionModalAct.tema] && (
+                  <span
+                    className="kb-theme-chip"
+                    style={{
+                      color: themeMap[actionModalAct.tema]?.color,
+                      borderColor: `${themeMap[actionModalAct.tema]?.color}40`,
+                      background: `${themeMap[actionModalAct.tema]?.color}14`,
+                      margin: 0
+                    }}
+                  >
+                    {themeMap[actionModalAct.tema]?.name}
+                  </span>
+                )}
+              </div>
+              <button className="modal-close" onClick={() => setActionModalAct(null)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ padding: '1.25rem' }}>
+              <p style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: '1.25rem', lineHeight: 1.4 }}>
+                {actionModalAct.descricao}
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {/* Opção Visualizar */}
+                <button
+                  type="button"
+                  className="btn-card-action view"
+                  onClick={() => {
+                    setViewModalAct(actionModalAct);
+                    setActionModalAct(null);
+                  }}
+                >
+                  <div className="action-icon-wrap eye">
+                    <Eye size={20} />
+                  </div>
+                  <div style={{ textAlign: 'left', flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>👁️ Visualizar Atividade</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Expandir card em destaque com todos os detalhes</div>
+                  </div>
+                </button>
+
+                {/* Opção Editar */}
+                {(() => {
+                  const canEdit = canEditCard(actionModalAct);
+                  return (
+                    <button
+                      type="button"
+                      className={`btn-card-action edit ${!canEdit ? 'disabled' : ''}`}
+                      disabled={!canEdit}
+                      title={!canEdit ? 'Apenas o responsável ou administradores/gestão podem editar esta atividade' : undefined}
+                      onClick={() => {
+                        if (!canEdit) return;
+                        openEditActivity(actionModalAct);
+                        setActionModalAct(null);
+                      }}
+                    >
+                      <div className="action-icon-wrap edit">
+                        <Edit3 size={20} />
+                      </div>
+                      <div style={{ textAlign: 'left', flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>✍️ Editar Atividade</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                          {canEdit ? 'Atualizar status, datas, progresso e justificativa' : 'Disponível apenas para o responsável'}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 2: EXPANDIR CARD (VISUALIZAR) ── */}
+      {viewModalAct && (
+        <div className="modal-overlay" onClick={() => setViewModalAct(null)} style={{ backdropFilter: 'blur(8px)', background: 'rgba(0,0,0,0.65)' }}>
+          <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: '640px', borderRadius: '18px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <div style={{ height: '6px', width: '100%', background: themeMap[viewModalAct.tema]?.color || '#3b82f6' }} />
+
+            <div className="modal-header" style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                {themeMap[viewModalAct.tema] && (
+                  <span
+                    className="kb-theme-chip"
+                    style={{
+                      color: themeMap[viewModalAct.tema]?.color,
+                      borderColor: `${themeMap[viewModalAct.tema]?.color}50`,
+                      background: `${themeMap[viewModalAct.tema]?.color}18`,
+                      fontSize: '0.82rem',
+                      padding: '4px 10px',
+                      fontWeight: 700
+                    }}
+                  >
+                    {themeMap[viewModalAct.tema]?.name}
+                  </span>
+                )}
+                <span className={`kb-status-badge ${statusClassFront(getViewStatusType(viewModalAct))}`} style={{ fontSize: '0.8rem', padding: '3px 8px' }}>
+                  <StatusIconFront type={getViewStatusType(viewModalAct)} />
+                  {viewModalAct.status}
+                </span>
+                <span className={`kb-prio-badge ${prioClass(viewModalAct.prioridade)}`} style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                  Prioridade: {viewModalAct.prioridade}
+                </span>
+              </div>
+              <button className="modal-close" onClick={() => setViewModalAct(null)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Descrição da Atividade
+                </span>
+                <p style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.35rem', lineHeight: 1.45 }}>
+                  {viewModalAct.descricao}
+                </p>
+              </div>
+
+              {/* Responsável */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', background: 'var(--bg-layer)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: userMap[viewModalAct.responsavel]?.color || '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1rem' }}>
+                  {userMap[viewModalAct.responsavel]?.name?.[0] || 'U'}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Responsável</span>
+                  <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                    {userMap[viewModalAct.responsavel]?.name || viewModalAct.responsavel || 'Não atribuído'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Barra de Progresso Ampliada */}
+              <div style={{ padding: '0.85rem 1rem', background: 'var(--bg-layer)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                    Progresso Geral
+                  </span>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 800, color: themeMap[viewModalAct.tema]?.color || '#3b82f6' }}>
+                    {viewModalAct.percentualAndamento}%
+                  </span>
+                </div>
+                <div style={{ height: '10px', width: '100%', background: 'var(--border)', borderRadius: '5px', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${viewModalAct.percentualAndamento}%`,
+                      background: themeMap[viewModalAct.tema]?.color || '#3b82f6',
+                      borderRadius: '5px',
+                      transition: 'width 0.4s ease'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Grade de Detalhes */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
+                <div style={{ padding: '0.6rem 0.8rem', background: 'var(--bg-layer)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block' }}>Planejamento</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                    {formatDisplayDate(viewModalAct.planejamento)}
+                  </span>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.8rem', background: 'var(--bg-layer)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block' }}>Prev. Finalização</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                    {formatDisplayDate(viewModalAct.dataPrevistaFinalizacao) || '--'}
+                  </span>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.8rem', background: 'var(--bg-layer)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block' }}>Semana</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                    {viewModalAct.week || '--'}
+                  </span>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.8rem', background: 'var(--bg-layer)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block' }}>Esforço Realizado</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                    {viewModalAct.esforcoRealizado || 0} h
+                  </span>
+                </div>
+              </div>
+
+              {/* Justificativa / Comentário */}
+              {viewModalAct.comentario && (
+                <div style={{ padding: '0.85rem 1rem', background: 'rgba(245, 158, 11, 0.08)', borderRadius: '10px', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                    <AlertCircle size={15} color="#f59e0b" />
+                    <span style={{ fontWeight: 700, fontSize: '0.82rem', color: '#b45309', textTransform: 'uppercase' }}>
+                      Justificativa / Comentário
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', margin: 0, lineHeight: 1.4 }}>
+                    {viewModalAct.comentario}
+                  </p>
+                  {viewModalAct.dataComentario && (
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block', marginTop: '0.35rem' }}>
+                      Atualizado em: {viewModalAct.dataComentario}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer" style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button className="btn-ghost" onClick={() => setViewModalAct(null)}>Fechar</button>
+              {canEditCard(viewModalAct) && (
+                <button
+                  className="btn-primary"
+                  onClick={() => {
+                    const act = viewModalAct;
+                    setViewModalAct(null);
+                    openEditActivity(act);
+                  }}
+                >
+                  <Edit3 size={16} /> ✍️ Editar Atividade
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 3: EDITAR ATIVIDADE ── */}
+      {editModalAct && editForm && (
+        <div className="modal-overlay" onClick={() => setEditModalAct(null)}>
+          <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: '680px' }}>
+            <div className="modal-header">
+              <h2>✍️ Editar Atividade</h2>
+              <button className="modal-close" onClick={() => setEditModalAct(null)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="form-grid">
+                <div className="form-group full">
+                  <label>Descrição da Tarefa *</label>
+                  <textarea
+                    rows={3}
+                    value={editForm.descricao}
+                    onChange={e => setEditForm(f => f ? ({ ...f, descricao: e.target.value }) : null)}
+                    placeholder="Descreva a atividade..."
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Planejamento *</label>
+                  <div className="input-icon-wrap">
+                    <Calendar size={15} />
+                    <input
+                      type="date"
+                      value={editForm.planejamento}
+                      onChange={e => handlePlanDateChange(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Dt. Prevista Finalização</label>
+                  <div className="input-icon-wrap">
+                    <Calendar size={15} />
+                    <input
+                      type="date"
+                      value={editForm.dataPrevistaFinalizacao || ''}
+                      onChange={e => setEditForm(f => f ? ({ ...f, dataPrevistaFinalizacao: e.target.value }) : null)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Tema *</label>
+                  <div className="select-wrap full-w">
+                    <select
+                      value={editForm.tema}
+                      onChange={e => setEditForm(f => f ? ({ ...f, tema: e.target.value }) : null)}
+                    >
+                      <option value="">Selecione...</option>
+                      {themes.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className="sel-icon" />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Responsável *</label>
+                  <div className="select-wrap full-w">
+                    <select
+                      value={editForm.responsavel}
+                      disabled={currentUser?.role !== 'Administrador' && currentUser?.role !== 'Super Admin' && currentUser?.role !== 'Gestão' && currentUser?.role !== 'Gestao'}
+                      onChange={e => setEditForm(f => f ? ({ ...f, responsavel: e.target.value }) : null)}
+                    >
+                      <option value="">Selecione...</option>
+                      {onlyAnalysts.map(u => (
+                        <option key={u.id} value={u.id}>{u.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className="sel-icon" />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Prioridade</label>
+                  <div className="select-wrap full-w">
+                    <select
+                      value={editForm.prioridade}
+                      onChange={e => setEditForm(f => f ? ({ ...f, prioridade: e.target.value as Priority }) : null)}
+                    >
+                      <option value="Alta">Alta</option>
+                      <option value="Média">Média</option>
+                      <option value="Baixa">Baixa</option>
+                    </select>
+                    <ChevronDown size={14} className="sel-icon" />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Status</label>
+                  <div className="select-wrap full-w">
+                    <select
+                      value={editForm.status}
+                      onChange={e => handleStatusChange(e.target.value as Status)}
+                    >
+                      <option value="PENDENTE">PENDENTE</option>
+                      <option value="EM ANDAMENTO">EM ANDAMENTO</option>
+                      <option value="FINALIZADA">FINALIZADA</option>
+                      <option value="POSTERGADA">POSTERGADA</option>
+                      <option value="CANCELADA">CANCELADA</option>
+                    </select>
+                    <ChevronDown size={14} className="sel-icon" />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>% Andamento ({editForm.percentualAndamento}%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={editForm.percentualAndamento}
+                    onChange={e => handlePercentChange(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Esforço Realizado (horas)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={editForm.esforcoRealizado || 0}
+                    onChange={e => setEditForm(f => f ? ({ ...f, esforcoRealizado: Number(e.target.value) }) : null)}
+                  />
+                </div>
+
+                <div className="form-group full">
+                  <label>Justificativa / Comentário</label>
+                  <textarea
+                    rows={2}
+                    value={editForm.comentario || ''}
+                    placeholder="Adicione um comentário ou justificativa de status/prazo..."
+                    onChange={e => setEditForm(f => f ? ({ ...f, comentario: e.target.value }) : null)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn-ghost" onClick={() => setEditModalAct(null)}>
+                Cancelar
+              </button>
+              <button className="btn-primary" onClick={saveEditActivity} disabled={isSaving}>
+                <Save size={16} /> {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
         </div>
       </div>
     </div>

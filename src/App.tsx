@@ -1299,6 +1299,7 @@ export default function App() {
             onRefresh={refreshData}
             showToast={showToast}
             sectors={sectors}
+            onUpdateActivity={updateActivity}
           />
         )}
         {activeTab === 'dashboard' && (
