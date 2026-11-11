@@ -4382,6 +4382,45 @@
 }
 
 /* ─── Destaque Visual de Abono no Absenteísmo ─── */
+.btn-abono-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-abono-action:hover {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: #f59e0b;
+  color: #b45309;
+  transform: translateY(-1px);
+}
+
+[data-theme="dark"] .btn-abono-action {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+[data-theme="dark"] .btn-abono-action:hover {
+  background: rgba(245, 158, 11, 0.28);
+  color: #fde68a;
+}
+
+.abono-btn-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
 .abono-highlight {
   border: 2px solid #f59e0b !important;
   animation: abonoPulse 2.5s infinite ease-in-out;
