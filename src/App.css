@@ -4382,6 +4382,34 @@
 }
 
 /* ─── Destaque Visual de Abono no Absenteísmo ─── */
+.abs-tool-select-wrapper {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  width: auto !important;
+  max-width: 220px;
+}
+
+.abs-tool-select {
+  padding: 0.5rem 1.8rem 0.5rem 0.8rem;
+  border-radius: 10px;
+  background: var(--bg-input-alt);
+  border: 1px solid var(--border-input);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  width: auto;
+  min-width: 170px;
+  max-width: 210px;
+  transition: border-color 0.2s ease;
+}
+
+.abs-tool-select:focus {
+  border-color: var(--accent-primary);
+}
+
 .btn-abono-action {
   display: inline-flex;
   align-items: center;
@@ -4389,13 +4417,17 @@
   background: rgba(245, 158, 11, 0.12);
   color: #d97706;
   border: 1px solid rgba(245, 158, 11, 0.35);
-  padding: 6px 14px;
+  padding: 0.5rem 1rem;
   border-radius: 8px;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  margin-left: 0.5rem;
 }
 
 .btn-abono-action:hover {

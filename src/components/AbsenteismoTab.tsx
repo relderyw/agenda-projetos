@@ -147,7 +147,7 @@ export default function AbsenteismoTab({
         if (rec) {
           // Sábados não contam como presença
           if (rec.status === 'P' && d.weekDay !== 'Sáb') calcP++;
-          else if (rec.status !== 'P') calcF++;
+          else if (isDirectAbsence(rec.status)) calcF++;
         }
         return rec ? rec.status : '';
       });
@@ -576,7 +576,7 @@ export default function AbsenteismoTab({
           {/* CONTROLES */}
           <div className="table-card" style={{ padding: '1.25rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Mês:</span>
                   <div className="input-icon-wrap" style={{ width: 'auto' }}>
@@ -589,11 +589,11 @@ export default function AbsenteismoTab({
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Ferramenta:</span>
-                      <div className="select-wrap" style={{ width: '180px', background: 'var(--bg-layer)' }}>
+                      <div className="abs-tool-select-wrapper">
                         <select
                           value={activeStatus}
                           onChange={e => setActiveStatus(e.target.value as AbsenteeismStatus | 'LIMPAR')}
-                          style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.82rem' }}
+                          className="abs-tool-select"
                         >
                           <option value="LIMPAR" style={{ color: '#ef4444' }}>Limpar Célula</option>
                           <optgroup label="Status">
