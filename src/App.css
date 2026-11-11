@@ -4354,6 +4354,63 @@
 .kn-stat-card.proj .kn-stat-fill { background: #10b981; }
 
 /* ─── Regras de Visão Restrita do Analista e Feedback ─── */
+.kn-feedback-count-badge {
+  background: var(--accent-primary);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  border-radius: 10px;
+  padding: 1px 5px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.kn-th-fb-indicator {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--accent-primary);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  border-radius: 8px;
+  padding: 1px 4px;
+  line-height: 1;
+}
+
+/* ─── Destaque Visual de Abono no Absenteísmo ─── */
+.abono-highlight {
+  border: 2px solid #f59e0b !important;
+  animation: abonoPulse 2.5s infinite ease-in-out;
+}
+
+@keyframes abonoPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3), 0 2px 8px rgba(245, 158, 11, 0.5);
+  }
+}
+
+.abono-exclamation {
+  position: absolute;
+  top: -6px;
+  right: -5px;
+  font-size: 0.72rem;
+  line-height: 1;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  padding: 1px;
+}
+
+[data-theme="dark"] .abono-exclamation {
+  background: #1e293b;
+}
 .kn-cell-masked {
   background: var(--bg-hover) !important;
   cursor: not-allowed !important;

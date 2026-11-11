@@ -500,6 +500,8 @@ export const dbService = {
       employeeId: row.employee_id || row.employeeId,
       date: row.date,
       status: row.status,
+      hasAllowance: row.has_allowance !== undefined ? row.has_allowance : row.hasAllowance,
+      allowanceReason: row.allowance_reason || row.allowanceReason,
       updatedBy: row.updated_by || row.updatedBy,
       updatedAt: row.updated_at || row.updatedAt
     }))
@@ -512,6 +514,8 @@ export const dbService = {
       employee_id: record.employeeId,
       date: record.date,
       status: record.status,
+      has_allowance: record.hasAllowance ?? false,
+      allowance_reason: record.allowanceReason || null,
       updated_by: record.updatedBy,
       updated_at: new Date().toISOString(),
       ...(orgId ? { organization_id: orgId } : {})

@@ -166,6 +166,8 @@ export interface AbsenteeismRecord {
   employeeId: string;
   date: string; // YYYY-MM-DD
   status: AbsenteeismStatus;
+  hasAllowance?: boolean; // Se possui abono concedido
+  allowanceReason?: string; // Motivo do abono
   updatedBy?: string;
   updatedAt?: string;
 }

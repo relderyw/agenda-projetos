@@ -42,6 +42,8 @@ export default function KnowledgeTab({
   const [userModal, setUserModal] = useState<{ open: boolean }>({ open: false });
   const [feedbackModal, setFeedbackModal] = useState<{ open: boolean; analyst: User | null }>({ open: false, analyst: null });
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [filterMonth, setFilterMonth] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
   const isAnalyst = currentUser?.role === 'Analista';
   const p = currentUser?.permissions;
@@ -285,11 +287,29 @@ export default function KnowledgeTab({
     ? sectors.filter(s => s.name.toLowerCase() === currentUser.area?.toLowerCase())
     : sectors;
 
-  const currentAnalystFeedbacks = feedbackModal.analyst
-    ? analystFeedbacks
-        .filter(f => f.analystId === feedbackModal.analyst?.id)
-        .sort((a, b) => b.date.localeCompare(a.date))
-    : [];
+  // Mapa de contagem de relatos por analista (para exibição no cabeçalho/card exclusiva para gestão/admin)
+  const feedbackCountsByAnalyst = useMemo(() => {
+    const counts: Record<string, number> = {};
+    analystFeedbacks.forEach(f => {
+      counts[f.analystId] = (counts[f.analystId] || 0) + 1;
+    });
+    return counts;
+  }, [analystFeedbacks]);
+
+  const currentAnalystFeedbacks = useMemo(() => {
+    if (!feedbackModal.analyst) return [];
+    return analystFeedbacks
+      .filter(f => f.analystId === feedbackModal.analyst?.id)
+      .filter(f => {
+        if (!filterMonth) return true;
+        return f.date.startsWith(filterMonth);
+      })
+      .filter(f => {
+        if (filterStatus === 'all') return true;
+        return f.impact === filterStatus;
+      })
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [analystFeedbacks, feedbackModal.analyst, filterMonth, filterStatus]);
 
   return (
     <div className="tab-content kn-full-root">
@@ -356,33 +376,43 @@ export default function KnowledgeTab({
         </div>
 
         <div className="kn-analysts-strip">
-          {analystStats.map(stat => (
-            <div key={stat.id} className="kn-analyst-card">
-              <div className="kn-analyst-info">
-                <span 
-                  className={`kn-an-name ${isManagementOrAdmin ? 'clickable-name' : ''}`} 
-                  title={isManagementOrAdmin ? `Ver/Registrar relato de ${stat.name}` : stat.name}
-                  onClick={() => {
-                    if (isManagementOrAdmin) {
-                      setFeedbackModal({ open: true, analyst: stat });
-                    }
-                  }}
-                >
-                  {stat.name}
-                </span>
-                <span className="kn-an-pct">{stat.pct}%</span>
+          {analystStats.map(stat => {
+            const fbCount = feedbackCountsByAnalyst[stat.id] || 0;
+            return (
+              <div key={stat.id} className="kn-analyst-card">
+                <div className="kn-analyst-info">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, overflow: 'hidden' }}>
+                    <span 
+                      className={`kn-an-name ${isManagementOrAdmin ? 'clickable-name' : ''}`} 
+                      title={isManagementOrAdmin ? `Ver/Registrar relato de ${stat.name} (${fbCount} relatos)` : stat.name}
+                      onClick={() => {
+                        if (isManagementOrAdmin) {
+                          setFeedbackModal({ open: true, analyst: stat });
+                        }
+                      }}
+                    >
+                      {stat.name}
+                    </span>
+                    {isManagementOrAdmin && fbCount > 0 && (
+                      <span className="kn-feedback-count-badge" title={`${fbCount} relato(s) cadastrado(s)`}>
+                        {fbCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className="kn-an-pct">{stat.pct}%</span>
+                </div>
+                <div className="kn-an-bar-bg">
+                  <div 
+                    className="kn-an-bar-fill" 
+                    style={{ 
+                      width: `${stat.pct}%`,
+                      background: stat.pct > 70 ? '#10b981' : stat.pct > 30 ? '#f59e0b' : '#ef4444' 
+                    }} 
+                  />
+                </div>
               </div>
-              <div className="kn-an-bar-bg">
-                <div 
-                  className="kn-an-bar-fill" 
-                  style={{ 
-                    width: `${stat.pct}%`,
-                    background: stat.pct > 70 ? '#10b981' : stat.pct > 30 ? '#f59e0b' : '#ef4444' 
-                  }} 
-                />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -407,19 +437,27 @@ export default function KnowledgeTab({
                   <th className="kn-th-colab sticky-left-2">COLABORADOR</th>
                   {areaAnalysts.map(u => {
                     const isOtherAnalyst = isAnalyst && u.id !== currentUser?.id;
+                    const fbCount = feedbackCountsByAnalyst[u.id] || 0;
                     return (
                       <th 
                         key={u.id} 
                         className={`kn-th-analyst ${isOtherAnalyst ? 'th-masked' : ''}`}
-                        title={isManagementOrAdmin ? `Clique para abrir relato de ${u.name}` : undefined}
+                        title={isManagementOrAdmin ? `Clique para abrir relato de ${u.name} (${fbCount} relatos)` : undefined}
                         onClick={() => {
                           if (isManagementOrAdmin) {
                             setFeedbackModal({ open: true, analyst: u });
                           }
                         }}
-                        style={{ cursor: isManagementOrAdmin ? 'pointer' : 'default' }}
+                        style={{ cursor: isManagementOrAdmin ? 'pointer' : 'default', position: 'relative' }}
                       >
-                        <div className={`kn-vertical-name ${isManagementOrAdmin ? 'clickable-header' : ''}`}>{u.name}</div>
+                        <div className={`kn-vertical-name ${isManagementOrAdmin ? 'clickable-header' : ''}`}>
+                          {u.name}
+                        </div>
+                        {isManagementOrAdmin && fbCount > 0 && (
+                          <div className="kn-th-fb-indicator" title={`${fbCount} relato(s)`}>
+                            {fbCount}
+                          </div>
+                        )}
                       </th>
                     );
                   })}
@@ -636,13 +674,47 @@ export default function KnowledgeTab({
             </form>
 
             <div className="kn-feedback-history">
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '1rem 0 0.5rem 0', color: 'var(--text-primary)' }}>
-                Histórico de Relatos ({currentAnalystFeedbacks.length})
-              </h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '1rem 0 0.5rem 0', flexWrap: 'wrap', gap: '8px' }}>
+                <h3 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                  Histórico de Relatos ({currentAnalystFeedbacks.length})
+                </h3>
+
+                {/* Filtros de Mês e Status */}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input 
+                    type="month" 
+                    value={filterMonth} 
+                    onChange={e => setFilterMonth(e.target.value)}
+                    style={{ fontSize: '0.72rem', padding: '3px 6px', borderRadius: '4px', border: '1px solid var(--border)' }}
+                    title="Filtrar por Mês"
+                  />
+                  <select 
+                    value={filterStatus} 
+                    onChange={e => setFilterStatus(e.target.value)}
+                    style={{ fontSize: '0.72rem', padding: '3px 6px', borderRadius: '4px', border: '1px solid var(--border)' }}
+                    title="Filtrar por Status"
+                  >
+                    <option value="all">Todos os Status</option>
+                    <option value="Positivo">🟢 Positivo</option>
+                    <option value="Negativo">🔴 Negativo</option>
+                    <option value="Sem Impacto">⚪ Sem Impacto</option>
+                  </select>
+                  {(filterMonth || filterStatus !== 'all') && (
+                    <button 
+                      type="button" 
+                      className="btn-ghost" 
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                      onClick={() => { setFilterMonth(''); setFilterStatus('all'); }}
+                    >
+                      Limpar
+                    </button>
+                  )}
+                </div>
+              </div>
               
               {currentAnalystFeedbacks.length === 0 ? (
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '1rem 0' }}>
-                  Nenhum relato registrado para este analista até o momento.
+                  Nenhum relato encontrado com os filtros selecionados.
                 </p>
               ) : (
                 <div className="kn-feedback-list">

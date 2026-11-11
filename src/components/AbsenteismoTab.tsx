@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Download, RefreshCw, Calendar, Trash2, Users, Clock, Tag, Plus, Edit2, X, Save, SaveAll } from 'lucide-react';
+import { Download, RefreshCw, Calendar, Trash2, Users, Clock, Tag, Plus, Edit2, X, Save, SaveAll, AlertTriangle, ShieldAlert } from 'lucide-react';
 import type { User, Employee, AbsenteeismRecord, AbsenteeismStatus, OvertimeRecord, Holiday } from '../types';
 
 interface HEGroup {
@@ -27,6 +27,10 @@ interface Props {
   onSaveOvertime: (record: Omit<OvertimeRecord, 'id'> | OvertimeRecord) => Promise<void>;
   onDeleteOvertime: (id: string) => Promise<void>;
 }
+
+// Status que contam como ausências diretas (TR, FE, AF e folgas/paternidade NÃO são ausências operacionais não programadas)
+const DIRECT_ABSENCE_STATUSES: AbsenteeismStatus[] = ['F', 'A', 'AR', 'PR', 'ER', 'EC', 'LM', 'SA', 'DE'];
+const isDirectAbsence = (status: AbsenteeismStatus) => DIRECT_ABSENCE_STATUSES.includes(status);
 
 // Helper: Verifica se a data é Sábado (dia de hora extra, não conta como presença regular)
 const isSaturday = (dateStr: string) => {
@@ -73,6 +77,7 @@ export default function AbsenteismoTab({
   });
   const [activeStatus, setActiveStatus] = useState<AbsenteeismStatus | 'LIMPAR'>('P');
   const [isSaving, setIsSaving] = useState(false);
+  const [allowanceModal, setAllowanceModal] = useState<{ open: boolean; employeeId?: string; dateStr?: string; reason?: string }>({ open: false });
 
   // Memos globais
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'Ativo').sort((a, b) => a.name.localeCompare(b.name)), [employees]);
@@ -107,7 +112,9 @@ export default function AbsenteismoTab({
           employeeId,
           date: dateStr,
           status: activeStatus,
-          updatedBy: currentUser.id
+          hasAllowance: existing?.hasAllowance ?? false,
+          allowanceReason: existing?.allowanceReason,
+          updatedBy: currentUser?.id
         });
       }
     } finally { setIsSaving(false); }
@@ -116,7 +123,7 @@ export default function AbsenteismoTab({
   const { summaryTotals } = useMemo(() => {
     const totalsPerDay = new Array(daysInMonth).fill(0);
     monthRecords.forEach(r => {
-      if (['F', 'A', 'PR', 'ER', 'EC', 'LM', 'SA', 'DE', 'AF'].includes(r.status)) {
+      if (isDirectAbsence(r.status)) {
         const day = parseInt(r.date.split('-')[2], 10);
         totalsPerDay[day - 1]++;
       }
@@ -301,9 +308,12 @@ export default function AbsenteismoTab({
               calcP++;
               totalPresence++;
             }
-          } else {
+          } else if (isDirectAbsence(rec.status)) {
             calcF++;
             totalAbsences++;
+            absenceCounts[rec.status] = (absenceCounts[rec.status] || 0) + 1;
+          } else {
+            // Outras situações programadas/legais (TR, FE, AF, FO, LP)
             absenceCounts[rec.status] = (absenceCounts[rec.status] || 0) + 1;
           }
         }
@@ -323,11 +333,14 @@ export default function AbsenteismoTab({
       .filter(l => l.status !== 'P')
       .map(l => {
         const count = absenceCounts[l.status] || 0;
+        const isDirect = isDirectAbsence(l.status);
+        // Percentual em relação ao total de ausências diretas ou indicação especial
         const pctOfAbsences = totalAbsences > 0 ? (count / totalAbsences) * 100 : 0;
         const pctOfGeneral = totalGeneral > 0 ? (count / totalGeneral) * 100 : 0;
         return {
           ...l,
           count,
+          isDirect,
           pctOfAbsences,
           pctOfGeneral
         };
@@ -515,10 +528,12 @@ export default function AbsenteismoTab({
                             
                             {/* % do Total de Ausências */}
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: '95px' }}>
-                              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#dc2626' }}>
-                                {t.pctOfAbsences.toFixed(1)}%
+                              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: t.isDirect ? '#dc2626' : 'var(--text-muted)' }}>
+                                {t.isDirect ? `${t.pctOfAbsences.toFixed(1)}%` : '---'}
                               </span>
-                              <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>das ausências</span>
+                              <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                                {t.isDirect ? 'das ausências' : 'não entra em ausências'}
+                              </span>
                             </div>
 
                             {/* % do Geral */}
@@ -586,22 +601,34 @@ export default function AbsenteismoTab({
                 </div>
 
                 {canEdit && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Ferramenta:</span>
-                    {/* Estilização específica no SELECT para resolver bug de visualização */}
-                    <div className="select-wrap" style={{ width: '220px', background: 'var(--bg-layer)' }}>
-                      <select
-                        value={activeStatus}
-                        onChange={e => setActiveStatus(e.target.value as AbsenteeismStatus | 'LIMPAR')}
-                        style={{ fontWeight: 600, color: 'var(--text-primary)' }}
-                      >
-                        <option value="LIMPAR" style={{ color: '#ef4444' }}>Limpar Célula</option>
-                        <optgroup label="Status">
-                          {STATUS_LEGEND.map(s => <option key={s.status} value={s.status} style={{ color: '#000', fontWeight: 'bold' }}>{s.status} - {s.label}</option>)}
-                        </optgroup>
-                      </select>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Ferramenta:</span>
+                      {/* Estilização específica no SELECT para resolver bug de visualização */}
+                      <div className="select-wrap" style={{ width: '220px', background: 'var(--bg-layer)' }}>
+                        <select
+                          value={activeStatus}
+                          onChange={e => setActiveStatus(e.target.value as AbsenteeismStatus | 'LIMPAR')}
+                          style={{ fontWeight: 600, color: 'var(--text-primary)' }}
+                        >
+                          <option value="LIMPAR" style={{ color: '#ef4444' }}>Limpar Célula</option>
+                          <optgroup label="Status">
+                            {STATUS_LEGEND.map(s => <option key={s.status} value={s.status} style={{ color: '#000', fontWeight: 'bold' }}>{s.status} - {s.label}</option>)}
+                          </optgroup>
+                        </select>
+                      </div>
                     </div>
-                  </div>)}
+
+                    <button 
+                      className="btn-secondary" 
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '0.45rem 0.9rem' }}
+                      onClick={() => setAllowanceModal({ open: true })}
+                      title="Lançar ou gerenciar abono com motivo"
+                    >
+                      <span>❗</span> Incluir Abono
+                    </button>
+                  </div>
+                )}
                 {isSaving && <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)' }}><RefreshCw size={14} className="spinner" /> Salvando...</div>}
               </div>
 
@@ -671,7 +698,7 @@ export default function AbsenteismoTab({
                           if (rec) {
                             // Sábados não contam como presença
                             if (rec.status === 'P' && !isSaturdayDay) calcP++;
-                            else if (rec.status !== 'P') calcF++;
+                            else if (isDirectAbsence(rec.status)) calcF++;
                           }
 
                           return (
@@ -685,14 +712,27 @@ export default function AbsenteismoTab({
                               }}
                             >
                               {leg ? (
-                                <div style={{
-                                  width: '100%', height: '100%', minHeight: '34px',
-                                  background: leg.bg, color: leg.color,
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  fontWeight: 'bold', fontSize: '0.85rem', borderRadius: '4px',
-                                  boxShadow: 'inset 0 0 2px rgba(0,0,0,0.2)'
-                                }} title={leg.label}>
+                                <div 
+                                  className={rec?.hasAllowance ? 'abono-highlight' : ''}
+                                  style={{
+                                    width: '100%', height: '100%', minHeight: '34px',
+                                    background: leg.bg, color: leg.color,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontWeight: 'bold', fontSize: '0.85rem', borderRadius: '4px',
+                                    position: 'relative',
+                                    boxShadow: rec?.hasAllowance ? '0 0 0 2px #f59e0b, 0 2px 6px rgba(245, 158, 11, 0.4)' : 'inset 0 0 2px rgba(0,0,0,0.2)'
+                                  }} 
+                                  title={rec?.hasAllowance ? `${leg.label} • [ABONADO] Motivo: ${rec.allowanceReason || 'Sem motivo registrado'}` : leg.label}
+                                >
                                   {rec?.status}
+                                  {rec?.hasAllowance && (
+                                    <span 
+                                      className="abono-exclamation"
+                                      title={`Abonado: ${rec.allowanceReason || ''}`}
+                                    >
+                                      ❗
+                                    </span>
+                                  )}
                                 </div>
                               ) : (
                                 <div style={{ width: '100%', height: '100%', minHeight: '34px', background: 'transparent' }} />
@@ -968,6 +1008,102 @@ export default function AbsenteismoTab({
               <button className="btn-ghost" onClick={() => setEmpModal({ open: false, editing: null })}>Cancelar</button>
               <button className="btn-primary" onClick={saveEmployee} disabled={isSaving || !empForm.name.trim()}><Save size={16} /> Salvar Funcionário</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE INCLUSÃO/GERENCIAMENTO DE ABONO */}
+      {allowanceModal.open && (
+        <div className="modal-overlay" onClick={() => setAllowanceModal({ open: false })}>
+          <div className="modal-box" style={{ maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Incluir / Registrar Abono ❗</h2>
+              <button className="modal-close" onClick={() => setAllowanceModal({ open: false })}><X size={20} /></button>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const fd = new FormData(e.currentTarget);
+              const employeeId = fd.get('employeeId') as string;
+              const dateStr = fd.get('date') as string;
+              const reason = fd.get('reason') as string;
+              const status = (fd.get('status') as AbsenteeismStatus) || 'P';
+
+              if (!employeeId || !dateStr) return;
+
+              setIsSaving(true);
+              try {
+                const existing = getRecord(employeeId, dateStr);
+                await onSaveAbsenteeism({
+                  id: existing?.id,
+                  employeeId,
+                  date: dateStr,
+                  status: status,
+                  hasAllowance: true,
+                  allowanceReason: reason,
+                  updatedBy: currentUser?.id
+                });
+                setAllowanceModal({ open: false });
+              } finally {
+                setIsSaving(false);
+              }
+            }}>
+              <div className="modal-body">
+                <div className="form-group full">
+                  <label>Colaborador *</label>
+                  <div className="select-wrap full-w">
+                    <select name="employeeId" required defaultValue={allowanceModal.employeeId || ''}>
+                      <option value="">Selecione o colaborador...</option>
+                      {activeEmployees.map(emp => (
+                        <option key={emp.id} value={emp.id}>{emp.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>Data *</label>
+                    <input 
+                      type="date" 
+                      name="date" 
+                      required 
+                      defaultValue={allowanceModal.dateStr || new Date().toLocaleDateString('en-CA')} 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Preenchimento da Célula *</label>
+                    <div className="select-wrap full-w">
+                      <select name="status" defaultValue="P">
+                        <option value="P">P - Presente (Abonado)</option>
+                        <option value="A">A - Atraso (Abonado)</option>
+                        <option value="F">F - Falta (Abonada)</option>
+                        <option value="SA">SA - Saída Antecipada</option>
+                        <option value="DE">DE - Declaração</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="form-group full" style={{ marginTop: '0.5rem' }}>
+                  <label>Motivo do Abono *</label>
+                  <textarea 
+                    name="reason" 
+                    rows={3} 
+                    required 
+                    placeholder="Descreva o motivo do abono (ex: Consulta médica agendada, liberação da gestão, compensação...)" 
+                  />
+                  <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '4px', display: 'block' }}>
+                    * A célula receberá o preenchimento selecionado e ficará em destaque visual com um ❗.
+                  </small>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn-ghost" onClick={() => setAllowanceModal({ open: false })}>Cancelar</button>
+                <button type="submit" className="btn-primary" disabled={isSaving}>
+                  {isSaving ? 'Gravando...' : 'Confirmar Abono'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
