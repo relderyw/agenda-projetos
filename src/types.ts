@@ -41,6 +41,21 @@ export interface KnowledgeProgress {
   status: KnowledgeStatus;
 }
 
+// ─── Feedback de Analista (Matriz de Competência) ──────────
+export type FeedbackImpact = 'Positivo' | 'Negativo' | 'Sem Impacto';
+
+export interface AnalystFeedback {
+  id: string;
+  analystId: string;
+  authorId: string;
+  authorName: string;
+  date: string;       // YYYY-MM-DD - data do relato
+  comment: string;
+  impact: FeedbackImpact;
+  createdAt: string;
+  organization_id?: string;
+}
+
 export type HolidayType = 'Feriado' | 'S/ Expediente';
 
 export interface Holiday {

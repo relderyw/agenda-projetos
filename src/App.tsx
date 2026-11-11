@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, ChevronDown, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2, UserCheck, Users, AlertTriangle, Bell, BellOff, Building2 } from 'lucide-react'
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from './data'
-import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday, AbsenteeismRecord, Employee, OvertimeRecord, Status } from './types'
+import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday, AbsenteeismRecord, Employee, OvertimeRecord, Status, AnalystFeedback } from './types'
 import type { StaffingBoard, StaffingColumn, StaffingRow, StaffingCell, Organization, OrgSector } from './types'
 import AtividadesTab from './components/AtividadesTab'
 import DashboardTab from './components/DashboardTab'
@@ -51,6 +51,7 @@ export default function App() {
   const [staffingCells, setStaffingCells] = useState<StaffingCell[]>([])
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [analystFeedbacks, setAnalystFeedbacks] = useState<AnalystFeedback[]>([]);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     return (localStorage.getItem('theme') as ThemeMode) || 'light'
@@ -211,7 +212,7 @@ export default function App() {
     if (isFirstLoad) setLoading(true);
     
     try {
-      const [a, t, u, h, l, k, hol, abs, emp, ove, staffing, sec] = await Promise.all([
+      const [a, t, u, h, l, k, hol, abs, emp, ove, staffing, sec, fb] = await Promise.all([
         dbService.getActivities(resolvedOrgId ?? undefined),
         dbService.getThemes(resolvedOrgId ?? undefined),
         dbService.getUsers(resolvedOrgId ?? undefined),
@@ -223,7 +224,8 @@ export default function App() {
         dbService.getEmployees(resolvedOrgId ?? undefined),
         dbService.getOvertimes(resolvedOrgId ?? undefined),
         dbService.getStaffingData(resolvedOrgId ?? undefined),
-        resolvedOrgId ? dbService.getOrgSectors(resolvedOrgId) : Promise.resolve([])
+        resolvedOrgId ? dbService.getOrgSectors(resolvedOrgId) : Promise.resolve([]),
+        dbService.getAnalystFeedbacks(resolvedOrgId ?? undefined)
       ])
       setActivities(a)
       setThemes(t)
@@ -240,6 +242,7 @@ export default function App() {
       setStaffingRows(staffing.rows)
       setStaffingCells(staffing.cells)
       setSectors(sec)
+      setAnalystFeedbacks(fb)
     } finally {
       if (isFirstLoad) setLoading(false);
       setIsFirstLoad(false);
@@ -1354,6 +1357,16 @@ export default function App() {
             onRefresh={refreshData}
             sectors={sectors}
             selectedOrgId={currentUser?.role === 'Super Admin' ? currentOrg?.id : currentUser?.organization_id}
+            analystFeedbacks={currentUser?.role !== 'Analista' ? analystFeedbacks : []}
+            onSaveFeedback={async (fb: AnalystFeedback) => {
+              const orgId = currentUser?.role === 'Super Admin' ? currentOrg?.id : currentUser?.organization_id;
+              await dbService.saveAnalystFeedback(fb, orgId);
+              refreshData();
+            }}
+            onDeleteFeedback={async (id: string) => {
+              await dbService.deleteAnalystFeedback(id);
+              refreshData();
+            }}
           />
         )}
         {activeTab === 'absenteismo' && (

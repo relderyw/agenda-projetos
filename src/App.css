@@ -4353,6 +4353,192 @@
 .kn-stat-card.tp .kn-stat-fill { background: var(--accent-primary); }
 .kn-stat-card.proj .kn-stat-fill { background: #10b981; }
 
+/* ─── Regras de Visão Restrita do Analista e Feedback ─── */
+.kn-cell-masked {
+  background: var(--bg-hover) !important;
+  cursor: not-allowed !important;
+  position: relative;
+  overflow: hidden;
+  opacity: 0.25;
+  filter: grayscale(1);
+  user-select: none;
+  pointer-events: none;
+}
+
+.kn-masked-blur {
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.05),
+    rgba(0, 0, 0, 0.05) 6px,
+    rgba(0, 0, 0, 0.1) 6px,
+    rgba(0, 0, 0, 0.1) 12px
+  );
+}
+
+[data-theme="dark"] .kn-masked-blur {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.03) 6px,
+    rgba(255, 255, 255, 0.06) 6px,
+    rgba(255, 255, 255, 0.06) 12px
+  );
+}
+
+.th-masked {
+  opacity: 0.55;
+  filter: grayscale(0.5);
+}
+
+.kn-cell-readonly {
+  cursor: default !important;
+  pointer-events: none;
+}
+
+.clickable-name {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: underline dotted;
+}
+
+.clickable-name:hover {
+  color: var(--accent-primary) !important;
+  transform: scale(1.05);
+}
+
+.clickable-header {
+  transition: color 0.2s ease;
+}
+
+.clickable-header:hover {
+  color: var(--accent-primary) !important;
+}
+
+/* Modal de Relato / Feedback do Analista */
+.kn-feedback-modal {
+  max-width: 580px !important;
+  width: 95vw;
+}
+
+.kn-feedback-subtitle {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.kn-feedback-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.kn-feedback-list {
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+.kn-feedback-card {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-hover);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.kn-feedback-card.impact-positivo {
+  border-left: 4px solid #10b981;
+}
+
+.kn-feedback-card.impact-negativo {
+  border-left: 4px solid #ef4444;
+}
+
+.kn-feedback-card.impact-sem-impacto {
+  border-left: 4px solid #94a3b8;
+}
+
+.kn-fb-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.kn-fb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.badge-positivo {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.badge-negativo {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.badge-sem-impacto {
+  background: rgba(148, 163, 184, 0.15);
+  color: #64748b;
+}
+
+[data-theme="dark"] .badge-sem-impacto {
+  color: #94a3b8;
+}
+
+.kn-fb-date {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.kn-fb-comment {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-primary);
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.kn-fb-footer {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.btn-icon-danger {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon-danger:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
 /* Analysts Strip */
 .kn-analysts-strip {
   display: flex;

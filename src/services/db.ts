@@ -9,7 +9,7 @@ import type {
   KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday,
   AbsenteeismRecord, Employee, OvertimeRecord,
   StaffingBoard, StaffingColumn, StaffingRow, StaffingCell,
-  Organization, OrgSector
+  Organization, OrgSector, AnalystFeedback
 } from '../types'
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -411,6 +411,43 @@ export const dbService = {
       ...cat,
       ...(orgId ? { organization_id: orgId } : {})
     })
+  },
+
+  // ─── ANALYST FEEDBACKS ──────────────────────────────────────────────────────
+
+  async getAnalystFeedbacks(orgId?: string): Promise<AnalystFeedback[]> {
+    const filters = orgId ? [{ field: 'organization_id', value: orgId }] : []
+    const rows = await getAll<any>('analyst_feedbacks', filters, 'date', 'desc')
+    return rows.map(row => ({
+      id: row.id,
+      analystId: row.analyst_id || row.analystId,
+      authorId: row.author_id || row.authorId,
+      authorName: row.author_name || row.authorName,
+      date: row.date,
+      comment: row.comment,
+      impact: row.impact,
+      createdAt: row.created_at || row.createdAt,
+      organization_id: row.organization_id
+    }))
+  },
+
+  async saveAnalystFeedback(fb: AnalystFeedback, orgId?: string) {
+    const id = fb.id || crypto.randomUUID()
+    return upsert('analyst_feedbacks', id, {
+      id,
+      analyst_id: fb.analystId,
+      author_id: fb.authorId,
+      author_name: fb.authorName,
+      date: fb.date,
+      comment: fb.comment,
+      impact: fb.impact,
+      created_at: fb.createdAt || new Date().toISOString(),
+      ...(orgId ? { organization_id: orgId } : {})
+    })
+  },
+
+  async deleteAnalystFeedback(id: string) {
+    return remove('analyst_feedbacks', id)
   },
 
   // ─── FERIADOS ─────────────────────────────────────────────────────────────
