@@ -81,6 +81,7 @@ export interface UserPermissions {
   conhecimentoProj: AppPermissions;
   absenteismo?: AppPermissions;
   quadroPessoal?: AppPermissions;
+  budget?: AppPermissions;
 }
 
 export type Role = 'Super Admin' | 'Administrador' | 'Gestão' | 'Analista';
@@ -128,7 +129,7 @@ export interface Activity {
 }
 
 // ─── App State ────────────────────────────────────────────
-export type Tab = 'atividades' | 'dashboard' | 'cadastros' | 'kanban' | 'henkatens' | 'logs' | 'conhecimento' | 'absenteismo' | 'quadroPessoal' | 'superadmin';
+export type Tab = 'atividades' | 'dashboard' | 'cadastros' | 'kanban' | 'henkatens' | 'logs' | 'conhecimento' | 'absenteismo' | 'quadroPessoal' | 'budget' | 'superadmin';
 
 // ─── Henkatens ──────────────────────────────────────────
 export type HenkatenType =
@@ -233,4 +234,48 @@ export interface StaffingCell {
   columnId: string;
   value: string;
   status: 'ativo' | 'transferido' | 'afastado';
+}
+
+// ─── Budget / Orçamento ────────────────────────────────
+export type BudgetType = 'curso' | 'viagem' | 'equipamento';
+
+export type BudgetStatus = 'Orçado' | 'Solicitado' | 'Em Aprovação' | 'Concluído' | 'Cancelado' | 'Não Solicitado';
+
+export type BudgetModalidade = 'Presencial' | 'Remoto';
+
+export interface BudgetItem {
+  id: string;
+  organization_id?: string;
+  tipo: BudgetType;
+  
+  // Dados comuns
+  descricao: string;             // Nome do Curso, Evento da Viagem ou Descrição do Bem
+  dataPlanejada: string;         // YYYY-MM-DD
+  dataSolicitada?: string;       // YYYY-MM-DD
+  status: BudgetStatus;
+  modalidade: BudgetModalidade;
+  valorUnitario: number;
+  valorTotal: number;
+  quantidade: number;
+  justificativa?: string;
+  
+  // Específico para Curso e Viagem
+  colaboradores?: string[];      // IDs ou nomes dos colaboradores
+  cargos?: string;               // Cargo(s) do(s) colaborador(es)
+  
+  // Específico para Viagem
+  evento?: string;               // Nome do Evento / Conferência / Visita
+  dataEvento?: string;           // Data do evento
+  dataViagemIda?: string;        // Data de ida
+  dataViagemVolta?: string;      // Data de volta
+  cidade?: string;               // Destino
+  
+  // Específico para Equipamento
+  motivo?: string;
+  categoria?: string;            // 'Computadores e Periféricos' | 'Equipamentos' | 'Celulares' | etc.
+  anoFrota?: string;
+  objetivo?: string;             // 'Eficiência' | 'Expansão' | 'Substituição' | etc.
+
+  createdAt?: string;
+  updatedAt?: string;
 }

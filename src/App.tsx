@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, ChevronDown, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2, UserCheck, Users, AlertTriangle, Bell, BellOff, Building2, Palette } from 'lucide-react'
+import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, ChevronDown, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2, UserCheck, Users, AlertTriangle, Bell, BellOff, Building2, Palette, Wallet } from 'lucide-react'
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from './data'
-import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday, AbsenteeismRecord, Employee, OvertimeRecord, Status, AnalystFeedback } from './types'
+import { INITIAL_BUDGET_ITEMS } from './data/defaultBudget'
+import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday, AbsenteeismRecord, Employee, OvertimeRecord, Status, AnalystFeedback, BudgetItem } from './types'
 import type { StaffingBoard, StaffingColumn, StaffingRow, StaffingCell, Organization, OrgSector } from './types'
 import AtividadesTab from './components/AtividadesTab'
 import DashboardTab from './components/DashboardTab'
@@ -12,6 +13,7 @@ import LogsTab from './components/LogsTab'
 import KnowledgeTab from './components/KnowledgeTab'
 import AbsenteismoTab from './components/AbsenteismoTab'
 import QuadroPessoalTab from './components/QuadroPessoalTab'
+import BudgetTab from './components/BudgetTab'
 import SuperAdminTab from './components/SuperAdminTab'
 import Login from './components/Login'
 import { dbService } from './services/db'
@@ -50,6 +52,7 @@ export default function App() {
   const [staffingColumns, setStaffingColumns] = useState<StaffingColumn[]>([])
   const [staffingRows, setStaffingRows] = useState<StaffingRow[]>([])
   const [staffingCells, setStaffingCells] = useState<StaffingCell[]>([])
+  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([])
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [analystFeedbacks, setAnalystFeedbacks] = useState<AnalystFeedback[]>([]);
@@ -218,7 +221,7 @@ export default function App() {
     if (isFirstLoad) setLoading(true);
     
     try {
-      const [a, t, u, h, l, k, hol, abs, emp, ove, staffing, sec, fb] = await Promise.all([
+      const [a, t, u, h, l, k, hol, abs, emp, ove, staffing, sec, fb, bud] = await Promise.all([
         dbService.getActivities(resolvedOrgId ?? undefined),
         dbService.getThemes(resolvedOrgId ?? undefined),
         dbService.getUsers(resolvedOrgId ?? undefined),
@@ -231,7 +234,8 @@ export default function App() {
         dbService.getOvertimes(resolvedOrgId ?? undefined),
         dbService.getStaffingData(resolvedOrgId ?? undefined),
         resolvedOrgId ? dbService.getOrgSectors(resolvedOrgId) : Promise.resolve([]),
-        dbService.getAnalystFeedbacks(resolvedOrgId ?? undefined)
+        dbService.getAnalystFeedbacks(resolvedOrgId ?? undefined),
+        dbService.getBudgetItems(resolvedOrgId ?? undefined)
       ])
       setActivities(a)
       setThemes(t)
@@ -249,6 +253,7 @@ export default function App() {
       setStaffingCells(staffing.cells)
       setSectors(sec)
       setAnalystFeedbacks(fb)
+      setBudgetItems(bud)
     } finally {
       if (isFirstLoad) setLoading(false);
       setIsFirstLoad(false);
@@ -924,6 +929,88 @@ export default function App() {
     if (error) showToast('error', 'Erro', 'Falha ao salvar célula do quadro.');
   };
 
+  // ── Budget CRUD ──────────────────────────────────────────
+  const addBudgetItem = async (item: BudgetItem) => {
+    if (!currentUser) return;
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    const payload = { ...item, organization_id: orgId };
+    setBudgetItems(prev => [...prev, payload]);
+    const { error } = await dbService.saveBudgetItem(payload, orgId);
+    if (error) {
+      setBudgetItems(prev => prev.filter(i => i.id !== payload.id));
+      showToast('error', 'Erro ao salvar', 'Falha ao salvar item de budget na nuvem.');
+    } else {
+      await dbService.saveLog({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: 'Criou Item de Budget',
+        target: `${item.tipo.toUpperCase()}: ${item.descricao}`
+      }, orgId);
+    }
+  };
+
+  const updateBudgetItem = async (item: BudgetItem) => {
+    if (!currentUser) return;
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    const old = [...budgetItems];
+    setBudgetItems(prev => prev.map(i => i.id === item.id ? item : i));
+    const { error } = await dbService.saveBudgetItem(item, orgId);
+    if (error) {
+      setBudgetItems(old);
+      showToast('error', 'Erro ao atualizar', 'Falha ao salvar alterações de budget.');
+    } else {
+      await dbService.saveLog({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: 'Atualizou Item de Budget',
+        target: `${item.tipo.toUpperCase()}: ${item.descricao}`
+      }, orgId);
+    }
+  };
+
+  const deleteBudgetItem = async (id: string) => {
+    if (!currentUser) return;
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    const old = [...budgetItems];
+    const item = budgetItems.find(i => i.id === id);
+    setBudgetItems(prev => prev.filter(i => i.id !== id));
+    const { error } = await dbService.deleteBudgetItem(id);
+    if (error) {
+      setBudgetItems(old);
+      showToast('error', 'Erro ao excluir', 'Falha ao remover item de budget.');
+    } else {
+      await dbService.saveLog({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: 'Excluiu Item de Budget',
+        target: item ? `${item.tipo.toUpperCase()}: ${item.descricao}` : id
+      }, orgId);
+    }
+  };
+
+  const importBaseBudget = async () => {
+    if (!currentUser) return;
+    const orgId = currentUser.role === 'Super Admin' ? currentOrg?.id : currentUser.organization_id;
+    const itemsToSave: BudgetItem[] = INITIAL_BUDGET_ITEMS.map(i => ({
+      ...i,
+      id: crypto.randomUUID(),
+      organization_id: orgId
+    }));
+    setBudgetItems(prev => [...prev, ...itemsToSave]);
+    const { error } = await dbService.saveBudgetBatch(itemsToSave, orgId);
+    if (error) {
+      showToast('error', 'Erro na importação', 'Falha ao importar dados base de budget.');
+    } else {
+      showToast('success', 'Planilha Importada', `${itemsToSave.length} itens foram carregados com sucesso.`);
+      await dbService.saveLog({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: 'Importou Planilha Base',
+        target: 'Budget Projetos & T&P'
+      }, orgId);
+    }
+  };
+
   const navItemsRaw: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'kanban',      label: 'Programação',    icon: <Kanban size={20} /> },
     { key: 'atividades',  label: 'Atividades',     icon: <ListTodo size={20} /> },
@@ -931,6 +1018,7 @@ export default function App() {
     { key: 'quadroPessoal', label: 'Quadro de Pessoal', icon: <Users size={20} /> },
     { key: 'absenteismo', label: 'Absenteísmo',    icon: <UserCheck size={20} /> },
     { key: 'henkatens',   label: 'Henkatens',      icon: <Calendar size={20} /> },
+    { key: 'budget',      label: 'Budget',         icon: <Wallet size={20} /> },
     { key: 'conhecimento',label: 'Conhecimento',   icon: <BookOpen size={20} /> },
     { key: 'cadastros',   label: 'Cadastros',      icon: <ShieldAlert size={20} /> },
     { key: 'logs',        label: 'Logs',           icon: <ShieldAlert size={20} /> },
@@ -953,6 +1041,7 @@ export default function App() {
     if (item.key === 'conhecimento') return (p?.conhecimentoTP?.view || p?.conhecimentoProj?.view) ?? (currentUser.role === 'Gestão');
     if (item.key === 'absenteismo') return p?.absenteismo?.view ?? false;
     if (item.key === 'quadroPessoal') return p?.quadroPessoal?.view ?? false;
+    if (item.key === 'budget') return p?.budget?.view ?? (currentUser.role === 'Gestão' || currentUser.role === 'Administrador' || currentUser.role === 'Super Admin');
 
     return true;
   })
@@ -967,6 +1056,7 @@ export default function App() {
       setKnowledgeBase({ categories: [], activities: [], progress: [] });
       setHolidays([]); setAbsenteeism([]); setEmployees([]); setOvertimes([]);
       setStaffingBoards([]); setStaffingColumns([]); setStaffingRows([]); setStaffingCells([]);
+      setBudgetItems([]);
       setSectors([]); setOrganizations([]);
       // Se o usuário tem uma org definida, reseta currentOrg para a dele
       if (user.organization_id) {
@@ -1441,6 +1531,18 @@ export default function App() {
             onSaveRow={saveRowRecord}
             onDeleteRow={deleteRowRecord}
             onSaveCell={saveCellRecord}
+          />
+        )}
+        {activeTab === 'budget' && (
+          <BudgetTab
+            currentUser={currentUser}
+            users={users}
+            budgetItems={budgetItems}
+            onAddBudgetItem={addBudgetItem}
+            onUpdateBudgetItem={updateBudgetItem}
+            onDeleteBudgetItem={deleteBudgetItem}
+            onImportDefaultBudget={importBaseBudget}
+            showToast={showToast}
           />
         )}
         {activeTab === 'logs' && (

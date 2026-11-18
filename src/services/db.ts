@@ -9,7 +9,7 @@ import type {
   KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday,
   AbsenteeismRecord, Employee, OvertimeRecord,
   StaffingBoard, StaffingColumn, StaffingRow, StaffingCell,
-  Organization, OrgSector, AnalystFeedback
+  Organization, OrgSector, AnalystFeedback, BudgetItem
 } from '../types'
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -763,5 +763,82 @@ export const dbService = {
 
   async deleteOrgSector(id: string) {
     return remove('org_sectors', id)
+  },
+
+  // ─── BUDGET / ORÇAMENTO ───────────────────────────────────────────────────
+
+  async getBudgetItems(orgId?: string): Promise<BudgetItem[]> {
+    const filters = orgId ? [{ field: 'organization_id', value: orgId }] : []
+    const rows = await getAll<any>('budget_items', filters, 'dataPlanejada')
+    return rows.map(row => {
+      const item = { ...row }
+      if (typeof item.colaboradores === 'string') {
+        try { item.colaboradores = JSON.parse(item.colaboradores) } catch { item.colaboradores = [] }
+      }
+      if (!Array.isArray(item.colaboradores)) {
+        item.colaboradores = item.colaboradores ? [item.colaboradores] : []
+      }
+      return item as BudgetItem
+    })
+  },
+
+  async saveBudgetItem(item: Omit<BudgetItem, 'id'> | BudgetItem, orgId?: string) {
+    const id = (item as BudgetItem).id || crypto.randomUUID()
+    const payload: Record<string, any> = {
+      ...item,
+      id,
+      valorUnitario: Number(item.valorUnitario) || 0,
+      valorTotal: Number(item.valorTotal) || 0,
+      quantidade: Number(item.quantidade) || 1,
+      colaboradores: Array.isArray(item.colaboradores) ? item.colaboradores : [],
+      updatedAt: new Date().toISOString(),
+      ...(orgId ? { organization_id: orgId } : {})
+    }
+    if (!payload.createdAt) {
+      payload.createdAt = new Date().toISOString()
+    }
+    for (const key of Object.keys(payload)) {
+      if (payload[key] === '') payload[key] = null
+    }
+    const result = await upsert('budget_items', id, payload)
+    return { data: payload, error: result.error }
+  },
+
+  async deleteBudgetItem(id: string) {
+    return remove('budget_items', id)
+  },
+
+  async saveBudgetBatch(itemsToSave: BudgetItem[], orgId?: string) {
+    if (itemsToSave.length === 0) return { error: null }
+    try {
+      const BATCH_SIZE = 400
+      for (let i = 0; i < itemsToSave.length; i += BATCH_SIZE) {
+        const batch = writeBatch(db)
+        const chunk = itemsToSave.slice(i, i + BATCH_SIZE)
+        for (const item of chunk) {
+          const id = item.id || crypto.randomUUID()
+          const payload: Record<string, any> = {
+            ...item,
+            id,
+            valorUnitario: Number(item.valorUnitario) || 0,
+            valorTotal: Number(item.valorTotal) || 0,
+            quantidade: Number(item.quantidade) || 1,
+            colaboradores: Array.isArray(item.colaboradores) ? item.colaboradores : [],
+            updatedAt: new Date().toISOString(),
+            ...(orgId ? { organization_id: orgId } : {})
+          }
+          if (!payload.createdAt) payload.createdAt = new Date().toISOString()
+          for (const key of Object.keys(payload)) {
+            if (payload[key] === '') payload[key] = null
+          }
+          batch.set(doc(db, 'budget_items', id), payload, { merge: true })
+        }
+        await batch.commit()
+      }
+      return { error: null }
+    } catch (err: any) {
+      console.error('saveBudgetBatch error:', err)
+      return { error: err.message || 'Erro ao salvar itens de budget em lote' }
+    }
   },
 }

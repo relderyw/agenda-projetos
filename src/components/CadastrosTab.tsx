@@ -43,7 +43,8 @@ const MOCK_PERMS: UserPermissions = {
   conhecimentoTP:  { view: true, edit: false, delete: false },
   conhecimentoProj: { view: true, edit: false, delete: false },
   absenteismo:     { view: true, edit: false, delete: false },
-  quadroPessoal:   { view: true, edit: false, delete: false }
+  quadroPessoal:   { view: true, edit: false, delete: false },
+  budget:          { view: true, edit: false, delete: false }
 };
 
 const MODULE_LABELS: Record<keyof UserPermissions, string> = {
@@ -54,7 +55,8 @@ const MODULE_LABELS: Record<keyof UserPermissions, string> = {
   conhecimentoTP: 'Conhecimento T&P',
   conhecimentoProj: 'Conhecimento Projetos',
   absenteismo: 'Painel de Ponto (Abs/HE)',
-  quadroPessoal: 'Quadro de Pessoal'
+  quadroPessoal: 'Quadro de Pessoal',
+  budget: 'Budget / Orçamento'
 };
 
 export default function CadastrosTab({
