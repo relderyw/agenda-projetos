@@ -179,7 +179,8 @@
 
 html, body {
   margin: 0;
-  min-width: 320px;
+  padding: 0;
+  width: 100%;
   min-height: 100vh;
   font-family: 'Outfit', sans-serif;
   line-height: 1.5;
@@ -188,11 +189,11 @@ html, body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 body {
-  display: flex;
-  place-items: center;
+  display: block;
 }
 
 [data-theme="dark"] body,
@@ -227,5 +228,7 @@ body:not([data-theme]) {
 
 #root {
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }

@@ -159,28 +159,34 @@
 }
 
 .palette-options {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  width: 100%;
 }
 
 .palette-btn {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  padding: 6px 8px;
+  gap: 4px;
+  padding: 6px 3px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.02);
   color: var(--text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: inherit;
+  min-width: 0;
+}
+
+.palette-btn span:last-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .palette-btn:hover {
@@ -1960,6 +1966,16 @@
   overflow: hidden;
 }
 
+.login-backdrop-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(7, 13, 26, 0.82) 0%, rgba(10, 15, 30, 0.90) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
+  z-index: 1;
+}
+
 .login-ambient-grid {
   position: absolute;
   inset: 0;
@@ -2266,38 +2282,13 @@
 @media (max-width: 768px) {
   .app-container {
     flex-direction: column;
+    max-width: 100vw;
+    width: 100%;
+    overflow-x: hidden;
   }
 
   .mobile-header {
     display: flex;
-  }
-
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: -240px;
-    bottom: 0;
-    z-index: 2000;
-    transition: left 0.3s ease;
-    width: 240px;
-    box-shadow: 10px 0 30px rgba(0,0,0,0.5);
-  }
-
-  .sidebar.mobile-open {
-    left: 0;
-  }
-
-  .sidebar.mobile-open .close-sidebar {
-    display: flex !important;
-  }
-  
-  .sidebar-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(4px);
-    z-index: 1999;
-    animation: fadeIn 0.3s ease;
   }
 
   .main-content {
@@ -2341,12 +2332,25 @@
     min-width: 150px;
   }
 
+.dash-analytics-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 900px) {
+  .dash-analytics-split {
+    grid-template-columns: 1fr;
+  }
+}
+
   /* Tabela Responsiva */
   .table-card {
-    border-radius: 8px;
-    margin: 0 -1rem;
-    border-left: none;
-    border-right: none;
+    border-radius: 12px;
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
   }
 
   .table-scroll {
@@ -3396,7 +3400,8 @@
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 4px 0 24px rgba(0,0,0,0.3);
     width: 280px;
-    min-width: 280px;
+    max-width: 85vw;
+    min-width: unset;
   }
 
   .sidebar.mobile-open {
@@ -3411,11 +3416,17 @@
   /* Layout principal empilhado */
   .app-container {
     flex-direction: column;
+    max-width: 100vw;
+    width: 100%;
+    overflow-x: hidden;
   }
 
   .main-content {
     height: 100vh;
     padding-top: 56px; /* espaço para o header fixo */
+    max-width: 100vw;
+    overflow-x: hidden;
+    box-sizing: border-box;
   }
 
   /* Conteúdo com padding reduzido */

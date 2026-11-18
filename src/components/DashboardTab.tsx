@@ -40,6 +40,9 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
     return new Date(parts[0], parts[1] - 1, parts[2]).getDay() === 6;
   };
 
+  // Status que contam como ausências diretas operacionais (TR, FE, AF, FO, LP NÃO são ausências)
+  const DIRECT_ABSENCE_STATUSES = ['F', 'A', 'AR', 'PR', 'ER', 'EC', 'LM', 'SA', 'DE'];
+
   const ABS_STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
     F:  { label: 'Falta', color: '#fff', bg: '#ef4444' },
     A:  { label: 'Atraso', color: '#000', bg: '#eab308' },
@@ -87,10 +90,13 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
     filteredRecords.forEach(rec => {
       const isSat = isSaturday(rec.date);
       if (rec.status === 'P') {
-        // Sábados não contam como presença
+        // Sábados não contam como presença regular
         if (!isSat) totalPresence++;
-      } else {
+      } else if (DIRECT_ABSENCE_STATUSES.includes(rec.status)) {
         totalAbsences++;
+        counts[rec.status] = (counts[rec.status] || 0) + 1;
+      } else {
+        // Situações como Treinamento (TR), Férias (FE), Afastamento (AF), Folga (FO)
         counts[rec.status] = (counts[rec.status] || 0) + 1;
       }
     });
@@ -100,12 +106,14 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
 
     const breakdown = Object.entries(ABS_STATUS_LABELS).map(([status, meta]) => {
       const count = counts[status] || 0;
-      const pctOfAbsences = totalAbsences > 0 ? (count / totalAbsences) * 100 : 0;
+      const isDirect = DIRECT_ABSENCE_STATUSES.includes(status);
+      const pctOfAbsences = (isDirect && totalAbsences > 0) ? (count / totalAbsences) * 100 : 0;
       const pctOfGeneral = totalGeneral > 0 ? (count / totalGeneral) * 100 : 0;
       return {
         status,
         ...meta,
         count,
+        isDirect,
         pctOfAbsences,
         pctOfGeneral
       };
@@ -437,8 +445,7 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
-        
+      <div className="dash-analytics-split">
         {/* Coluna Esquerda: Gráfico de Linhas (60% width) */}
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
@@ -454,8 +461,8 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                     <svg width="100%" height="100%" viewBox="0 0 1000 240" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
                       <defs>
                         <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#3b82f6" stopOpacity="var(--chart-area-opacity)" />
-                          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
+                          <stop offset="0%" stopColor="var(--accent-primary)" stopOpacity="var(--chart-area-opacity)" />
+                          <stop offset="100%" stopColor="var(--accent-primary)" stopOpacity="0.0" />
                         </linearGradient>
                         <filter id="glow">
                           <feGaussianBlur stdDeviation={themeMode === 'light' ? '1.5' : '3'} result="coloredBlur" />
@@ -502,7 +509,7 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                       <polyline 
                         points={byUser.map((u, i) => `${(i + 0.5) * (1000 / byUser.length)},${240 - (u.pctHighPrio / 100 * 180) - 30}`).join(' ')} 
                         fill="none" 
-                        stroke="#3b82f6" 
+                        stroke="var(--accent-primary)" 
                         strokeWidth="3" 
                         filter="url(#glow)"
                         vectorEffect="non-scaling-stroke" 
@@ -527,10 +534,10 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                                 width: '10px', height: '10px',
                                 borderRadius: '50%',
                                 background: 'var(--chart-dot-bg)',
-                                border: '2px solid #3b82f6',
+                                border: '2px solid var(--accent-primary)',
                                 zIndex: 2,
                                 opacity: 1,
-                                boxShadow: themeMode === 'light' ? '0 2px 4px rgba(0,0,0,0.1)' : '0 0 8px rgba(59, 130, 246, 0.4)'
+                                boxShadow: '0 0 8px var(--accent-glow)'
                               }}
                             />
                             {/* Rótulo de Valor */}
@@ -805,7 +812,7 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
           {absAnalytics.totalAbsences > 0 ? (
             <div>
               <div style={{ display: 'flex', height: '10px', borderRadius: '5px', overflow: 'hidden', background: 'var(--bg-layer)', marginBottom: '1rem', border: '1px solid var(--border-color)' }}>
-                {absAnalytics.breakdown.map(t => (
+                {absAnalytics.breakdown.filter(t => t.isDirect && t.count > 0).map(t => (
                   <div
                     key={t.status}
                     style={{ width: `${t.pctOfAbsences}%`, background: t.bg }}
@@ -839,8 +846,12 @@ export default function DashboardTab({ currentUser, activities, themes, users, t
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
                       <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>{t.count}</span>
                       <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#dc2626', display: 'block' }}>{t.pctOfAbsences.toFixed(1)}%</span>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{t.pctOfGeneral.toFixed(1)}% geral</span>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: t.isDirect ? '#dc2626' : 'var(--text-muted)', display: 'block' }}>
+                          {t.isDirect ? `${t.pctOfAbsences.toFixed(1)}%` : '---'}
+                        </span>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                          {t.isDirect ? `${t.pctOfGeneral.toFixed(1)}% geral` : 'não entra em ausências'}
+                        </span>
                       </div>
                     </div>
                   </div>

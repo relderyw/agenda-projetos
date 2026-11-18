@@ -24,11 +24,19 @@ export default function Login({ users, onLogin }: Props) {
   };
 
   return (
-    <div className="login-wrapper">
-      {/* Background dynamic ambient orbs */}
+    <div 
+      className="login-wrapper"
+      style={{
+        backgroundImage: 'url(https://aadcdn.msftauthimages.net/dbd5a2dd-bgnnldy-7ijls5ee8eoflamoplaldujcou5i9bz81ce/logintenantbranding/0/illustration?ts=636089560069128108)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Background overlay & ambient accents */}
+      <div className="login-backdrop-overlay" />
       <div className="login-ambient-orb orb-1" />
       <div className="login-ambient-orb orb-2" />
-      <div className="login-ambient-grid" />
 
       <div className="login-box">
         <div className="login-brand-header">

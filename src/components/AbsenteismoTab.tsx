@@ -342,7 +342,7 @@ export default function AbsenteismoTab({
         const count = absenceCounts[l.status] || 0;
         const isDirect = isDirectAbsence(l.status);
         // Percentual em relação ao total de ausências diretas ou indicação especial
-        const pctOfAbsences = totalAbsences > 0 ? (count / totalAbsences) * 100 : 0;
+        const pctOfAbsences = (isDirect && totalAbsences > 0) ? (count / totalAbsences) * 100 : 0;
         const pctOfGeneral = totalGeneral > 0 ? (count / totalGeneral) * 100 : 0;
         return {
           ...l,
@@ -502,7 +502,7 @@ export default function AbsenteismoTab({
               {absStats.totalAbsences > 0 ? (
                 <div>
                   <div style={{ display: 'flex', height: '10px', borderRadius: '5px', overflow: 'hidden', background: 'var(--bg-layer)', marginBottom: '0.9rem', border: '1px solid var(--border-color)' }}>
-                    {absStats.absenceTypeBreakdown.filter(t => t.count > 0).map(t => (
+                    {absStats.absenceTypeBreakdown.filter(t => t.count > 0 && t.isDirect).map(t => (
                       <div
                         key={t.status}
                         style={{ width: `${t.pctOfAbsences}%`, background: t.bg }}
