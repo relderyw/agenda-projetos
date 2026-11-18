@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, ChevronDown, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2, UserCheck, Users, AlertTriangle, Bell, BellOff, Building2 } from 'lucide-react'
+import { LayoutDashboard, ListTodo, BookOpen, ChevronRight, ChevronDown, Sun, Moon, Kanban, Calendar, LogOut, RefreshCw, Menu, X as IconX, ShieldAlert, CheckCircle2, UserCheck, Users, AlertTriangle, Bell, BellOff, Building2, Palette } from 'lucide-react'
 import { defaultActivities, defaultThemes, defaultUsers, defaultHenkatens } from './data'
 import type { Activity, Theme, User, Tab, HenkatenEvent, LogEntry, KnowledgeCategory, KnowledgeActivity, KnowledgeProgress, Holiday, AbsenteeismRecord, Employee, OvertimeRecord, Status, AnalystFeedback } from './types'
 import type { StaffingBoard, StaffingColumn, StaffingRow, StaffingCell, Organization, OrgSector } from './types'
@@ -27,6 +27,7 @@ interface Toast {
 }
 
 type ThemeMode = 'dark' | 'light'
+export type ColorPalette = 'teal' | 'violet' | 'amber'
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -54,7 +55,10 @@ export default function App() {
   const [analystFeedbacks, setAnalystFeedbacks] = useState<AnalystFeedback[]>([]);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
-    return (localStorage.getItem('theme') as ThemeMode) || 'light'
+    return (localStorage.getItem('theme') as ThemeMode) || 'dark'
+  });
+  const [colorPalette, setColorPalette] = useState<ColorPalette>(() => {
+    return (localStorage.getItem('colorPalette') as ColorPalette) || 'teal'
   });
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [bannerDismissed, setBannerDismissed] = useState(() => {
@@ -109,11 +113,13 @@ export default function App() {
     }
   }, [currentOrg])
 
-  // Apply theme to <html> element
+  // Apply theme & color palette to <html> element
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', themeMode)
+    document.documentElement.setAttribute('data-palette', colorPalette)
     localStorage.setItem('theme', themeMode)
-  }, [themeMode])
+    localStorage.setItem('colorPalette', colorPalette)
+  }, [themeMode, colorPalette])
 
   const toggleTheme = () => setThemeMode(prev => prev === 'dark' ? 'light' : 'dark')
 
@@ -1084,6 +1090,43 @@ export default function App() {
             </button>
           </div>
 
+          {/* Theme & Palette Selectors */}
+          <div className="palette-selector-card">
+            <div className="palette-selector-label">
+              <Palette size={13} />
+              <span>Estilo & Paleta</span>
+            </div>
+            <div className="palette-options">
+              <button
+                type="button"
+                className={`palette-btn ${colorPalette === 'teal' ? 'active' : ''}`}
+                onClick={() => setColorPalette('teal')}
+                title="Esmeralda / Teal Moderno"
+              >
+                <span className="palette-color-dot" style={{ background: '#14b8a6', boxShadow: colorPalette === 'teal' ? '0 0 8px #14b8a6' : 'none' }} />
+                <span>Teal</span>
+              </button>
+              <button
+                type="button"
+                className={`palette-btn ${colorPalette === 'violet' ? 'active' : ''}`}
+                onClick={() => setColorPalette('violet')}
+                title="Violeta / Roxo Moderno"
+              >
+                <span className="palette-color-dot" style={{ background: '#8b5cf6', boxShadow: colorPalette === 'violet' ? '0 0 8px #8b5cf6' : 'none' }} />
+                <span>Violet</span>
+              </button>
+              <button
+                type="button"
+                className={`palette-btn ${colorPalette === 'amber' ? 'active' : ''}`}
+                onClick={() => setColorPalette('amber')}
+                title="Âmbar / Dourado Solar"
+              >
+                <span className="palette-color-dot" style={{ background: '#f59e0b', boxShadow: colorPalette === 'amber' ? '0 0 8px #f59e0b' : 'none' }} />
+                <span>Âmbar</span>
+              </button>
+            </div>
+          </div>
+
           {/* Theme toggle */}
           <button
             className="theme-toggle"
@@ -1093,7 +1136,7 @@ export default function App() {
             <span className="theme-toggle-icon">
               {themeMode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
             </span>
-            {themeMode === 'dark' ? 'Tema Claro' : 'Tema Escuro'}
+            {themeMode === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
           </button>
 
           <div className="sidebar-stats">
