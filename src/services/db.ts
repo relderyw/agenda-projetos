@@ -199,6 +199,13 @@ export const dbService = {
       if (typeof act.dataFinalizada === 'string' && act.dataFinalizada.includes('T'))
         act.dataFinalizada = act.dataFinalizada.slice(0, 10)
 
+      if (typeof act.checklist === 'string') {
+        try { act.checklist = JSON.parse(act.checklist) } catch { act.checklist = [] }
+      }
+      if (!Array.isArray(act.checklist)) {
+        act.checklist = []
+      }
+
       delete act.data_prevista_finalizacao
       delete act.percentual_andamento
       delete act.data_finalizada
@@ -220,6 +227,7 @@ export const dbService = {
       esforcoRealizado: (act as any).esforcoRealizado ?? 0,
       diasEsperadosConclusao: (act as any).diasEsperadosConclusao ?? 1,
       dataComentario: (act as any).dataComentario || null,
+      checklist: act.checklist || [],
       ...(orgId ? { organization_id: orgId } : {})
     }
     // Limpa strings vazias
@@ -248,6 +256,7 @@ export const dbService = {
             esforcoRealizado: (act as any).esforcoRealizado ?? 0,
             diasEsperadosConclusao: (act as any).diasEsperadosConclusao ?? 1,
             dataComentario: (act as any).dataComentario || null,
+            checklist: act.checklist || [],
             ...(orgId ? { organization_id: orgId } : {})
           }
           for (const key of Object.keys(payload)) {

@@ -2,9 +2,10 @@ import { useState, useMemo, useEffect } from 'react';
 import {
   Plus, Search, Filter, ChevronDown, Edit2, Trash2,
   CheckCircle2, Clock, AlertCircle, X, Calendar, Save,
-  ChevronsUpDown, ChevronUp, Download, RefreshCw
+  ChevronsUpDown, ChevronUp, Download, RefreshCw,
+  CheckSquare, ListTodo
 } from 'lucide-react';
-import type { Activity, Theme, User, Priority, Status } from '../types';
+import type { Activity, Theme, User, Priority, Status, ChecklistItem } from '../types';
 
 interface Props {
   currentUser: User | null;
@@ -59,7 +60,8 @@ const empty = (): Omit<Activity, 'id'> => ({
   status: 'PENDENTE',
   week: '',
   comentario: '',
-  dataComentario: ''
+  dataComentario: '',
+  checklist: []
 });
 
 // ── Sortable column header ─────────────────────────────────
@@ -102,6 +104,7 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
   const [form, setForm] = useState<Omit<Activity, 'id'>>(empty());
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [newCheckItem, setNewCheckItem] = useState('');
 
   // Sync when parent changes the overdueFilterActive flag
   useEffect(() => {
@@ -210,9 +213,56 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
     });
   }, [activities, search, filterResp, filterStatus, filterPrio, filterWeek, sortKey, sortDir, users, themes]);
 
-  const openNew = () => { setForm(empty()); setModal({ open: true, editing: null }); };
-  const openEdit = (a: Activity) => { setForm({ ...a }); setModal({ open: true, editing: a }); };
-  const closeModal = () => setModal({ open: false, editing: null });
+  const openNew = () => { setNewCheckItem(''); setForm(empty()); setModal({ open: true, editing: null }); };
+  const openEdit = (a: Activity) => { 
+    setNewCheckItem('');
+    setForm({ ...a, checklist: a.checklist ? [...a.checklist] : [] }); 
+    setModal({ open: true, editing: a }); 
+  };
+  const closeModal = () => { setNewCheckItem(''); setModal({ open: false, editing: null }); };
+
+  const handleAddChecklistItem = () => {
+    if (!newCheckItem.trim()) return;
+    const newItem: ChecklistItem = {
+      id: crypto.randomUUID(),
+      text: newCheckItem.trim(),
+      done: false
+    };
+    setForm(f => ({
+      ...f,
+      checklist: [...(f.checklist || []), newItem]
+    }));
+    setNewCheckItem('');
+  };
+
+  const handleToggleChecklistItem = (itemId: string) => {
+    setForm(f => {
+      const next = (f.checklist || []).map(i => i.id === itemId ? { ...i, done: !i.done } : i);
+      const total = next.length;
+      const doneCount = next.filter(i => i.done).length;
+      let newPercent = f.percentualAndamento;
+      let newStatus = f.status;
+      if (total > 0) {
+        newPercent = Math.round((doneCount / total) * 100);
+        if (newPercent === 100) newStatus = 'FINALIZADA';
+        else if (newPercent > 0 && newStatus === 'PENDENTE') newStatus = 'EM ANDAMENTO';
+      }
+      return {
+        ...f,
+        checklist: next,
+        percentualAndamento: newPercent,
+        status: newStatus,
+        dataFinalizada: newStatus === 'FINALIZADA' ? (f.dataFinalizada || new Date().toISOString().slice(0, 10)) : f.dataFinalizada
+      };
+    });
+  };
+
+  const handleRemoveChecklistItem = (itemId: string) => {
+    setForm(f => ({
+      ...f,
+      checklist: (f.checklist || []).filter(i => i.id !== itemId)
+    }));
+  };
 
   const handleSave = async () => {
     if (!form.descricao.trim()) return alert("A descrição é obrigatória.");
@@ -485,6 +535,29 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
                     <td className="td-date">{fmtDate(a.planejamento)}</td>
                     <td className="td-desc">
                       <span className="desc-text" title={a.descricao}>{a.descricao}</span>
+                      {a.checklist && a.checklist.length > 0 && (
+                        <div 
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            marginTop: '4px',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            background: a.checklist.every(i => i.done) ? 'rgba(16, 185, 129, 0.15)' : 'var(--nav-active-bg)',
+                            color: a.checklist.every(i => i.done) ? '#10b981' : 'var(--accent-primary)',
+                            border: `1px solid ${a.checklist.every(i => i.done) ? 'rgba(16, 185, 129, 0.3)' : 'var(--nav-active-border)'}`
+                          }}
+                          title={a.checklist.map(i => `${i.done ? '✓' : '○'} ${i.text}`).join('\n')}
+                        >
+                          <CheckSquare size={11} />
+                          <span>
+                            {a.checklist.filter(i => i.done).length}/{a.checklist.length} subatividades
+                          </span>
+                        </div>
+                      )}
                     </td>
                     <td>
                       {tema && (
@@ -664,6 +737,59 @@ export default function AtividadesTab({ currentUser, activities, themes, users, 
                         };
                       });
                     }} />
+                </div>
+
+                {/* ── Checklist / Subatividades ── */}
+                <div className="form-group full">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ListTodo size={16} />
+                    Subatividades / Checklist
+                    {form.checklist && form.checklist.length > 0 && (
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent-primary)', marginLeft: '4px' }}>
+                        {form.checklist.filter(i => i.done).length}/{form.checklist.length} concluídas
+                      </span>
+                    )}
+                  </label>
+                  <div className="checklist-items">
+                    {(form.checklist || []).map(item => (
+                      <div key={item.id} className="checklist-item">
+                        <button
+                          type="button"
+                          className={`checklist-check ${item.done ? 'done' : ''}`}
+                          onClick={() => handleToggleChecklistItem(item.id)}
+                        >
+                          {item.done ? <CheckCircle2 size={16} /> : <div className="checklist-circle" />}
+                        </button>
+                        <span className={`checklist-text ${item.done ? 'done' : ''}`}>{item.text}</span>
+                        <button
+                          type="button"
+                          className="checklist-remove"
+                          onClick={() => handleRemoveChecklistItem(item.id)}
+                          title="Remover"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="checklist-add-row">
+                    <input
+                      type="text"
+                      className="checklist-add-input"
+                      placeholder="Nova subatividade..."
+                      value={newCheckItem}
+                      onChange={e => setNewCheckItem(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddChecklistItem(); } }}
+                    />
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={handleAddChecklistItem}
+                      style={{ padding: '6px 14px', fontSize: '0.8rem' }}
+                    >
+                      <Plus size={14} /> Adicionar
+                    </button>
+                  </div>
                 </div>
 
                 <div className="form-group" style={{ gridColumn: 'span 2' }}>

@@ -102,6 +102,12 @@ export interface User {
 export type Priority = 'Alta' | 'Média' | 'Baixa';
 export type Status = 'FINALIZADA' | 'PENDENTE' | 'EM ANDAMENTO' | 'POSTERGADA' | 'CANCELADA';
 
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
 export interface Activity {
   id: string;
   planejamento: string;       // data planejada (YYYY-MM-DD)
@@ -118,6 +124,7 @@ export interface Activity {
   week: string;               // ex: "W2 - Mar"
   comentario?: string;
   dataComentario?: string;
+  checklist?: ChecklistItem[];
 }
 
 // ─── App State ────────────────────────────────────────────

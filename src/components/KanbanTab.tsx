@@ -2,9 +2,9 @@ import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import {
   ChevronLeft, ChevronRight, Calendar, User2,
   CheckCircle2, Clock, AlertCircle, Minus, Play, Pause, FastForward,
-  Eye, Edit3, X, Save, ChevronDown
+  Eye, Edit3, X, Save, ChevronDown, CheckSquare, ListTodo, Plus
 } from 'lucide-react'
-import type { Activity, Theme, User, Holiday, OrgSector, Priority, Status } from '../types'
+import type { Activity, Theme, User, Holiday, OrgSector, Priority, Status, ChecklistItem } from '../types'
 import { dbService } from '../services/db'
 
 interface Props {
@@ -163,6 +163,16 @@ function ActivityCard({
 
       <p className="kb-card-desc">{act.descricao}</p>
 
+      {act.checklist && act.checklist.length > 0 && (
+        <div 
+          className="kb-checklist-badge"
+          title={act.checklist.map(i => `${i.done ? '✓' : '○'} ${i.text}`).join('\n')}
+        >
+          <CheckSquare size={11} />
+          <span>{act.checklist.filter(i => i.done).length}/{act.checklist.length}</span>
+        </div>
+      )}
+
       <div className="kb-card-footer">
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span className={`kb-status-badge ${statusClassFront(displayStatusType)}`}>
@@ -251,14 +261,60 @@ export default function KanbanTab({ activities, themes, users, holidays, current
   const [editModalAct, setEditModalAct] = useState<Activity | null>(null);
   const [editForm, setEditForm] = useState<Activity | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [newCheckKb, setNewCheckKb] = useState('');
 
   const handleCardClick = (act: Activity) => {
     setActionModalAct(act);
   };
 
   const openEditActivity = (act: Activity) => {
-    setEditForm({ ...act });
+    setNewCheckKb('');
+    setEditForm({ ...act, checklist: act.checklist ? [...act.checklist] : [] });
     setEditModalAct(act);
+  };
+
+  const handleAddChecklistKb = () => {
+    if (!newCheckKb.trim() || !editForm) return;
+    const newItem: ChecklistItem = {
+      id: crypto.randomUUID(),
+      text: newCheckKb.trim(),
+      done: false
+    };
+    setEditForm(f => f ? ({
+      ...f,
+      checklist: [...(f.checklist || []), newItem]
+    }) : null);
+    setNewCheckKb('');
+  };
+
+  const handleToggleChecklistKb = (itemId: string) => {
+    setEditForm(f => {
+      if (!f) return null;
+      const next = (f.checklist || []).map(i => i.id === itemId ? { ...i, done: !i.done } : i);
+      const total = next.length;
+      const doneCount = next.filter(i => i.done).length;
+      let newPercent = f.percentualAndamento;
+      let newStatus = f.status;
+      if (total > 0) {
+        newPercent = Math.round((doneCount / total) * 100);
+        if (newPercent === 100) newStatus = 'FINALIZADA';
+        else if (newPercent > 0 && newStatus === 'PENDENTE') newStatus = 'EM ANDAMENTO';
+      }
+      return {
+        ...f,
+        checklist: next,
+        percentualAndamento: newPercent,
+        status: newStatus,
+        dataFinalizada: newStatus === 'FINALIZADA' ? (f.dataFinalizada || new Date().toISOString().slice(0, 10)) : f.dataFinalizada
+      };
+    });
+  };
+
+  const handleRemoveChecklistKb = (itemId: string) => {
+    setEditForm(f => f ? ({
+      ...f,
+      checklist: (f.checklist || []).filter(i => i.id !== itemId)
+    }) : null);
   };
 
   const formatDisplayDate = (dateStr?: string) => {
@@ -734,6 +790,35 @@ export default function KanbanTab({ activities, themes, users, holidays, current
                 </div>
               </div>
 
+              {/* Checklist / Subatividades na visualização */}
+              {viewModalAct.checklist && viewModalAct.checklist.length > 0 && (
+                <div style={{ padding: '0.85rem 1rem', background: 'var(--bg-layer)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <ListTodo size={15} style={{ color: 'var(--accent-primary)' }} />
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                        Subatividades / Checklist
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
+                      {viewModalAct.checklist.filter(i => i.done).length}/{viewModalAct.checklist.length} concluídas
+                    </span>
+                  </div>
+                  <div className="checklist-items" style={{ maxHeight: '180px', marginBottom: 0 }}>
+                    {viewModalAct.checklist.map(item => (
+                      <div key={item.id} className="checklist-item" style={{ padding: '6px 10px', opacity: item.done ? 0.75 : 1 }}>
+                        <span style={{ color: item.done ? '#10b981' : 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+                          {item.done ? <CheckCircle2 size={15} /> : <div className="checklist-circle" style={{ width: 14, height: 14 }} />}
+                        </span>
+                        <span className={`checklist-text ${item.done ? 'done' : ''}`} style={{ fontSize: '0.825rem' }}>
+                          {item.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Justificativa / Comentário */}
               {viewModalAct.comentario && (
                 <div style={{ padding: '0.85rem 1rem', background: 'rgba(245, 158, 11, 0.08)', borderRadius: '10px', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
@@ -906,6 +991,59 @@ export default function KanbanTab({ activities, themes, users, holidays, current
                     value={editForm.esforcoRealizado || 0}
                     onChange={e => setEditForm(f => f ? ({ ...f, esforcoRealizado: Number(e.target.value) }) : null)}
                   />
+                </div>
+
+                {/* ── Checklist / Subatividades ── */}
+                <div className="form-group full">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ListTodo size={16} />
+                    Subatividades / Checklist
+                    {editForm.checklist && editForm.checklist.length > 0 && (
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent-primary)', marginLeft: '4px' }}>
+                        {editForm.checklist.filter(i => i.done).length}/{editForm.checklist.length} concluídas
+                      </span>
+                    )}
+                  </label>
+                  <div className="checklist-items">
+                    {(editForm.checklist || []).map(item => (
+                      <div key={item.id} className="checklist-item">
+                        <button
+                          type="button"
+                          className={`checklist-check ${item.done ? 'done' : ''}`}
+                          onClick={() => handleToggleChecklistKb(item.id)}
+                        >
+                          {item.done ? <CheckCircle2 size={16} /> : <div className="checklist-circle" />}
+                        </button>
+                        <span className={`checklist-text ${item.done ? 'done' : ''}`}>{item.text}</span>
+                        <button
+                          type="button"
+                          className="checklist-remove"
+                          onClick={() => handleRemoveChecklistKb(item.id)}
+                          title="Remover"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="checklist-add-row">
+                    <input
+                      type="text"
+                      className="checklist-add-input"
+                      placeholder="Nova subatividade..."
+                      value={newCheckKb}
+                      onChange={e => setNewCheckKb(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddChecklistKb(); } }}
+                    />
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={handleAddChecklistKb}
+                      style={{ padding: '6px 14px', fontSize: '0.8rem' }}
+                    >
+                      <Plus size={14} /> Adicionar
+                    </button>
+                  </div>
                 </div>
 
                 <div className="form-group full">
