@@ -621,3 +621,4 @@ export const INITIAL_BUDGET_ITEMS: Omit<BudgetItem, 'id'>[] = [
     modalidade: 'Presencial'
   }
 ];
+

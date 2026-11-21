@@ -59,6 +59,21 @@ const STATUS_LEGEND: { status: AbsenteeismStatus; label: string; color: string; 
   { status: 'AF', label: 'AFASTAMENTO', color: '#fff', bg: '#991b1b' },
 ];
 
+function getHEPeriod(yearMonth: string): { start: string; end: string; label: string } {
+  if (!yearMonth) {
+    const now = new Date();
+    yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+  const [y, m] = yearMonth.split('-').map(Number);
+  const start = `${y}-${String(m).padStart(2, '0')}-15`;
+  const nextMonthDate = new Date(y, m, 14); // month index m = próximo mês
+  const ny = nextMonthDate.getFullYear();
+  const nm = nextMonthDate.getMonth() + 1;
+  const end = `${ny}-${String(nm).padStart(2, '0')}-14`;
+  const label = `15/${String(m).padStart(2, '0')}/${y} a 14/${String(nm).padStart(2, '0')}/${ny}`;
+  return { start, end, label };
+}
+
 export default function AbsenteismoTab({
   currentUser, employees, absenteeismRecords, overtimeRecords, holidays,
   onSaveAbsenteeism, onDeleteAbsenteeism,
@@ -182,7 +197,13 @@ export default function AbsenteismoTab({
   const [heModal, setHeModal] = useState<{ open: boolean; editingGroup: HEGroup | null }>({ open: false, editingGroup: null });
   const [heForm, setHeForm] = useState<{ employeeIds: string[], date: string, startTime: string, endTime: string, costCenter: string, cause: string, motive: string, formNumber: string }>({ employeeIds: [], date: '', startTime: '', endTime: '', costCenter: 'Honda', cause: '', motive: '', formNumber: '' });
 
-  const filterHEMonth = useMemo(() => overtimeRecords.filter(r => r.date.startsWith(selectedMonth)).sort((a, b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime)), [overtimeRecords, selectedMonth]);
+  const hePeriod = useMemo(() => getHEPeriod(selectedMonth), [selectedMonth]);
+
+  const filterHEMonth = useMemo(() => {
+    return overtimeRecords
+      .filter(r => r.date >= hePeriod.start && r.date <= hePeriod.end)
+      .sort((a, b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime));
+  }, [overtimeRecords, hePeriod]);
 
   const heGroups = useMemo(() => {
     const groups: Record<string, HEGroup> = {};
@@ -269,7 +290,7 @@ export default function AbsenteismoTab({
     const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(';'), ...rows].join('\n');
     const link = document.createElement("a");
     link.href = encodeURI(csvContent);
-    link.download = `HorasExtras_${selectedMonth}.csv`;
+    link.download = `HorasExtras_${hePeriod.start}_a_${hePeriod.end}.csv`;
     link.click();
   };
 
@@ -291,9 +312,23 @@ export default function AbsenteismoTab({
     });
   };
 
+  const getHEPeriodRecords = (records: OvertimeRecord[]) => {
+    return records.filter(r => {
+      if (indicatorPeriod === 'selected_month') return r.date >= hePeriod.start && r.date <= hePeriod.end;
+      if (indicatorPeriod === 'all') return true;
+      const [yr, mr] = r.date.split('-').map(Number);
+      const diffMonths = (new Date().getFullYear() - yr) * 12 + (new Date().getMonth() - (mr - 1));
+      if (indicatorPeriod === 'last_3') return diffMonths >= 0 && diffMonths < 3;
+      if (indicatorPeriod === 'last_6') return diffMonths >= 0 && diffMonths < 6;
+      if (indicatorPeriod === 'last_12') return diffMonths >= 0 && diffMonths < 12;
+      return false;
+    });
+  };
+
   const absStats = useMemo(() => {
     let mostAbsent = { name: '--', count: 0 };
     let allStats: { emp: Employee, p: number, f: number, total: number, rate: number }[] = [];
+    const employeeAbsences: { emp: Employee; name: string; count: number }[] = [];
 
     const periodRecords = getPeriodRecords(absenteeismRecords);
     const absenceCounts: Record<string, number> = {};
@@ -326,12 +361,22 @@ export default function AbsenteismoTab({
         }
       });
 
-      if (calcF > mostAbsent.count) mostAbsent = { name: emp.name, count: calcF };
+      if (calcF > 0) {
+        employeeAbsences.push({ emp, name: emp.name, count: calcF });
+      }
 
       const total = calcP + calcF;
       const rate = total > 0 ? (calcP / total) : 0;
       if (total > 0) allStats.push({ emp, p: calcP, f: calcF, total, rate });
     });
+
+    const top3Absent = [...employeeAbsences]
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+      .slice(0, 3);
+
+    if (top3Absent.length > 0) {
+      mostAbsent = { name: top3Absent[0].name, count: top3Absent[0].count };
+    }
 
     const top3 = [...allStats].sort((a, b) => b.rate - a.rate || b.p - a.p).slice(0, 3);
     const totalGeneral = totalPresence + totalAbsences;
@@ -356,6 +401,7 @@ export default function AbsenteismoTab({
 
     return {
       mostAbsent,
+      top3Absent,
       top3,
       totalAbsences,
       totalPresence,
@@ -367,7 +413,7 @@ export default function AbsenteismoTab({
 
   const heStats = useMemo(() => {
     const totals: Record<string, number> = {};
-    const periodRecords = getPeriodRecords(overtimeRecords);
+    const periodRecords = getHEPeriodRecords(overtimeRecords);
 
     periodRecords.forEach(rec => {
       if (!rec.startTime || !rec.endTime) return;
@@ -378,17 +424,32 @@ export default function AbsenteismoTab({
       totals[rec.employeeId] = (totals[rec.employeeId] || 0) + diff;
     });
 
-    let maxVal = 0, maxEmpId = '';
-    for (const id in totals) { if (totals[id] > maxVal) { maxVal = totals[id]; maxEmpId = id; } }
+    const top3HE = Object.entries(totals)
+      .filter(([_, minutes]) => minutes > 0)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([empId, minutes], idx) => {
+        const emp = employees.find(e => e.id === empId);
+        const hh = Math.floor(minutes / 60);
+        const mm = minutes % 60;
+        return {
+          rank: idx + 1,
+          emp,
+          name: emp?.name || 'Desconhecido',
+          minutes,
+          hoursText: `${hh}h ${String(mm).padStart(2, '0')}m`
+        };
+      });
 
-    const emp = employees.find(e => e.id === maxEmpId);
-    const hh = Math.floor(maxVal / 60);
-    const mm = maxVal % 60;
-    return { emp, hoursText: maxVal > 0 ? `${hh}h ${mm}m` : '--' };
-  }, [overtimeRecords, employees, selectedMonth, indicatorPeriod]);
+    return {
+      top3HE,
+      emp: top3HE[0]?.emp,
+      hoursText: top3HE[0]?.hoursText || '--'
+    };
+  }, [overtimeRecords, employees, selectedMonth, indicatorPeriod, hePeriod]);
 
   // Reusable Select Filter for Indicators
-  const IndicatorFilter = () => (
+  const IndicatorFilter = ({ isHE = false }: { isHE?: boolean }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '1rem', width: '100%', background: 'var(--bg-card)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
       <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Filtro do Resumo:</span>
       <div className="select-wrap" style={{ minWidth: '220px', background: 'var(--bg-layer)' }}>
@@ -397,7 +458,9 @@ export default function AbsenteismoTab({
           onChange={e => setIndicatorPeriod(e.target.value)}
           style={{ fontWeight: 600, color: 'var(--text-primary)' }}
         >
-          <option value="selected_month" style={{ color: '#000', fontWeight: 500 }}>Mês Selecionado na Grade</option>
+          <option value="selected_month" style={{ color: '#000', fontWeight: 500 }}>
+            {isHE ? `Ciclo Selecionado (${hePeriod.label})` : 'Mês Selecionado na Grade'}
+          </option>
           <option value="last_3" style={{ color: '#000', fontWeight: 500 }}>Últimos 3 Meses</option>
           <option value="last_6" style={{ color: '#000', fontWeight: 500 }}>Últimos 6 Meses</option>
           <option value="last_12" style={{ color: '#000', fontWeight: 500 }}>Últimos 12 Meses</option>
@@ -487,14 +550,48 @@ export default function AbsenteismoTab({
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Sábados desconsiderados (HE)</span>
                 </div>
 
-                <div style={{ padding: '0.9rem 1.1rem', borderRadius: '10px', background: 'var(--bg-layer)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase' }}>Maior Ausência Individual</span>
-                  <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={absStats.mostAbsent.name}>
-                    {absStats.mostAbsent.name}
-                  </span>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                    {absStats.mostAbsent.count > 0 ? `${absStats.mostAbsent.count} ocorrência(s)` : 'Nenhuma ausência'}
-                  </span>
+                <div style={{ padding: '0.9rem 1.1rem', borderRadius: '10px', background: 'var(--bg-layer)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.35rem', justifyContent: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase' }}>
+                      Maiores Ausências Individuais (Top 3)
+                    </span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>RANKING</span>
+                  </div>
+                  {absStats.top3Absent.length === 0 ? (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic', paddingTop: '0.2rem' }}>
+                      Nenhuma ausência no período
+                    </span>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.1rem' }}>
+                      {absStats.top3Absent.map((item, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', fontSize: '0.8rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0, flex: 1 }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '50%',
+                              fontSize: '0.65rem',
+                              fontWeight: 800,
+                              background: idx === 0 ? 'rgba(239, 68, 68, 0.2)' : idx === 1 ? 'rgba(249, 115, 22, 0.2)' : 'rgba(168, 85, 247, 0.15)',
+                              color: idx === 0 ? '#ef4444' : idx === 1 ? '#f97316' : '#a855f7',
+                              flexShrink: 0
+                            }}>
+                              {idx + 1}
+                            </span>
+                            <span style={{ fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.name}>
+                              {item.name}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#ef4444', flexShrink: 0 }}>
+                            {item.count} {item.count === 1 ? 'ocorrência' : 'ocorrências'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -758,23 +855,86 @@ export default function AbsenteismoTab({
           {/* INDICADOR HORA EXTRA */}
           {canViewDashboards && (
             <>
-              <IndicatorFilter />
-              <div className="table-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.1) 100%)', border: '1px solid rgba(59, 130, 246, 0.2)', marginTop: '-0.5rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase' }}>DESTAQUE DO PERÍODO: MAIOR CARGA EXTRA</span>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{heStats.emp?.name || '--'}</span>
+              <IndicatorFilter isHE />
+              <div className="table-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.04) 0%, rgba(59, 130, 246, 0.08) 100%)', border: '1px solid rgba(59, 130, 246, 0.2)', marginTop: '-0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', borderBottom: '1px solid rgba(59, 130, 246, 0.15)', paddingBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <Clock size={18} style={{ color: '#3b82f6' }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      DESTAQUES DO PERÍODO: MAIORES CARGAS EXTRAS (TOP 3)
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-layer)', padding: '0.2rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                    Ciclo de Apuração: {hePeriod.label}
+                  </span>
                 </div>
-                <span style={{ fontSize: '0.9rem', color: '#2563eb', fontWeight: 600 }}>Carga acumulada de {heStats.hoursText}</span>
+
+                {heStats.top3HE.length === 0 ? (
+                  <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic' }}>
+                    Nenhuma hora extra registrada no período selecionado.
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.85rem' }}>
+                    {heStats.top3HE.map((item, idx) => {
+                      const medalColors = [
+                        { border: 'rgba(234, 179, 8, 0.4)', label: '1º Lugar', medal: '🥇' },
+                        { border: 'rgba(148, 163, 184, 0.4)', label: '2º Lugar', medal: '🥈' },
+                        { border: 'rgba(205, 127, 50, 0.4)', label: '3º Lugar', medal: '🥉' }
+                      ][idx] || { border: 'var(--border-color)', label: `${idx + 1}º Lugar`, medal: '🎖️' };
+
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            padding: '0.9rem 1.1rem',
+                            borderRadius: '10px',
+                            background: 'var(--bg-card)',
+                            border: `1px solid ${medalColors.border}`,
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.4rem'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <span style={{ fontSize: '1.1rem' }}>{medalColors.medal}</span>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                                {medalColors.label}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+                              #{idx + 1}
+                            </span>
+                          </div>
+
+                          <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '0.1rem' }} title={item.name}>
+                            {item.name}
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.2rem' }}>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Carga acumulada:</span>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#3b82f6' }}>{item.hoursText}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </>
           )}
 
           <div className="cad-section-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <span className="cad-count">Lançamentos de HE</span>
               <div className="input-icon-wrap" style={{ width: 'auto' }}>
                 <Calendar size={16} />
                 <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} />
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'var(--bg-card)', padding: '0.35rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span style={{ fontWeight: 700, color: '#3b82f6' }}>Ciclo (15 a 14):</span>
+                <span>{hePeriod.label}</span>
               </div>
               {isSaving && <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)' }}><RefreshCw size={14} className="spinner" /> Processando...</div>}
             </div>
