@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Download, RefreshCw, Calendar, Trash2, Users, Clock, Tag, Plus, Edit2, X, Save, SaveAll, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Download, RefreshCw, Calendar, Trash2, Users, Clock, Tag, Plus, Edit2, X, Save, SaveAll, AlertTriangle, ShieldAlert, Search, FileText } from 'lucide-react';
 import type { User, Employee, AbsenteeismRecord, AbsenteeismStatus, OvertimeRecord, Holiday } from '../types';
 
 interface HEGroup {
@@ -100,6 +100,8 @@ export default function AbsenteismoTab({
   const [activeStatus, setActiveStatus] = useState<AbsenteeismStatus | 'LIMPAR'>('P');
   const [isSaving, setIsSaving] = useState(false);
   const [allowanceModal, setAllowanceModal] = useState<{ open: boolean; employeeId?: string; dateStr?: string; reason?: string }>({ open: false });
+  const [showAllowancesModal, setShowAllowancesModal] = useState(false);
+  const [allowanceSearch, setAllowanceSearch] = useState('');
 
   // Memos globais
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'Ativo').sort((a, b) => a.name.localeCompare(b.name)), [employees]);
@@ -175,6 +177,77 @@ export default function AbsenteismoTab({
     const link = document.createElement("a");
     link.href = encodeURI(csvContent);
     link.download = `Absenteismo_${selectedMonth}.csv`;
+    link.click();
+  };
+
+  // -- Abonos (Allowances) do Mês --
+  const monthAllowances = useMemo(() => {
+    return monthRecords
+      .filter(r => r.hasAllowance)
+      .map(r => {
+        const emp = employees.find(e => e.id === r.employeeId);
+        const leg = STATUS_LEGEND.find(l => l.status === r.status);
+        const [y, m, d] = r.date.split('-');
+        const dateObj = new Date(Number(y), Number(m) - 1, Number(d));
+        const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        const weekDay = weekDays[dateObj.getDay()] || '';
+        return {
+          record: r,
+          emp,
+          employeeName: emp?.name || 'Desconhecido',
+          date: r.date,
+          day: Number(d),
+          formattedDate: `${d}/${m}/${y}`,
+          weekDay,
+          status: r.status,
+          statusLegend: leg,
+          reason: r.allowanceReason || 'Sem motivo registrado'
+        };
+      })
+      .sort((a, b) => a.date.localeCompare(b.date) || a.employeeName.localeCompare(b.employeeName));
+  }, [monthRecords, employees]);
+
+  const filteredMonthAllowances = useMemo(() => {
+    const q = allowanceSearch.trim().toLowerCase();
+    if (!q) return monthAllowances;
+    return monthAllowances.filter(a =>
+      a.employeeName.toLowerCase().includes(q) ||
+      a.reason.toLowerCase().includes(q) ||
+      a.formattedDate.includes(q) ||
+      a.status.toLowerCase().includes(q) ||
+      (a.statusLegend?.label || '').toLowerCase().includes(q)
+    );
+  }, [monthAllowances, allowanceSearch]);
+
+  const handleRemoveAllowance = async (rec: AbsenteeismRecord) => {
+    if (!canEdit) return;
+    if (!window.confirm('Deseja realmente remover o abono deste apontamento? O status será mantido, mas não constará mais como abonado.')) return;
+    setIsSaving(true);
+    try {
+      await onSaveAbsenteeism({
+        ...rec,
+        hasAllowance: false,
+        allowanceReason: undefined,
+        updatedBy: currentUser?.id
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const exportAllowancesCSV = () => {
+    const headers = ['Data', 'Dia da Semana', 'Colaborador', 'Status', 'Motivo do Abono'];
+    const rows = monthAllowances.map(a => [
+      a.formattedDate,
+      a.weekDay,
+      `"${a.employeeName}"`,
+      `"${a.status} - ${a.statusLegend?.label || ''}"`,
+      `"${(a.reason || '').replace(/"/g, '""')}"`
+    ].join(';'));
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(';'), ...rows].join('\n');
+    const link = document.createElement("a");
+    link.href = encodeURI(csvContent);
+    link.download = `Abonos_${selectedMonth}.csv`;
     link.click();
   };
 
@@ -593,6 +666,31 @@ export default function AbsenteismoTab({
                     </div>
                   )}
                 </div>
+
+                <div
+                  onClick={() => setShowAllowancesModal(true)}
+                  style={{
+                    padding: '0.9rem 1.1rem',
+                    borderRadius: '10px',
+                    background: 'var(--bg-layer)',
+                    border: monthAllowances.length > 0 ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-color)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.2rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  title="Clique para abrir e ver os abonos detalhados deste mês"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase' }}>Abonos do Mês</span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#f59e0b', background: 'rgba(245, 158, 11, 0.15)', padding: '1px 6px', borderRadius: '4px' }}>Ver Lista ➔</span>
+                  </div>
+                  <span style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>{monthAllowances.length}</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                    {monthAllowances.length === 1 ? '1 apontamento abonado' : `${monthAllowances.length} apontamentos abonados`}
+                  </span>
+                </div>
               </div>
 
               {/* BARRA COLORIDA PROPORCIONAL & DETALHAMENTO */}
@@ -709,6 +807,45 @@ export default function AbsenteismoTab({
                       <span className="abono-btn-icon">❗</span>
                       <span>Incluir Abono</span>
                     </button>
+
+                    <button 
+                      type="button"
+                      onClick={() => setShowAllowancesModal(true)}
+                      title="Ver e gerenciar todos os abonos deste mês"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.45rem',
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '8px',
+                        background: monthAllowances.length > 0 ? 'rgba(245, 158, 11, 0.12)' : 'var(--bg-card)',
+                        border: monthAllowances.length > 0 ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-color)',
+                        color: monthAllowances.length > 0 ? '#f59e0b' : 'var(--text-secondary)',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <ShieldAlert size={15} style={{ color: '#f59e0b' }} />
+                      <span>Ver Abonos do Mês</span>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '20px',
+                        height: '20px',
+                        borderRadius: '10px',
+                        background: monthAllowances.length > 0 ? '#f59e0b' : 'var(--bg-layer)',
+                        color: monthAllowances.length > 0 ? '#000' : 'var(--text-muted)',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        padding: '0 5px'
+                      }}>
+                        {monthAllowances.length}
+                      </span>
+                    </button>
                   </>
                 )}
                 {isSaving && <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)' }}><RefreshCw size={14} className="spinner" /> Salvando...</div>}
@@ -732,7 +869,7 @@ export default function AbsenteismoTab({
               <table className="data-table" style={{ borderCollapse: 'collapse', width: '100%', tableLayout: 'fixed' }}>
                 <thead>
                   <tr>
-                    <th style={{ width: '250px', position: 'sticky', left: 0, zIndex: 10, background: 'var(--bg-card)', borderRight: '2px solid var(--border-color)' }}>Funcionário</th>
+                    <th style={{ width: '250px', position: 'sticky', left: 0, zIndex: 10, background: 'var(--bg-modal)', borderRight: '2px solid var(--border-color)', boxShadow: '2px 0 6px rgba(0,0,0,0.15)' }}>Funcionário</th>
                     {daysArray.map(d => {
                       const cleanHDate = (h: Holiday) => (h.date.includes('T') ? h.date.split('T')[0] : h.date);
                       const isHoliday = holidays.some(h => cleanHDate(h) === d.dateStr);
@@ -765,7 +902,7 @@ export default function AbsenteismoTab({
                     let calcP = 0; let calcF = 0;
                     return (
                       <tr key={emp.id} className="data-row hover-row">
-                        <td style={{ position: 'sticky', left: 0, zIndex: 10, background: 'var(--bg-card)', borderRight: '2px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ position: 'sticky', left: 0, zIndex: 10, background: 'var(--bg-modal)', borderRight: '2px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', boxShadow: '2px 0 6px rgba(0,0,0,0.15)' }}>
                           <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{emp.name}</span>
                         </td>
                         {daysArray.map(d => {
@@ -832,7 +969,7 @@ export default function AbsenteismoTab({
                   })}
                   {/* TOTAIS */}
                   <tr style={{ borderTop: '2px solid var(--border-color)' }}>
-                    <td style={{ position: 'sticky', left: 0, zIndex: 10, background: 'var(--bg-card)', fontWeight: 'bold', borderRight: '2px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ position: 'sticky', left: 0, zIndex: 10, background: 'var(--bg-modal)', fontWeight: 'bold', borderRight: '2px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', boxShadow: '2px 0 6px rgba(0,0,0,0.15)' }}>
                       TOTAL GERAL MÊS
                     </td>
                     {summaryTotals.map((tot, idx) => (
@@ -1218,7 +1355,7 @@ export default function AbsenteismoTab({
                   <div className="form-group">
                     <label>Preenchimento da Célula *</label>
                     <div className="select-wrap full-w">
-                      <select name="status" defaultValue="P">
+                      <select name="status" defaultValue={allowanceModal.employeeId && allowanceModal.dateStr ? (getRecord(allowanceModal.employeeId, allowanceModal.dateStr)?.status || 'P') : 'P'}>
                         <option value="P">P - Presente (Abonado)</option>
                         <option value="A">A - Atraso (Abonado)</option>
                         <option value="F">F - Falta (Abonada)</option>
@@ -1235,6 +1372,7 @@ export default function AbsenteismoTab({
                     name="reason" 
                     rows={3} 
                     required 
+                    defaultValue={allowanceModal.reason || ''}
                     placeholder="Descreva o motivo do abono (ex: Consulta médica agendada, liberação da gestão, compensação...)" 
                   />
                   <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '4px', display: 'block' }}>
@@ -1249,6 +1387,193 @@ export default function AbsenteismoTab({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE VISUALIZAÇÃO DE ABONOS DO MÊS */}
+      {showAllowancesModal && (
+        <div className="modal-overlay" onClick={() => setShowAllowancesModal(false)}>
+          <div className="modal-box" style={{ maxWidth: '850px', width: '95%' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ShieldAlert size={20} style={{ color: '#f59e0b' }} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>
+                    Abonos Registrados ({ptMonths[monthIndex]} de {year})
+                  </h2>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    Total de <b>{monthAllowances.length}</b> abono(s) concedido(s) neste mês
+                  </span>
+                </div>
+              </div>
+              <button className="modal-close" onClick={() => setShowAllowancesModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem 0' }}>
+              {/* Barra de busca e ações rápidas */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.8rem', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+                  <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    type="text"
+                    placeholder="Buscar por colaborador, motivo ou status..."
+                    value={allowanceSearch}
+                    onChange={e => setAllowanceSearch(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem 0.75rem 0.5rem 2.1rem',
+                      borderRadius: '8px',
+                      background: 'var(--bg-layer)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.85rem'
+                    }}
+                  />
+                  {allowanceSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setAllowanceSearch('')}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {monthAllowances.length > 0 && (
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={exportAllowancesCSV}
+                      style={{ fontSize: '0.82rem', padding: '0.45rem 0.85rem', display: 'flex', alignItems: 'center', gap: '5px' }}
+                    >
+                      <Download size={14} /> Exportar Abonos (CSV)
+                    </button>
+                  )}
+                  {canEdit && (
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={() => {
+                        setShowAllowancesModal(false);
+                        setAllowanceModal({ open: true });
+                      }}
+                      style={{ fontSize: '0.82rem', padding: '0.45rem 0.85rem', display: 'flex', alignItems: 'center', gap: '5px' }}
+                    >
+                      <Plus size={14} /> Novo Abono
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Tabela de Abonos */}
+              {monthAllowances.length === 0 ? (
+                <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem' }}>
+                  <ShieldAlert size={40} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
+                  <span style={{ fontSize: '1rem', fontWeight: 700 }}>Nenhum abono registrado neste mês</span>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', maxWidth: '400px' }}>
+                    Nenhum colaborador possui apontamento com abono concedido em {ptMonths[monthIndex]} de {year}. Para conceder um abono, use o botão "Incluir Abono".
+                  </span>
+                </div>
+              ) : filteredMonthAllowances.length === 0 ? (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  Nenhum abono encontrado para o termo pesquisado.
+                </div>
+              ) : (
+                <div className="table-scroll custom-scroll" style={{ maxHeight: '420px', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                  <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead style={{ position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg-modal)' }}>
+                      <tr>
+                        <th style={{ width: '120px' }}>Data</th>
+                        <th style={{ minWidth: '180px' }}>Colaborador</th>
+                        <th style={{ width: '120px', textAlign: 'center' }}>Apontamento</th>
+                        <th style={{ minWidth: '220px' }}>Motivo do Abono</th>
+                        {canEdit && <th style={{ width: '90px', textAlign: 'right' }}>Ações</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredMonthAllowances.map(a => (
+                        <tr key={`${a.record.employeeId}-${a.date}`} className="data-row hover-row" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                          <td style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span>{a.formattedDate}</span>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{a.weekDay}</span>
+                            </div>
+                          </td>
+                          <td style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800, flexShrink: 0 }}>
+                                {a.employeeName.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <span>{a.employeeName}</span>
+                                {a.emp?.role && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>{a.emp.role}</div>}
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.2rem 0.55rem', borderRadius: '6px', background: a.statusLegend?.bg || '#22c55e', color: a.statusLegend?.color || '#fff', fontSize: '0.78rem', fontWeight: 800 }}>
+                              <span>{a.status}</span>
+                              <span style={{ fontSize: '0.7rem' }}>❗</span>
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                              {a.statusLegend?.label || ''}
+                            </div>
+                          </td>
+                          <td style={{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: 1.4 }}>
+                            <div style={{ background: 'var(--bg-layer)', padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid var(--border-color)', fontStyle: a.reason === 'Sem motivo registrado' ? 'italic' : 'normal', color: a.reason === 'Sem motivo registrado' ? 'var(--text-muted)' : 'var(--text-primary)' }}>
+                              {a.reason}
+                            </div>
+                          </td>
+                          {canEdit && (
+                            <td style={{ textAlign: 'right' }}>
+                              <div style={{ display: 'inline-flex', gap: '0.35rem', alignItems: 'center' }}>
+                                <button
+                                  type="button"
+                                  className="action-btn edit"
+                                  title="Editar motivo ou status do abono"
+                                  onClick={() => {
+                                    setShowAllowancesModal(false);
+                                    setAllowanceModal({
+                                      open: true,
+                                      employeeId: a.record.employeeId,
+                                      dateStr: a.date,
+                                      reason: a.record.allowanceReason
+                                    });
+                                  }}
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="action-btn del"
+                                  title="Remover abono deste apontamento"
+                                  onClick={() => handleRemoveAllowance(a.record)}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn-primary" onClick={() => setShowAllowancesModal(false)}>
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}
